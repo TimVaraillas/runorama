@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { StatCardComponent } from '../../shared/ui/molecules/stat-card/stat-card.component';
-import { ButtonComponent } from '../../shared/ui/atoms/button/button.component';
+import { StatCardComponent } from '../../components/molecules/stat-card/stat-card.component';
+import { ButtonComponent } from '../../components/atoms/button/button.component';
 import {
   faDumbbell,
   faCalendarCheck,

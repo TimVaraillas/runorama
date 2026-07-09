@@ -2,9 +2,9 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
 import { WorkoutService } from '../../features/workouts/services/workout.service';
-import { ButtonComponent } from '../../shared/ui/atoms/button/button.component';
-import { BadgeComponent } from '../../shared/ui/atoms/badge/badge.component';
-import { IconComponent } from '../../shared/ui/atoms/icon/icon.component';
+import { ButtonComponent } from '../../components/atoms/button/button.component';
+import { BadgeComponent } from '../../components/atoms/badge/badge.component';
+import { IconComponent } from '../../components/atoms/icon/icon.component';
 import type { Workout } from '../../core/models';
 import { formatDistance, formatDuration } from '../../core/utils/pace.util';
 import {

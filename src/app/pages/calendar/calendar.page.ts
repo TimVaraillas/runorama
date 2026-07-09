@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
-import { ButtonComponent } from '../../shared/ui/atoms/button/button.component';
-import { IconComponent } from '../../shared/ui/atoms/icon/icon.component';
+import { ButtonComponent } from '../../components/atoms/button/button.component';
+import { IconComponent } from '../../components/atoms/icon/icon.component';
 import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 
 interface CalendarDay {

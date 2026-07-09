@@ -1,8 +1,37 @@
 import { Router, type Request, type Response } from 'express';
+import mongoose from 'mongoose';
 import { connectToDatabase } from '../db/mongoose';
 import { WorkoutModel } from '../models/workout.schema';
 import { PlannedSessionModel } from '../models/planned-session.schema';
 import { toGarminWorkout } from '../services/garmin-export';
+
+/**
+ * Normalise un document `lean` Mongo pour l'API :
+ * remplace `_id` (ObjectId) par `id` (string) et retire `__v`.
+ * Si `workoutId` est peuplé (objet), l'expose sous `workout` et garde `workoutId` en string.
+ */
+function serialize(doc: Record<string, unknown> | null): Record<string, unknown> | null {
+  if (!doc) {
+    return doc;
+  }
+  const { _id, __v, ...rest } = doc as Record<string, unknown> & { _id?: unknown; __v?: unknown };
+  const out: Record<string, unknown> = { ...rest };
+  if (_id !== undefined && _id !== null) {
+    out['id'] = String(_id);
+  }
+  const workoutId = out['workoutId'];
+  if (workoutId && typeof workoutId === 'object') {
+    const workout = serialize(workoutId as Record<string, unknown>);
+    out['workout'] = workout;
+    out['workoutId'] = workout?.['id'];
+  }
+  return out;
+}
+
+/** Sérialise une liste de documents `lean`. */
+function serializeMany(docs: Record<string, unknown>[]): Array<Record<string, unknown> | null> {
+  return docs.map((d) => serialize(d));
+}
 
 /**
  * Router de l'API REST de Runorama.
@@ -21,20 +50,29 @@ export function createApiRouter(): Router {
     }
   });
 
+  // Rejette proprement un identifiant qui n'est pas un ObjectId valide
+  // (évite un CastError 500 quand l'id vaut "undefined" ou est malformé).
+  router.param('id', (_req: Request, res: Response, next, id) => {
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: 'Identifiant invalide' });
+    }
+    return next();
+  });
+
   // ----------------------------------------------------------------------
   // Séances (workouts)
   // ----------------------------------------------------------------------
   router.get('/workouts', async (_req: Request, res: Response) => {
-    const workouts = await WorkoutModel.find().sort({ updatedAt: -1 }).lean({ virtuals: true });
-    return res.json(workouts);
+    const workouts = await WorkoutModel.find().sort({ updatedAt: -1 }).lean();
+    return res.json(serializeMany(workouts));
   });
 
   router.get('/workouts/:id', async (req: Request, res: Response) => {
-    const workout = await WorkoutModel.findById(req.params['id']).lean({ virtuals: true });
+    const workout = await WorkoutModel.findById(req.params['id']).lean();
     if (!workout) {
       return res.status(404).json({ message: 'Séance introuvable' });
     }
-    return res.json(workout);
+    return res.json(serialize(workout));
   });
 
   router.post('/workouts', async (req: Request, res: Response) => {
@@ -63,7 +101,7 @@ export function createApiRouter(): Router {
 
   /** Export d'une séance au format Garmin Connect. */
   router.get('/workouts/:id/garmin', async (req: Request, res: Response) => {
-    const workout = await WorkoutModel.findById(req.params['id']).lean({ virtuals: true });
+    const workout = await WorkoutModel.findById(req.params['id']).lean();
     if (!workout) {
       return res.status(404).json({ message: 'Séance introuvable' });
     }
@@ -87,8 +125,8 @@ export function createApiRouter(): Router {
     const sessions = await PlannedSessionModel.find(filter)
       .populate('workoutId')
       .sort({ date: 1 })
-      .lean({ virtuals: true });
-    return res.json(sessions);
+      .lean();
+    return res.json(serializeMany(sessions));
   });
 
   router.post('/planned-sessions', async (req: Request, res: Response) => {

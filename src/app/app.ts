@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { MainLayoutComponent } from './shared/ui/templates/main-layout/main-layout.component';
+import { MainLayoutComponent } from './components/templates/main-layout/main-layout.component';
 
 @Component({
   selector: 'app-root',

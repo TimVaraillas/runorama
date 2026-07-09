@@ -4,22 +4,38 @@
    Runorama — Design tokens (Tailwind v4 theme)
    ========================================================================== */
 @theme {
-  /* Brand palette — energetic running vibe */
-  --color-brand-50: #eefdf3;
-  --color-brand-100: #d6f9e1;
-  --color-brand-200: #b0f1c8;
-  --color-brand-300: #7be3a8;
-  --color-brand-400: #40cd82;
-  --color-brand-500: #1cb567;
-  --color-brand-600: #109352;
-  --color-brand-700: #0f7544;
-  --color-brand-800: #115c39;
-  --color-brand-900: #104c31;
-  --color-brand-950: #032b1a;
+  /* Primary — Fiery Terracotta (#f2542d) */
+  --color-brand-50: #fef4f1;
+  --color-brand-100: #fce0d9;
+  --color-brand-200: #f9c6b8;
+  --color-brand-300: #f5a48f;
+  --color-brand-400: #f47a5a;
+  --color-brand-500: #f3612f;
+  --color-brand-600: #f2542d; /* couleur primaire */
+  --color-brand-700: #562c2c; /* primaire plus foncé */
+  --color-brand-800: #4a2626;
+  --color-brand-900: #3e2222;
+  --color-brand-950: #2a1717;
 
-  /* Accent — used for effort/intensity zones */
-  --color-accent-500: #ff5a1f;
-  --color-accent-600: #e04413;
+  /* Secondary — Dark Cyan (#0e9594) */
+  --color-secondary-50: #e6f7f6;
+  --color-secondary-100: #c4ecec;
+  --color-secondary-200: #93dcdb;
+  --color-secondary-300: #56c6c5;
+  --color-secondary-400: #22a9a8;
+  --color-secondary-500: #0e9594; /* couleur secondaire */
+  --color-secondary-600: #127475; /* secondaire plus foncé */
+  --color-secondary-700: #115d5e;
+  --color-secondary-800: #124a4b;
+  --color-secondary-900: #103d3e;
+  --color-secondary-950: #062626;
+
+  /* Accent — alias de la couleur secondaire pour les libellés/badges */
+  --color-accent-50: #e6f7f6;
+  --color-accent-100: #c4ecec;
+  --color-accent-500: #0e9594;
+  --color-accent-600: #127475;
+  --color-accent-800: #124a4b;
 
   /* Training zone colors (pace / heart-rate zones) */
   --color-zone-easy: #38bdf8;

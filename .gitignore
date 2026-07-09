@@ -51,5 +51,8 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 
+# Scripts
+scripts/
+
 *storybook.log
 .editorconfig

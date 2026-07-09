@@ -52,7 +52,7 @@ src/
 │  │  ├─ workouts/services/    # WorkoutService (API séances)
 │  │  └─ planning/services/    # PlanningService (API calendrier)
 │  ├─ pages/                   # Pages routées (dashboard, workouts, calendar)
-│  └─ shared/ui/               # Design System — Atomic Design
+│  └─ components/              # Design System — Atomic Design
 │     ├─ atoms/                # Button, Icon, Badge, ZoneChip
 │     ├─ molecules/            # StatCard
 │     ├─ organisms/            # Header

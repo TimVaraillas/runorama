@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import type { IntensityZone } from '../../../../core/models';
+import type { IntensityZone } from '../../../core/models';
 
 /**
  * Atom : pastille de zone d'intensité.
