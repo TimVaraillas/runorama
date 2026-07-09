@@ -23,11 +23,6 @@ calendrier**.
 
 ## Configuration
 
-Copiez `.env.example` vers `.env` et adaptez si besoin :
-
-```bash
-cp .env.example .env
-```
 
 | Variable      | Description              | Défaut                               |
 | ------------- | ------------------------ | ------------------------------------ |
