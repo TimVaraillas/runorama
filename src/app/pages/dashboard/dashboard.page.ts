@@ -26,7 +26,7 @@ import {
           <h1 class="font-display text-2xl font-bold text-slate-900">Tableau de bord</h1>
           <p class="text-slate-500">Suivez et planifiez votre entraînement de course à pied.</p>
         </div>
-        <a routerLink="/workouts">
+        <a routerLink="/sessions">
           <ui-button [icon]="faPlus">Nouvelle séance</ui-button>
         </a>
       </div>

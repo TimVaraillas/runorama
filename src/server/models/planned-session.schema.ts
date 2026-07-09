@@ -7,7 +7,7 @@ const { Schema, model, models } = mongoose;
  */
 const plannedSessionSchema = new Schema(
   {
-    workoutId: { type: Schema.Types.ObjectId, ref: 'Workout', required: true },
+    sessionId: { type: Schema.Types.ObjectId, ref: 'Session', required: true },
     /** Date au format ISO YYYY-MM-DD. */
     date: { type: String, required: true },
     status: {

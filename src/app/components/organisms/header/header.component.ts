@@ -48,7 +48,7 @@ export class HeaderComponent {
 
   readonly links = [
     { path: '/', label: 'Tableau de bord', icon: faGaugeHigh, exact: true },
-    { path: '/workouts', label: 'Séances', icon: faDumbbell, exact: false },
+    { path: '/sessions', label: 'Séances', icon: faDumbbell, exact: false },
     { path: '/calendar', label: 'Calendrier', icon: faCalendarDays, exact: false },
   ];
 }

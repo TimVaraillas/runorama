@@ -1,4 +1,4 @@
-import type { Workout } from './workout.model';
+import type { Session } from './session.model';
 
 /**
  * Une séance planifiée sur le calendrier.
@@ -9,9 +9,9 @@ export type PlannedSessionStatus = 'planned' | 'completed' | 'skipped';
 export interface PlannedSession {
   id: string;
   /** Identifiant de la séance associée. */
-  workoutId: string;
+  sessionId: string;
   /** Séance dénormalisée (optionnelle, pour l'affichage). */
-  workout?: Workout;
+  session?: Session;
   /** Date planifiée au format ISO (YYYY-MM-DD). */
   date: string;
   status: PlannedSessionStatus;

@@ -1,8 +1,7 @@
 # 🏃 Runorama
 
 Application **Angular 22 SSR** pour **créer des séances de course à pied** (blocs de
-travail + allures) **exportables vers les montres Garmin**, et les **planifier sur un
-calendrier**.
+travail + allures) et les **planifier sur un calendrier**.
 
 ## Stack technique
 
@@ -46,12 +45,12 @@ npm test                      # Tests unitaires (Vitest)
 src/
 ├─ app/
 │  ├─ core/                    # Cœur métier, agnostique de l'UI
-│  │  ├─ models/               # Types du domaine (Workout, PlannedSession…)
-│  │  └─ utils/                # Utilitaires (formatage allure/durée/distance)
+│  │  ├─ models/               # Types du domaine (Session, PlannedSession…)
+│  │  └─ utils/                # Utilitaires (formatage vitesse/durée/distance)
 │  ├─ features/                # Logique par fonctionnalité
-│  │  ├─ workouts/services/    # WorkoutService (API séances)
+│  │  ├─ sessions/services/    # SessionService (API séances)
 │  │  └─ planning/services/    # PlanningService (API calendrier)
-│  ├─ pages/                   # Pages routées (dashboard, workouts, calendar)
+│  ├─ pages/                   # Pages routées (dashboard, sessions, calendar)
 │  └─ components/              # Design System — Atomic Design
 │     ├─ atoms/                # Button, Icon, Badge, ZoneChip
 │     ├─ molecules/            # StatCard
@@ -60,8 +59,7 @@ src/
 ├─ server/                     # Code serveur (SSR + API)
 │  ├─ db/                      # Connexion Mongoose
 │  ├─ models/                  # Schémas Mongoose
-│  ├─ routes/                  # Router API Express (/api)
-│  └─ services/                # Export Garmin
+│  └─ routes/                  # Router API Express (/api)
 ├─ server.ts                   # Entrée Express SSR + montage de l'API
 └─ styles.css                  # Styles globaux + thème Tailwind
 ```
@@ -72,26 +70,22 @@ Montée sous `/api` par le serveur SSR :
 
 | Méthode | Route                       | Description                         |
 | ------- | --------------------------- | ----------------------------------- |
-| GET     | `/api/workouts`             | Liste des séances                   |
-| POST    | `/api/workouts`             | Créer une séance                    |
-| GET     | `/api/workouts/:id`         | Détail d'une séance                 |
-| PUT     | `/api/workouts/:id`         | Modifier une séance                 |
-| DELETE  | `/api/workouts/:id`         | Supprimer une séance                |
-| GET     | `/api/workouts/:id/garmin`  | **Export au format Garmin Connect** |
+| GET     | `/api/sessions`             | Liste des séances                   |
+| POST    | `/api/sessions`             | Créer une séance                    |
+| GET     | `/api/sessions/:id`         | Détail d'une séance                 |
+| PUT     | `/api/sessions/:id`         | Modifier une séance                 |
+| DELETE  | `/api/sessions/:id`         | Supprimer une séance                |
 | GET     | `/api/planned-sessions`     | Séances planifiées (`?from&to`)     |
 | POST    | `/api/planned-sessions`     | Planifier une séance                |
 | PUT     | `/api/planned-sessions/:id` | Modifier une planification          |
 | DELETE  | `/api/planned-sessions/:id` | Retirer du calendrier               |
 
-## Modèle de séance & export Garmin
+## Modèle de séance
 
-Une séance est une liste d'`elements` : soit un **pas simple** (`WorkoutStep`),
-soit un **bloc répété** (`WorkoutRepeat`). Chaque pas porte une **cible** (allure,
-FC, cadence) et une **condition de fin** (distance, temps, bouton lap).
-
-Le service `toGarminWorkout` (`src/server/services/garmin-export.ts`) convertit
-ce modèle vers la structure JSON attendue par l'API Garmin Connect
-(`workoutSegments` / `ExecutableStepDTO` / `RepeatGroupDTO`).
+Une séance (`Session`) est une liste de **blocs** (`SessionBlock`). Chaque bloc
+est répété `repeat` fois et contient des **exercices** (`Exercise`). Un exercice
+porte une **durée** (secondes) ou une **distance** (mètres) — exclusives — et une
+**cible** facultative (`intensity`, `pace` en km/h, `pulse` en bpm, `zone`).
 
 ## Notes
 

@@ -15,7 +15,7 @@ const app = express();
 const angularApp = new AngularNodeAppEngine();
 
 /**
- * API REST de Runorama (séances, planning, export Garmin).
+ * API REST de Runorama (séances, planning).
  */
 app.use(express.json());
 app.use('/api', createApiRouter());

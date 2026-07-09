@@ -8,9 +8,9 @@ export const routes: Routes = [
     title: 'Tableau de bord — Runorama',
   },
   {
-    path: 'workouts',
+    path: 'sessions',
     loadComponent: () =>
-      import('./pages/workouts/workouts.page').then((m) => m.WorkoutsPage),
+      import('./pages/sessions/sessions.page').then((m) => m.SessionsPage),
     title: 'Séances — Runorama',
   },
   {

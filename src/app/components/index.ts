@@ -9,6 +9,7 @@ export * from './molecules/stat-card/stat-card.component';
 
 // Organisms
 export * from './organisms/header/header.component';
+export * from './organisms/session-details/session-details.component';
 
 // Templates
 export * from './templates/main-layout/main-layout.component';

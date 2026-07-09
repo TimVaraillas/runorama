@@ -8,6 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:runorama": "node dist/runorama/server/server.mjs",
+    "seed": "node scripts/seed.mjs",
     "docs:json": "compodoc -p .storybook/tsconfig.doc.json -e json -d .",
     "storybook": "ng run runorama:storybook",
     "build-storybook": "ng run runorama:build-storybook"
