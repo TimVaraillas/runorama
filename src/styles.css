@@ -1,0 +1,46 @@
+@import 'tailwindcss';
+
+/* ==========================================================================
+   Runorama — Design tokens (Tailwind v4 theme)
+   ========================================================================== */
+@theme {
+  /* Brand palette — energetic running vibe */
+  --color-brand-50: #eefdf3;
+  --color-brand-100: #d6f9e1;
+  --color-brand-200: #b0f1c8;
+  --color-brand-300: #7be3a8;
+  --color-brand-400: #40cd82;
+  --color-brand-500: #1cb567;
+  --color-brand-600: #109352;
+  --color-brand-700: #0f7544;
+  --color-brand-800: #115c39;
+  --color-brand-900: #104c31;
+  --color-brand-950: #032b1a;
+
+  /* Accent — used for effort/intensity zones */
+  --color-accent-500: #ff5a1f;
+  --color-accent-600: #e04413;
+
+  /* Training zone colors (pace / heart-rate zones) */
+  --color-zone-easy: #38bdf8;
+  --color-zone-endurance: #34d399;
+  --color-zone-tempo: #fbbf24;
+  --color-zone-threshold: #fb923c;
+  --color-zone-vo2: #f87171;
+  --color-zone-anaerobic: #a855f7;
+
+  /* Typography */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Base layer */
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-50 text-slate-800 antialiased;
+}
+
