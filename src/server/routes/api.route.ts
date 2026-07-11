@@ -5,6 +5,7 @@ import { SessionModel } from '../models/session.schema';
 import { PlannedSessionModel } from '../models/planned-session.schema';
 import { NutritionCategoryModel } from '../models/nutrition-category.schema';
 import { NutritionProductModel } from '../models/nutrition-product.schema';
+import { NutritionEventModel } from '../models/nutrition-event.schema';
 
 /**
  * Normalise un document `lean` Mongo pour l'API :
@@ -31,6 +32,22 @@ function serialize(doc: Record<string, unknown> | null): Record<string, unknown>
     const category = serialize(categoryId as Record<string, unknown>);
     out['category'] = category;
     out['categoryId'] = category?.['id'];
+  }
+  const items = out['items'];
+  if (Array.isArray(items)) {
+    out['items'] = items.map((raw) => {
+      if (!raw || typeof raw !== 'object') {
+        return raw;
+      }
+      const item = { ...(raw as Record<string, unknown>) };
+      const productId = item['productId'];
+      if (productId && typeof productId === 'object') {
+        const product = serialize(productId as Record<string, unknown>);
+        item['product'] = product;
+        item['productId'] = product?.['id'];
+      }
+      return item;
+    });
   }
   return out;
 }
@@ -229,6 +246,51 @@ export function createApiRouter(): Router {
     const deleted = await NutritionProductModel.findByIdAndDelete(req.params['id']);
     if (!deleted) {
       return res.status(404).json({ message: 'Produit introuvable' });
+    }
+    return res.status(204).end();
+  });
+
+  // ----------------------------------------------------------------------
+  // Nutrition — Évènements / stratégies alimentaires
+  // ----------------------------------------------------------------------
+  router.get('/nutrition/events', async (_req: Request, res: Response) => {
+    const events = await NutritionEventModel.find()
+      .populate('items.productId')
+      .sort({ date: 1 })
+      .lean();
+    return res.json(serializeMany(events));
+  });
+
+  router.get('/nutrition/events/:id', async (req: Request, res: Response) => {
+    const event = await NutritionEventModel.findById(req.params['id'])
+      .populate('items.productId')
+      .lean();
+    if (!event) {
+      return res.status(404).json({ message: 'Évènement introuvable' });
+    }
+    return res.json(serialize(event));
+  });
+
+  router.post('/nutrition/events', async (req: Request, res: Response) => {
+    const created = await NutritionEventModel.create(req.body);
+    return res.status(201).json(created.toJSON());
+  });
+
+  router.put('/nutrition/events/:id', async (req: Request, res: Response) => {
+    const updated = await NutritionEventModel.findByIdAndUpdate(req.params['id'], req.body, {
+      returnDocument: 'after',
+      runValidators: true,
+    });
+    if (!updated) {
+      return res.status(404).json({ message: 'Évènement introuvable' });
+    }
+    return res.json(updated.toJSON());
+  });
+
+  router.delete('/nutrition/events/:id', async (req: Request, res: Response) => {
+    const deleted = await NutritionEventModel.findByIdAndDelete(req.params['id']);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Évènement introuvable' });
     }
     return res.status(204).end();
   });

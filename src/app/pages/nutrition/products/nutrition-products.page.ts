@@ -1,22 +1,23 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { NutritionService } from '../../features/nutrition/services/nutrition.service';
-import { ButtonComponent } from '../../components/atoms/button/button.component';
-import { IconComponent } from '../../components/atoms/icon/icon.component';
-import { ViewToggleComponent, type ProductViewMode } from '../../components/atoms/view-toggle/view-toggle.component';
-import { SidePanelComponent } from '../../components/molecules/side-panel/side-panel.component';
-import { ModalComponent } from '../../components/molecules/modal/modal.component';
-import { NutritionProductFormComponent } from '../../components/organisms/nutrition-product-form/nutrition-product-form.component';
-import { NutritionProductTableComponent } from '../../components/organisms/nutrition-product-table/nutrition-product-table.component';
-import { NutritionProductGridComponent } from '../../components/organisms/nutrition-product-grid/nutrition-product-grid.component';
-import type { NutritionCategory, NutritionProduct } from '../../core/models';
+import { NutritionService } from '../../../features/nutrition/services/nutrition.service';
+import { ButtonComponent } from '../../../components/atoms/button/button.component';
+import { IconComponent } from '../../../components/atoms/icon/icon.component';
+import { ViewToggleComponent, type ProductViewMode } from '../../../components/atoms/view-toggle/view-toggle.component';
+import { SearchInputComponent } from '../../../components/atoms/search-input/search-input.component';
+import { SidePanelComponent } from '../../../components/molecules/side-panel/side-panel.component';
+import { FilterBarComponent } from '../../../components/molecules/filter-bar/filter-bar.component';
+import { ModalComponent } from '../../../components/molecules/modal/modal.component';
+import { NutritionProductFormComponent } from '../../../components/organisms/nutrition-product-form/nutrition-product-form.component';
+import { NutritionProductTableComponent } from '../../../components/organisms/nutrition-product-table/nutrition-product-table.component';
+import { NutritionProductGridComponent } from '../../../components/organisms/nutrition-product-grid/nutrition-product-grid.component';
+import type { NutritionCategory, NutritionProduct } from '../../../core/models';
 import {
   faPlus,
   faTrash,
   faPen,
   faCheck,
   faAppleWhole,
-  faMagnifyingGlass,
   faTags,
   faXmark,
 } from '@fortawesome/free-solid-svg-icons';
@@ -29,17 +30,19 @@ type PendingDelete =
   | { type: 'category'; id: string; name: string };
 
 /**
- * Page : gestion du volet nutrition (catégories et produits).
+ * Sous-page Nutrition : gestion des produits (et de leurs catégories).
  */
 @Component({
-  selector: 'app-nutrition-page',
+  selector: 'app-nutrition-products-page',
   standalone: true,
   imports: [
     FormsModule,
     ButtonComponent,
     IconComponent,
     ViewToggleComponent,
+    SearchInputComponent,
     SidePanelComponent,
+    FilterBarComponent,
     ModalComponent,
     NutritionProductFormComponent,
     NutritionProductTableComponent,
@@ -48,17 +51,11 @@ type PendingDelete =
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="space-y-6">
-      <div class="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 class="font-display text-2xl font-bold text-slate-900">Nutrition</h1>
-          <p class="text-slate-500">Gérez vos produits et leur composition pour vos sorties.</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <ui-button variant="secondary" [icon]="faTags" (clicked)="openCategories()">Catégories</ui-button>
-          <ui-button [icon]="faPlus" [disabled]="categories().length === 0" (clicked)="newProduct()">
-            Nouveau produit
-          </ui-button>
-        </div>
+      <div class="flex flex-wrap items-center justify-end gap-2">
+        <ui-button variant="secondary" [icon]="faTags" (clicked)="openCategories()">Catégories</ui-button>
+        <ui-button [icon]="faPlus" [disabled]="categories().length === 0" (clicked)="newProduct()">
+          Nouveau produit
+        </ui-button>
       </div>
 
       @if (error()) {
@@ -66,19 +63,12 @@ type PendingDelete =
       }
 
       <!-- Filtres -->
-      <div class="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
-        <div class="relative min-w-55 flex-1">
-          <span class="pointer-events-none absolute inset-y-0 left-3 grid place-items-center text-slate-400">
-            <ui-icon [icon]="faMagnifyingGlass" size="sm" />
-          </span>
-          <input
-            type="search"
-            [ngModel]="search()"
-            (ngModelChange)="search.set($event)"
-            [class]="searchClass"
-            placeholder="Rechercher par marque ou nom…"
-          />
-        </div>
+      <ui-filter-bar>
+        <ui-search-input
+          [(value)]="search"
+          placeholder="Rechercher par marque ou nom…"
+          ariaLabel="Rechercher un produit par marque ou nom"
+        />
         <select
           [ngModel]="categoryFilter()"
           (ngModelChange)="categoryFilter.set($event)"
@@ -90,7 +80,7 @@ type PendingDelete =
           }
         </select>
         <ui-view-toggle [mode]="viewMode()" (modeChange)="viewMode.set($event)" />
-      </div>
+      </ui-filter-bar>
 
       <!-- Liste des produits -->
       @if (products(); as list) {
@@ -305,7 +295,7 @@ type PendingDelete =
     </ui-modal>
   `,
 })
-export class NutritionPage {
+export class NutritionProductsPage {
   private readonly service = inject(NutritionService);
 
   readonly faPlus = faPlus;
@@ -313,7 +303,6 @@ export class NutritionPage {
   readonly faPen = faPen;
   readonly faCheck = faCheck;
   readonly faAppleWhole = faAppleWhole;
-  readonly faMagnifyingGlass = faMagnifyingGlass;
   readonly faTags = faTags;
   readonly faXmark = faXmark;
 

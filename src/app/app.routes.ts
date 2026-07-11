@@ -21,8 +21,35 @@ export const routes: Routes = [
   {
     path: 'nutrition',
     loadComponent: () =>
-      import('./pages/nutrition/nutrition.page').then((m) => m.NutritionPage),
+      import('./pages/nutrition/nutrition-layout.page').then((m) => m.NutritionLayoutPage),
     title: 'Nutrition — Runorama',
+    children: [
+      { path: '', redirectTo: 'products', pathMatch: 'full' },
+      {
+        path: 'products',
+        loadComponent: () =>
+          import('./pages/nutrition/products/nutrition-products.page').then(
+            (m) => m.NutritionProductsPage,
+          ),
+        title: 'Produits — Runorama',
+      },
+      {
+        path: 'strategies',
+        loadComponent: () =>
+          import('./pages/nutrition/strategies/nutrition-strategies.page').then(
+            (m) => m.NutritionStrategiesPage,
+          ),
+        title: 'Stratégies alimentaires — Runorama',
+      },
+      {
+        path: 'strategies/:id',
+        loadComponent: () =>
+          import('./pages/nutrition/strategies/nutrition-strategy-inventory.page').then(
+            (m) => m.NutritionStrategyInventoryPage,
+          ),
+        title: 'Inventaire — Runorama',
+      },
+    ],
   },
   {
     path: '**',

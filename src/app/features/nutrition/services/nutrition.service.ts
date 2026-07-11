@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import type { NutritionCategory, NutritionProduct } from '../../../core/models';
+import type { NutritionCategory, NutritionEvent, NutritionProduct } from '../../../core/models';
 
 /**
  * Service d'accès au volet nutrition (catégories et produits) via l'API REST.
@@ -11,6 +11,7 @@ export class NutritionService {
   private readonly http = inject(HttpClient);
   private readonly categoriesUrl = '/api/nutrition/categories';
   private readonly productsUrl = '/api/nutrition/products';
+  private readonly eventsUrl = '/api/nutrition/events';
 
   // --- Catégories ---
 
@@ -49,5 +50,27 @@ export class NutritionService {
 
   removeProduct(id: string): Observable<void> {
     return this.http.delete<void>(`${this.productsUrl}/${id}`);
+  }
+
+  // --- Évènements / stratégies alimentaires ---
+
+  listEvents(): Observable<NutritionEvent[]> {
+    return this.http.get<NutritionEvent[]>(this.eventsUrl);
+  }
+
+  getEvent(id: string): Observable<NutritionEvent> {
+    return this.http.get<NutritionEvent>(`${this.eventsUrl}/${id}`);
+  }
+
+  createEvent(payload: Partial<NutritionEvent>): Observable<NutritionEvent> {
+    return this.http.post<NutritionEvent>(this.eventsUrl, payload);
+  }
+
+  updateEvent(id: string, payload: Partial<NutritionEvent>): Observable<NutritionEvent> {
+    return this.http.put<NutritionEvent>(`${this.eventsUrl}/${id}`, payload);
+  }
+
+  removeEvent(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.eventsUrl}/${id}`);
   }
 }

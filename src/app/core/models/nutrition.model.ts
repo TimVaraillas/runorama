@@ -36,3 +36,42 @@ export interface NutritionProduct {
   createdAt?: string;
   updatedAt?: string;
 }
+
+/** Un produit emporté avec sa quantité (ligne d'inventaire). */
+export interface NutritionEventItem {
+  /** Identifiant du produit associé. */
+  productId: string;
+  /** Produit dénormalisé (optionnel, pour l'affichage et les calculs). */
+  product?: NutritionProduct;
+  /** Nombre d'unités emportées. */
+  quantity: number;
+}
+
+/**
+ * Un évènement / stratégie alimentaire : associe un évènement (course, sortie
+ * longue) à une liste de produits emportés et à des besoins horaires cibles.
+ */
+export interface NutritionEvent {
+  id: string;
+  name: string;
+  description?: string;
+  /** Date au format ISO `YYYY-MM-DD`. */
+  date: string;
+  location?: string;
+  /** Distance en kilomètres. */
+  distance?: number;
+  /** Dénivelé positif en mètres. */
+  elevationGain?: number;
+  /** Dénivelé négatif en mètres. */
+  elevationLoss?: number;
+  /** Chrono cible en minutes. */
+  targetTimeMinutes?: number;
+  /** Besoin énergétique horaire en kcal/h. */
+  hourlyEnergy: number;
+  /** Besoin glucidique horaire en g/h. */
+  hourlyCarbs: number;
+  /** Inventaire des produits emportés. */
+  items: NutritionEventItem[];
+  createdAt?: string;
+  updatedAt?: string;
+}
