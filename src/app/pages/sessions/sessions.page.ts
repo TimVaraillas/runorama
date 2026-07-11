@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
 import { SessionService } from '../../features/sessions/services/session.service';
 import { ButtonComponent } from '../../components/atoms/button/button.component';
 import { IconComponent } from '../../components/atoms/icon/icon.component';
+import { SidePanelComponent } from '../../components/molecules/side-panel/side-panel.component';
 import { SessionDetailsComponent } from '../../components/organisms/session-details/session-details.component';
 import type { Session } from '../../core/models';
 import { faPlus, faChevronRight, faPersonRunning } from '@fortawesome/free-solid-svg-icons';
@@ -14,7 +16,7 @@ import { faPlus, faChevronRight, faPersonRunning } from '@fortawesome/free-solid
 @Component({
   selector: 'app-sessions-page',
   standalone: true,
-  imports: [ButtonComponent, IconComponent, SessionDetailsComponent],
+  imports: [ButtonComponent, IconComponent, SidePanelComponent, SessionDetailsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="space-y-6">
@@ -23,7 +25,7 @@ import { faPlus, faChevronRight, faPersonRunning } from '@fortawesome/free-solid
           <h1 class="font-display text-2xl font-bold text-slate-900">Mes séances</h1>
           <p class="text-slate-500">Créez des séances structurées par blocs.</p>
         </div>
-        <ui-button [icon]="faPlus">Nouvelle séance</ui-button>
+        <ui-button [icon]="faPlus" (clicked)="newSession()">Nouvelle séance</ui-button>
       </div>
 
       @if (sessions(); as list) {
@@ -35,10 +37,10 @@ import { faPlus, faChevronRight, faPersonRunning } from '@fortawesome/free-solid
               <ui-icon [icon]="faPersonRunning" size="xl" />
             </div>
             <p class="text-slate-600">Aucune séance pour le moment.</p>
-            <ui-button variant="secondary" [icon]="faPlus">Créer ma première séance</ui-button>
+            <ui-button variant="secondary" [icon]="faPlus" (clicked)="newSession()">Créer ma première séance</ui-button>
           </div>
         } @else {
-          <div class="grid gap-4 lg:grid-cols-2">
+          <div class="grid gap-4 lg:grid-cols-1">
             @for (session of list; track session.id) {
               <button
                 type="button"
@@ -62,26 +64,16 @@ import { faPlus, faChevronRight, faPersonRunning } from '@fortawesome/free-solid
     </section>
 
     <!-- Panneau latéral de détail -->
-    @if (selected(); as session) {
-      <div class="fixed inset-0 z-40 flex justify-end">
-        <div
-          class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-          (click)="close()"
-          aria-hidden="true"
-        ></div>
-        <aside
-          class="relative z-50 h-full w-full max-w-md bg-slate-50 shadow-xl"
-          role="dialog"
-          aria-modal="true"
-        >
-          <ui-session-details [session]="session" (close)="close()" />
-        </aside>
-      </div>
-    }
+    <ui-side-panel [open]="!!selected()" [ariaLabel]="selected()?.name" (close)="close()">
+      @if (selected(); as session) {
+        <ui-session-details [session]="session" (close)="close()" />
+      }
+    </ui-side-panel>
   `,
 })
 export class SessionsPage {
   private readonly service = inject(SessionService);
+  private readonly router = inject(Router);
 
   readonly faPlus = faPlus;
   readonly faChevronRight = faChevronRight;
@@ -101,5 +93,9 @@ export class SessionsPage {
 
   close(): void {
     this.selected.set(null);
+  }
+
+  newSession(): void {
+    this.router.navigate(['/sessions/new']);
   }
 }

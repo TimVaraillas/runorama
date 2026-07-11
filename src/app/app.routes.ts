@@ -14,6 +14,12 @@ export const routes: Routes = [
     title: 'Séances — Runorama',
   },
   {
+    path: 'sessions/new',
+    loadComponent: () =>
+      import('./pages/session-form/session-form.page').then((m) => m.SessionFormPage),
+    title: 'Nouvelle séance — Runorama',
+  },
+  {
     path: 'calendar',
     loadComponent: () =>
       import('./pages/calendar/calendar.page').then((m) => m.CalendarPage),
