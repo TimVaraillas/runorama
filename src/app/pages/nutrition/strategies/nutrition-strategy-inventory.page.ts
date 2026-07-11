@@ -3,8 +3,9 @@ import { Router } from '@angular/router';
 import { NutritionService } from '../../../features/nutrition/services/nutrition.service';
 import { ButtonComponent } from '../../../components/atoms/button/button.component';
 import { IconComponent } from '../../../components/atoms/icon/icon.component';
+import { PageHeaderComponent } from '../../../components/molecules/page-header/page-header.component';
 import { NutritionStrategyInventoryComponent } from '../../../components/organisms/nutrition-strategy-inventory/nutrition-strategy-inventory.component';
-import type { NutritionEvent, NutritionProduct } from '../../../core/models';
+import type { NutritionCategory, NutritionEvent, NutritionProduct } from '../../../core/models';
 import { faArrowLeft, faUtensils } from '@fortawesome/free-solid-svg-icons';
 
 /**
@@ -17,32 +18,29 @@ import { faArrowLeft, faUtensils } from '@fortawesome/free-solid-svg-icons';
 @Component({
   selector: 'app-nutrition-strategy-inventory-page',
   standalone: true,
-  imports: [ButtonComponent, IconComponent, NutritionStrategyInventoryComponent],
+  imports: [ButtonComponent, IconComponent, PageHeaderComponent, NutritionStrategyInventoryComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="space-y-6">
-      <div>
-        <ui-button variant="ghost" size="sm" [icon]="faArrowLeft" (clicked)="goBack()">
-          Retour aux stratégies
-        </ui-button>
-      </div>
-
       @if (error()) {
         <p class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{ error() }}</p>
       }
 
-      @if (event(); as ev) {
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 class="font-display text-2xl font-bold text-slate-900">{{ ev.name }}</h1>
-            <p class="text-sm text-slate-500">Inventaire des produits emportés</p>
-          </div>
-        </div>
+      <ui-page-header
+        [title]="event()?.name ?? 'Inventaire'"
+        subtitle="Inventaire des produits emportés"
+      >
+        <ui-button actions variant="ghost" size="sm" [icon]="faArrowLeft" (clicked)="goBack()">
+          Retour aux stratégies
+        </ui-button>
+      </ui-page-header>
 
+      @if (event(); as ev) {
         <ui-nutrition-strategy-inventory
           [event]="ev"
           [products]="products()"
-          (add)="addProduct($event)"
+          [categories]="categories()"
+          (applySelection)="applySelection($event)"
           (setQuantity)="setQuantity($event)"
           (remove)="removeProduct($event)"
         />
@@ -76,11 +74,13 @@ export class NutritionStrategyInventoryPage implements OnInit {
 
   protected readonly event = signal<NutritionEvent | null>(null);
   protected readonly products = signal<NutritionProduct[]>([]);
+  protected readonly categories = signal<NutritionCategory[]>([]);
   protected readonly notFound = signal(false);
   protected readonly error = signal<string | null>(null);
 
   ngOnInit(): void {
     this.loadProducts();
+    this.loadCategories();
     this.loadEvent();
   }
 
@@ -99,21 +99,37 @@ export class NutritionStrategyInventoryPage implements OnInit {
     });
   }
 
+  private loadCategories(): void {
+    this.service.listCategories().subscribe({
+      next: (categories) => this.categories.set(categories),
+      error: () => this.error.set('Impossible de charger les catégories.'),
+    });
+  }
+
   goBack(): void {
     this.router.navigate(['/nutrition/strategies']);
   }
 
   // --- Inventaire (association de produits) ---
 
-  addProduct(productId: string): void {
+  /**
+   * Réconcilie l'inventaire avec la sélection du panneau : conserve les
+   * produits toujours cochés (avec leur quantité), ajoute les nouveaux
+   * (quantité 1) et retire ceux décochés.
+   */
+  applySelection(productIds: string[]): void {
     const event = this.event();
     if (!event) return;
-    const existing = event.items.find((item) => item.productId === productId);
-    const items = existing
-      ? event.items.map((item) =>
-          item.productId === productId ? { productId, quantity: item.quantity + 1 } : this.toPayloadItem(item),
-        )
-      : [...event.items.map((item) => this.toPayloadItem(item)), { productId, quantity: 1 }];
+    const selected = new Set(productIds);
+    const items = event.items
+      .filter((item) => selected.has(item.productId))
+      .map((item) => this.toPayloadItem(item));
+    const kept = new Set(items.map((item) => item.productId));
+    for (const productId of productIds) {
+      if (!kept.has(productId)) {
+        items.push({ productId, quantity: 1 });
+      }
+    }
     this.persistItems(event.id, items);
   }
 

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 
 /**
  * Atom : valeur nutritionnelle affichée avec son libellé et son unité.
@@ -7,16 +8,18 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 @Component({
   selector: 'ui-nutrient-stat',
   standalone: true,
+  imports: [DecimalPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'flex flex-col rounded-lg bg-slate-100 px-3 py-2' },
   template: `
-    <div class="flex flex-col rounded-lg bg-slate-50 px-3 py-2">
-      <span class="text-[0.65rem] font-medium uppercase tracking-wide text-slate-400">
-        {{ label() }}
-      </span>
-      <span class="text-sm font-semibold tabular-nums text-slate-800">
-        {{ value() }}<span class="ml-0.5 text-xs font-normal text-slate-400">{{ unit() }}</span>
-      </span>
-    </div>
+    <span class="text-[0.65rem] font-medium uppercase tracking-wide text-slate-400">
+      {{ label() }}
+    </span>
+    <span class="text-sm font-semibold tabular-nums text-slate-800">
+      {{ value() | number: '1.0-2' }}<span class="ml-0.5 text-xs font-normal text-slate-400">{{
+        unit()
+      }}</span>
+    </span>
   `,
 })
 export class NutrientStatComponent {

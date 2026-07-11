@@ -7,10 +7,13 @@ export * from './atoms/view-toggle/view-toggle.component';
 export * from './atoms/nutrient-stat/nutrient-stat.component';
 export * from './atoms/search-input/search-input.component';
 export * from './atoms/date-range-filter/date-range-filter.component';
+export * from './atoms/quantity-stepper/quantity-stepper.component';
+export * from './atoms/divider/divider.component';
 
 // Molecules
 export * from './molecules/stat-card/stat-card.component';
 export * from './molecules/filter-bar/filter-bar.component';
+export * from './molecules/page-header/page-header.component';
 export * from './molecules/side-panel/side-panel.component';
 export * from './molecules/modal/modal.component';
 export * from './molecules/nutrition-product-card/nutrition-product-card.component';

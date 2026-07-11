@@ -5,6 +5,7 @@ import { catchError, of } from 'rxjs';
 import { SessionService } from '../../features/sessions/services/session.service';
 import { ButtonComponent } from '../../components/atoms/button/button.component';
 import { IconComponent } from '../../components/atoms/icon/icon.component';
+import { PageHeaderComponent } from '../../components/molecules/page-header/page-header.component';
 import { SidePanelComponent } from '../../components/molecules/side-panel/side-panel.component';
 import { SessionDetailsComponent } from '../../components/organisms/session-details/session-details.component';
 import type { Session } from '../../core/models';
@@ -16,17 +17,13 @@ import { faPlus, faChevronRight, faPersonRunning } from '@fortawesome/free-solid
 @Component({
   selector: 'app-sessions-page',
   standalone: true,
-  imports: [ButtonComponent, IconComponent, SidePanelComponent, SessionDetailsComponent],
+  imports: [ButtonComponent, IconComponent, PageHeaderComponent, SidePanelComponent, SessionDetailsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="space-y-6">
-      <div class="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 class="font-display text-2xl font-bold text-slate-900">Mes séances</h1>
-          <p class="text-slate-500">Créez des séances structurées par blocs.</p>
-        </div>
-        <ui-button [icon]="faPlus" (clicked)="newSession()">Nouvelle séance</ui-button>
-      </div>
+      <ui-page-header title="Mes séances" subtitle="Créez des séances structurées par blocs.">
+        <ui-button actions [icon]="faPlus" (clicked)="newSession()">Nouvelle séance</ui-button>
+      </ui-page-header>
 
       @if (sessions(); as list) {
         @if (list.length === 0) {
