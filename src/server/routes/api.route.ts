@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 import { connectToDatabase } from '../db/mongoose';
 import { SessionModel } from '../models/session.schema';
 import { PlannedSessionModel } from '../models/planned-session.schema';
+import { NutritionCategoryModel } from '../models/nutrition-category.schema';
+import { NutritionProductModel } from '../models/nutrition-product.schema';
 
 /**
  * Normalise un document `lean` Mongo pour l'API :
@@ -23,6 +25,12 @@ function serialize(doc: Record<string, unknown> | null): Record<string, unknown>
     const session = serialize(sessionId as Record<string, unknown>);
     out['session'] = session;
     out['sessionId'] = session?.['id'];
+  }
+  const categoryId = out['categoryId'];
+  if (categoryId && typeof categoryId === 'object') {
+    const category = serialize(categoryId as Record<string, unknown>);
+    out['category'] = category;
+    out['categoryId'] = category?.['id'];
   }
   return out;
 }
@@ -81,7 +89,7 @@ export function createApiRouter(): Router {
 
   router.put('/sessions/:id', async (req: Request, res: Response) => {
     const updated = await SessionModel.findByIdAndUpdate(req.params['id'], req.body, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
     if (!updated) {
@@ -123,7 +131,7 @@ export function createApiRouter(): Router {
 
   router.put('/planned-sessions/:id', async (req: Request, res: Response) => {
     const updated = await PlannedSessionModel.findByIdAndUpdate(req.params['id'], req.body, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
     if (!updated) {
@@ -136,6 +144,91 @@ export function createApiRouter(): Router {
     const deleted = await PlannedSessionModel.findByIdAndDelete(req.params['id']);
     if (!deleted) {
       return res.status(404).json({ message: 'Séance planifiée introuvable' });
+    }
+    return res.status(204).end();
+  });
+
+  // ----------------------------------------------------------------------
+  // Nutrition — Catégories de produits
+  // ----------------------------------------------------------------------
+  router.get('/nutrition/categories', async (_req: Request, res: Response) => {
+    const categories = await NutritionCategoryModel.find().sort({ name: 1 }).lean();
+    return res.json(serializeMany(categories));
+  });
+
+  router.post('/nutrition/categories', async (req: Request, res: Response) => {
+    try {
+      const created = await NutritionCategoryModel.create(req.body);
+      return res.status(201).json(created.toJSON());
+    } catch (error) {
+      if ((error as { code?: number }).code === 11000) {
+        return res.status(409).json({ message: 'Cette catégorie existe déjà' });
+      }
+      throw error;
+    }
+  });
+
+  router.put('/nutrition/categories/:id', async (req: Request, res: Response) => {
+    const updated = await NutritionCategoryModel.findByIdAndUpdate(req.params['id'], req.body, {
+      returnDocument: 'after',
+      runValidators: true,
+    });
+    if (!updated) {
+      return res.status(404).json({ message: 'Catégorie introuvable' });
+    }
+    return res.json(updated.toJSON());
+  });
+
+  router.delete('/nutrition/categories/:id', async (req: Request, res: Response) => {
+    const inUse = await NutritionProductModel.exists({ categoryId: req.params['id'] });
+    if (inUse) {
+      return res
+        .status(409)
+        .json({ message: 'Impossible de supprimer une catégorie contenant des produits' });
+    }
+    const deleted = await NutritionCategoryModel.findByIdAndDelete(req.params['id']);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Catégorie introuvable' });
+    }
+    return res.status(204).end();
+  });
+
+  // ----------------------------------------------------------------------
+  // Nutrition — Produits
+  // ----------------------------------------------------------------------
+  router.get('/nutrition/products', async (req: Request, res: Response) => {
+    const { categoryId } = req.query as { categoryId?: string };
+    const filter: Record<string, unknown> = {};
+    if (categoryId && mongoose.isValidObjectId(categoryId)) {
+      filter['categoryId'] = categoryId;
+    }
+    const products = await NutritionProductModel.find(filter)
+      .populate('categoryId')
+      .sort({ brand: 1, name: 1 })
+      .lean();
+    return res.json(serializeMany(products));
+  });
+
+  router.post('/nutrition/products', async (req: Request, res: Response) => {
+    const created = await NutritionProductModel.create(req.body);
+    return res.status(201).json(created.toJSON());
+  });
+
+  router.put('/nutrition/products/:id', async (req: Request, res: Response) => {
+    const updated = await NutritionProductModel.findByIdAndUpdate(req.params['id'], req.body, {
+      returnDocument: 'after',
+      runValidators: true,
+    });
+    if (!updated) {
+      return res.status(404).json({ message: 'Produit introuvable' });
+    }
+    return res.json(updated.toJSON());
+  });
+
+  router.delete('/nutrition/products/:id', async (req: Request, res: Response) => {
+    const deleted = await NutritionProductModel.findByIdAndDelete(req.params['id']);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Produit introuvable' });
     }
     return res.status(204).end();
   });

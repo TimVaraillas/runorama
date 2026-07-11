@@ -3,9 +3,8 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
     path: '',
-    loadComponent: () =>
-      import('./pages/dashboard/dashboard.page').then((m) => m.DashboardPage),
-    title: 'Tableau de bord — Runorama',
+    redirectTo: 'sessions',
+    pathMatch: 'full',
   },
   {
     path: 'sessions',
@@ -20,10 +19,10 @@ export const routes: Routes = [
     title: 'Nouvelle séance — Runorama',
   },
   {
-    path: 'calendar',
+    path: 'nutrition',
     loadComponent: () =>
-      import('./pages/calendar/calendar.page').then((m) => m.CalendarPage),
-    title: 'Calendrier — Runorama',
+      import('./pages/nutrition/nutrition.page').then((m) => m.NutritionPage),
+    title: 'Nutrition — Runorama',
   },
   {
     path: '**',

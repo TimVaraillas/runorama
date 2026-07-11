@@ -3,9 +3,8 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import {
   faPersonRunning,
-  faCalendarDays,
   faDumbbell,
-  faGaugeHigh,
+  faAppleWhole,
 } from '@fortawesome/free-solid-svg-icons';
 
 /**
@@ -47,8 +46,7 @@ export class HeaderComponent {
   readonly logo = faPersonRunning;
 
   readonly links = [
-    { path: '/', label: 'Tableau de bord', icon: faGaugeHigh, exact: true },
     { path: '/sessions', label: 'Séances', icon: faDumbbell, exact: false },
-    { path: '/calendar', label: 'Calendrier', icon: faCalendarDays, exact: false },
+    { path: '/nutrition', label: 'Nutrition', icon: faAppleWhole, exact: false },
   ];
 }
