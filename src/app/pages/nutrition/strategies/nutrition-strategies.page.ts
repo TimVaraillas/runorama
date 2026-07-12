@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { NutritionService } from '../../../features/nutrition/services/nutrition.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { ButtonComponent } from '../../../components/atoms/button/button.component';
 import { IconComponent } from '../../../components/atoms/icon/icon.component';
 import { SearchInputComponent } from '../../../components/atoms/search-input/search-input.component';
@@ -44,10 +45,6 @@ import { faPlus, faTrash, faXmark, faUtensils } from '@fortawesome/free-solid-sv
       <div class="flex flex-wrap items-center justify-end gap-2">
         <ui-button [icon]="faPlus" (clicked)="newEvent()">Nouvel évènement</ui-button>
       </div>
-
-      @if (error()) {
-        <p class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{ error() }}</p>
-      }
 
       <!-- Filtres -->
       @if (events()?.length) {
@@ -169,6 +166,7 @@ import { faPlus, faTrash, faXmark, faUtensils } from '@fortawesome/free-solid-sv
 export class NutritionStrategiesPage {
   private readonly service = inject(NutritionService);
   private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
 
   protected readonly faPlus = faPlus;
   protected readonly faTrash = faTrash;
@@ -176,7 +174,6 @@ export class NutritionStrategiesPage {
   protected readonly faUtensils = faUtensils;
 
   protected readonly events = signal<NutritionEvent[] | undefined>(undefined);
-  protected readonly error = signal<string | null>(null);
 
   protected readonly search = signal('');
   protected readonly dateFrom = signal('');
@@ -212,7 +209,7 @@ export class NutritionStrategiesPage {
       next: (events) => this.events.set(events),
       error: () => {
         this.events.set([]);
-        this.error.set('Impossible de charger les stratégies.');
+        this.toast.error('Impossible de charger les stratégies.');
       },
     });
   }
@@ -240,7 +237,6 @@ export class NutritionStrategiesPage {
   }
 
   saveEvent(payload: Partial<NutritionEvent>): void {
-    this.error.set(null);
     const current = this.editing();
     const request = current
       ? this.service.updateEvent(current.id, payload)
@@ -250,12 +246,11 @@ export class NutritionStrategiesPage {
         this.closePanel();
         this.loadEvents();
       },
-      error: () => this.error.set("Impossible d'enregistrer la stratégie. Veuillez réessayer."),
+      error: () => this.toast.error("Impossible d'enregistrer la stratégie. Veuillez réessayer."),
     });
   }
 
   requestDeleteEvent(event: NutritionEvent): void {
-    this.error.set(null);
     this.pendingDelete.set({ id: event.id, name: event.name });
   }
 
@@ -277,7 +272,7 @@ export class NutritionStrategiesPage {
       error: () => {
         this.deleting.set(false);
         this.pendingDelete.set(null);
-        this.error.set('Impossible de supprimer la stratégie.');
+        this.toast.error('Impossible de supprimer la stratégie.');
       },
     });
   }

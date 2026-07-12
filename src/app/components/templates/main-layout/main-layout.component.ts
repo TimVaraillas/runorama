@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { HeaderComponent } from '../../organisms/header/header.component';
+import { ToasterComponent } from '../../organisms/toaster/toaster.component';
 
 /**
  * Template : mise en page principale de l'application.
@@ -9,7 +10,7 @@ import { HeaderComponent } from '../../organisms/header/header.component';
 @Component({
   selector: 'ui-main-layout',
   standalone: true,
-  imports: [RouterOutlet, HeaderComponent],
+  imports: [RouterOutlet, HeaderComponent, ToasterComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex min-h-screen flex-col">
@@ -21,6 +22,7 @@ import { HeaderComponent } from '../../organisms/header/header.component';
         Runorama — Créez et planifiez vos séances de course à pied.
       </footer>
     </div>
+    <ui-toaster />
   `,
 })
 export class MainLayoutComponent {}

@@ -95,7 +95,7 @@ import {
                   </button>
                   <button
                     type="button"
-                    class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                    class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
                     (click)="delete.emit(event); $event.stopPropagation()"
                     aria-label="Supprimer la stratégie"
                   >

@@ -72,7 +72,7 @@ import {
               </span>
               <button
                 type="button"
-                class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
+                class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40"
                 [disabled]="blocks.length === 1"
                 (click)="removeBlock(bi)"
                 aria-label="Supprimer le bloc"
@@ -133,7 +133,7 @@ import {
                     </div>
                     <button
                       type="button"
-                      class="mt-6 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
+                      class="mt-6 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40"
                       [disabled]="exercisesOf(bi).length === 1"
                       (click)="removeExercise(bi, ei)"
                       aria-label="Supprimer l'exercice"

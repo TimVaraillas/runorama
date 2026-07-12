@@ -84,7 +84,7 @@ export class NutritionTargetGaugeComponent {
   protected readonly barClass = computed(() => {
     switch (this.status()) {
       case 'under':
-        return 'bg-red-500';
+        return 'bg-rose-500';
       case 'over':
         return 'bg-amber-500';
       case 'ok':
@@ -97,7 +97,7 @@ export class NutritionTargetGaugeComponent {
   protected readonly textClass = computed(() => {
     switch (this.status()) {
       case 'under':
-        return 'text-red-600';
+        return 'text-rose-600';
       case 'over':
         return 'text-amber-600';
       case 'ok':

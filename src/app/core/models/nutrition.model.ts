@@ -47,6 +47,28 @@ export interface NutritionEventItem {
   quantity: number;
 }
 
+/** Granularité (en minutes) d'une séquence du plan de consommation. */
+export type PlanSequenceMinutes = 5 | 10 | 15 | 20;
+
+/**
+ * Une prise planifiée : une unité d'un produit consommée sur une fenêtre de
+ * temps du parcours (peut couvrir plusieurs séquences).
+ */
+export interface NutritionIntake {
+  /** Identifiant unique de la prise (généré côté client). */
+  id: string;
+  /** Identifiant du produit consommé. */
+  productId: string;
+  /** Produit dénormalisé (optionnel, pour l'affichage et les calculs). */
+  product?: NutritionProduct;
+  /** Instant de début de la prise, en minutes depuis le départ. */
+  startMinute: number;
+  /** Durée de consommation en minutes (multiple de la granularité). */
+  durationMinutes: number;
+  /** Nombre d'unités consommées sur cette prise (1 par défaut). */
+  quantity: number;
+}
+
 /**
  * Un évènement / stratégie alimentaire : associe un évènement (course, sortie
  * longue) à une liste de produits emportés et à des besoins horaires cibles.
@@ -72,6 +94,10 @@ export interface NutritionEvent {
   hourlyCarbs: number;
   /** Inventaire des produits emportés. */
   items: NutritionEventItem[];
+  /** Granularité (minutes) des séquences du plan de consommation. */
+  planSequenceMinutes?: PlanSequenceMinutes;
+  /** Répartition des prises sur le parcours (plan de consommation). */
+  intakes?: NutritionIntake[];
   createdAt?: string;
   updatedAt?: string;
 }

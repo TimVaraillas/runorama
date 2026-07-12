@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DecimalPipe } from '@angular/common';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { NutrientStatComponent } from '../../atoms/nutrient-stat/nutrient-stat.component';
@@ -9,15 +8,15 @@ import { FilterBarComponent } from '../../molecules/filter-bar/filter-bar.compon
 import { SidePanelComponent } from '../../molecules/side-panel/side-panel.component';
 import { NutritionTargetGaugeComponent } from '../../molecules/nutrition-target-gauge/nutrition-target-gauge.component';
 import { NutritionProductTableComponent } from '../nutrition-product-table/nutrition-product-table.component';
-import { QuantityStepperComponent } from '../../atoms/quantity-stepper/quantity-stepper.component';
 import { DividerComponent } from '../../atoms/divider/divider.component';
+import { InventoryItemListComponent } from '../inventory-item-list/inventory-item-list.component';
 import type {
   NutritionCategory,
   NutritionEvent,
   NutritionEventItem,
   NutritionProduct,
 } from '../../../core/models';
-import { faPlus, faTrash, faWeightHanging, faBoxOpen, faXmark, faCheck } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faWeightHanging, faXmark, faCheck } from '@fortawesome/free-solid-svg-icons';
 
 /** Totaux cumulés de l'inventaire. */
 interface InventoryTotals {
@@ -41,7 +40,6 @@ interface InventoryTotals {
   standalone: true,
   imports: [
     FormsModule,
-    DecimalPipe,
     IconComponent,
     ButtonComponent,
     NutrientStatComponent,
@@ -50,8 +48,8 @@ interface InventoryTotals {
     SidePanelComponent,
     NutritionTargetGaugeComponent,
     NutritionProductTableComponent,
-    QuantityStepperComponent,
     DividerComponent,
+    InventoryItemListComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -93,59 +91,17 @@ interface InventoryTotals {
       <!-- Produits emportés -->
       <section class="space-y-3">
         <div class="flex items-center justify-between gap-3">
-          <h2 class="text-sm font-semibold text-slate-700">Produits emportés</h2>
+          <h2 class="text-md font-semibold text-slate-700">Inventaire des produits emportés</h2>
           <ui-button [icon]="faPlus" [disabled]="products().length === 0" (clicked)="openPicker()">
             Ajouter des produits
           </ui-button>
         </div>
 
-        @if (resolvedItems().length === 0) {
-          <div class="flex flex-col items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
-            <div class="grid h-12 w-12 place-items-center rounded-full bg-brand-50 text-brand-600">
-              <ui-icon [icon]="faBoxOpen" size="lg" />
-            </div>
-            <p class="text-slate-600">Aucun produit emporté pour l'instant.</p>
-            <p class="text-xs text-slate-400">
-              Cliquez sur « Ajouter des produits » pour composer votre stratégie.
-            </p>
-          </div>
-        } @else {
-          <ul class="space-y-2">
-            @for (item of resolvedItems(); track item.productId) {
-              <li class="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3">
-                <div class="min-w-0 flex-1">
-                  <div class="truncate font-medium text-slate-900">{{ item.product.name }}</div>
-                  <div class="truncate text-xs text-slate-500">
-                    {{ item.product.brand }} ·
-                    <span class="inline-flex items-center gap-1">
-                      {{ item.product.unitWeight }} g
-                    </span>
-                    · {{ item.product.energy }} kcal · {{ item.product.carbs }} g gluc.
-                  </div>
-                </div>
-
-                <div class="hidden w-28 mr-4 text-right text-xs tabular-nums text-slate-400 sm:block">
-                  <div>{{ item.product.energy * item.quantity | number: '1.0-0' }} kcal</div>
-                  <div>{{ item.product.carbs * item.quantity | number: '1.0-0' }} g gluc.</div>
-                </div>
-
-                <ui-quantity-stepper
-                  [value]="item.quantity"
-                  (valueChange)="onSetQuantity(item.productId, $event)"
-                />
-
-                <button
-                  type="button"
-                  class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
-                  (click)="remove.emit(item.productId)"
-                  aria-label="Retirer le produit"
-                >
-                  <ui-icon [icon]="faTrash" size="sm" />
-                </button>
-              </li>
-            }
-          </ul>
-        }
+        <ui-inventory-item-list
+          [items]="resolvedItems()"
+          (setQuantity)="onSetQuantity($event.productId, $event.quantity)"
+          (remove)="remove.emit($event)"
+        />
       </section>
     </div>
 
@@ -234,9 +190,7 @@ export class NutritionStrategyInventoryComponent {
   readonly remove = output<string>();
 
   protected readonly faPlus = faPlus;
-  protected readonly faTrash = faTrash;
   protected readonly faWeightHanging = faWeightHanging;
-  protected readonly faBoxOpen = faBoxOpen;
   protected readonly faXmark = faXmark;
   protected readonly faCheck = faCheck;
 

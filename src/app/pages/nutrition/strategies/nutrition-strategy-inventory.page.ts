@@ -1,34 +1,46 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { NutritionService } from '../../../features/nutrition/services/nutrition.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { ButtonComponent } from '../../../components/atoms/button/button.component';
 import { IconComponent } from '../../../components/atoms/icon/icon.component';
 import { PageHeaderComponent } from '../../../components/molecules/page-header/page-header.component';
+import { TabsComponent, type TabItem } from '../../../components/molecules/tabs/tabs.component';
 import { NutritionStrategyInventoryComponent } from '../../../components/organisms/nutrition-strategy-inventory/nutrition-strategy-inventory.component';
-import type { NutritionCategory, NutritionEvent, NutritionProduct } from '../../../core/models';
-import { faArrowLeft, faUtensils } from '@fortawesome/free-solid-svg-icons';
+import { ConsumptionPlanComponent } from '../../../components/organisms/consumption-plan/consumption-plan.component';
+import type {
+  NutritionCategory,
+  NutritionEvent,
+  NutritionIntake,
+  NutritionProduct,
+  PlanSequenceMinutes,
+} from '../../../core/models';
+import { faArrowLeft, faStopwatch, faUtensils } from '@fortawesome/free-solid-svg-icons';
 
 /**
- * Sous-page Nutrition : inventaire d'une stratégie alimentaire.
+ * Sous-page Nutrition : détail d'une stratégie alimentaire (`strategies/:id`).
  *
- * Page de détail dédiée à un évènement (`strategies/:id`). Charge l'évènement
- * et les produits, puis gère l'association de produits (inventaire) avec suivi
- * en temps réel des totaux et de la couverture des besoins cibles.
+ * Deux volets : l'« Inventaire » (produits emportés et couverture des besoins)
+ * et le « Plan de consommation » (répartition des prises sur le parcours par
+ * glisser-déposer).
  */
 @Component({
   selector: 'app-nutrition-strategy-inventory-page',
   standalone: true,
-  imports: [ButtonComponent, IconComponent, PageHeaderComponent, NutritionStrategyInventoryComponent],
+  imports: [
+    ButtonComponent,
+    IconComponent,
+    PageHeaderComponent,
+    TabsComponent,
+    NutritionStrategyInventoryComponent,
+    ConsumptionPlanComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="space-y-6">
-      @if (error()) {
-        <p class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{ error() }}</p>
-      }
-
       <ui-page-header
-        [title]="event()?.name ?? 'Inventaire'"
-        subtitle="Inventaire des produits emportés"
+        [title]="event()?.name ?? 'Stratégie alimentaire'"
+        subtitle="Quelle est la composition de votre stratégie alimentaire ?"
       >
         <ui-button actions variant="ghost" size="sm" [icon]="faArrowLeft" (clicked)="goBack()">
           Retour aux stratégies
@@ -36,14 +48,25 @@ import { faArrowLeft, faUtensils } from '@fortawesome/free-solid-svg-icons';
       </ui-page-header>
 
       @if (event(); as ev) {
-        <ui-nutrition-strategy-inventory
-          [event]="ev"
-          [products]="products()"
-          [categories]="categories()"
-          (applySelection)="applySelection($event)"
-          (setQuantity)="setQuantity($event)"
-          (remove)="removeProduct($event)"
-        />
+        <ui-tabs [tabs]="tabs" [(active)]="activeTab" />
+
+        @if (activeTab() === 'inventory') {
+          <ui-nutrition-strategy-inventory
+            [event]="ev"
+            [products]="products()"
+            [categories]="categories()"
+            (applySelection)="applySelection($event)"
+            (setQuantity)="setQuantity($event)"
+            (remove)="removeProduct($event)"
+          />
+        } @else {
+          <ui-consumption-plan
+            [event]="ev"
+            [products]="products()"
+            (intakesChange)="onIntakesChange($event)"
+            (planSequenceChange)="onPlanSequenceChange($event)"
+          />
+        }
       } @else if (notFound()) {
         <div
           class="flex flex-col items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center"
@@ -57,7 +80,7 @@ import { faArrowLeft, faUtensils } from '@fortawesome/free-solid-svg-icons';
           </ui-button>
         </div>
       } @else {
-        <p class="text-slate-400">Chargement de l'inventaire…</p>
+        <p class="text-slate-400">Chargement de la stratégie…</p>
       }
     </section>
   `,
@@ -65,6 +88,7 @@ import { faArrowLeft, faUtensils } from '@fortawesome/free-solid-svg-icons';
 export class NutritionStrategyInventoryPage implements OnInit {
   private readonly service = inject(NutritionService);
   private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
 
   /** Identifiant de l'évènement, lié au paramètre de route `:id`. */
   readonly id = input.required<string>();
@@ -72,11 +96,16 @@ export class NutritionStrategyInventoryPage implements OnInit {
   protected readonly faArrowLeft = faArrowLeft;
   protected readonly faUtensils = faUtensils;
 
+  protected readonly tabs: TabItem[] = [
+    { id: 'inventory', label: 'Inventaire', icon: faUtensils },
+    { id: 'plan', label: 'Plan de consommation', icon: faStopwatch },
+  ];
+  protected readonly activeTab = signal<'inventory' | 'plan'>('inventory');
+
   protected readonly event = signal<NutritionEvent | null>(null);
   protected readonly products = signal<NutritionProduct[]>([]);
   protected readonly categories = signal<NutritionCategory[]>([]);
   protected readonly notFound = signal(false);
-  protected readonly error = signal<string | null>(null);
 
   ngOnInit(): void {
     this.loadProducts();
@@ -95,14 +124,14 @@ export class NutritionStrategyInventoryPage implements OnInit {
   private loadProducts(): void {
     this.service.listProducts().subscribe({
       next: (products) => this.products.set(products),
-      error: () => this.error.set('Impossible de charger les produits.'),
+      error: () => this.toast.error('Impossible de charger les produits.'),
     });
   }
 
   private loadCategories(): void {
     this.service.listCategories().subscribe({
       next: (categories) => this.categories.set(categories),
-      error: () => this.error.set('Impossible de charger les catégories.'),
+      error: () => this.toast.error('Impossible de charger les catégories.'),
     });
   }
 
@@ -162,10 +191,30 @@ export class NutritionStrategyInventoryPage implements OnInit {
   }
 
   private persistItems(eventId: string, items: { productId: string; quantity: number }[]): void {
-    this.error.set(null);
     this.service.updateEvent(eventId, { items }).subscribe({
       next: (updated) => this.event.set(updated),
-      error: () => this.error.set("Impossible de mettre à jour l'inventaire."),
+      error: () => this.toast.error("Impossible de mettre à jour l'inventaire."),
+    });
+  }
+
+  // --- Plan de consommation ---
+
+  onIntakesChange(intakes: NutritionIntake[]): void {
+    const event = this.event();
+    if (!event) return;
+    // Mise à jour optimiste : la timeline reste fluide même si l'appel échoue.
+    this.event.set({ ...event, intakes });
+    this.service.updateEvent(event.id, { intakes }).subscribe({
+      error: () => this.toast.error('Impossible de mettre à jour le plan de consommation.'),
+    });
+  }
+
+  onPlanSequenceChange(planSequenceMinutes: PlanSequenceMinutes): void {
+    const event = this.event();
+    if (!event) return;
+    this.event.set({ ...event, planSequenceMinutes });
+    this.service.updateEvent(event.id, { planSequenceMinutes }).subscribe({
+      error: () => this.toast.error('Impossible de mettre à jour le découpage des séquences.'),
     });
   }
 }

@@ -49,7 +49,7 @@ export class ButtonComponent {
     secondary:
       'bg-secondary-50 text-secondary-700 hover:bg-secondary-100 focus-visible:ring-secondary-400',
     ghost: 'bg-transparent text-slate-700 hover:bg-slate-100 focus-visible:ring-slate-300',
-    danger: 'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500',
+    danger: 'bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-500',
   };
 
   private readonly sizes: Record<ButtonSize, string> = {

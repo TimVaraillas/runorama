@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NutritionService } from '../../../features/nutrition/services/nutrition.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { ButtonComponent } from '../../../components/atoms/button/button.component';
 import { IconComponent } from '../../../components/atoms/icon/icon.component';
 import { ViewToggleComponent, type ProductViewMode } from '../../../components/atoms/view-toggle/view-toggle.component';
@@ -57,10 +58,6 @@ type PendingDelete =
           Nouveau produit
         </ui-button>
       </div>
-
-      @if (error()) {
-        <p class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{ error() }}</p>
-      }
 
       <!-- Filtres -->
       <ui-filter-bar>
@@ -198,10 +195,6 @@ type PendingDelete =
               </ui-button>
             </form>
 
-            @if (categoryError()) {
-              <p class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{{ categoryError() }}</p>
-            }
-
             @if (categories().length === 0) {
               <p class="text-sm text-slate-400">Aucune catégorie. Ajoutez-en une ci-dessus.</p>
             } @else {
@@ -250,7 +243,7 @@ type PendingDelete =
                         </button>
                         <button
                           type="button"
-                          class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                          class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
                           (click)="requestDeleteCategory(category)"
                           aria-label="Supprimer la catégorie"
                         >
@@ -297,6 +290,7 @@ type PendingDelete =
 })
 export class NutritionProductsPage {
   private readonly service = inject(NutritionService);
+  private readonly toast = inject(ToastService);
 
   readonly faPlus = faPlus;
   readonly faTrash = faTrash;
@@ -319,14 +313,12 @@ export class NutritionProductsPage {
   protected readonly search = signal('');
   protected readonly categoryFilter = signal('');
   protected readonly viewMode = signal<ProductViewMode>('table');
-  protected readonly error = signal<string | null>(null);
 
   protected readonly productPanelOpen = signal(false);
   protected readonly editing = signal<NutritionProduct | null>(null);
 
   protected readonly categoryPanelOpen = signal(false);
   protected readonly newCategoryName = signal('');
-  protected readonly categoryError = signal<string | null>(null);
   protected readonly editingCategoryId = signal<string | null>(null);
   protected readonly editingCategoryName = signal('');
 
@@ -361,7 +353,7 @@ export class NutritionProductsPage {
   private loadCategories(): void {
     this.service.listCategories().subscribe({
       next: (categories) => this.categories.set(categories),
-      error: () => this.error.set('Impossible de charger les catégories.'),
+      error: () => this.toast.error('Impossible de charger les catégories.'),
     });
   }
 
@@ -370,7 +362,7 @@ export class NutritionProductsPage {
       next: (products) => this.products.set(products),
       error: () => {
         this.products.set([]);
-        this.error.set('Impossible de charger les produits.');
+        this.toast.error('Impossible de charger les produits.');
       },
     });
   }
@@ -393,7 +385,6 @@ export class NutritionProductsPage {
   }
 
   saveProduct(payload: Partial<NutritionProduct>): void {
-    this.error.set(null);
     const current = this.editing();
     const request = current
       ? this.service.updateProduct(current.id, payload)
@@ -403,47 +394,42 @@ export class NutritionProductsPage {
         this.closeProductPanel();
         this.loadProducts();
       },
-      error: () => this.error.set("Impossible d'enregistrer le produit. Veuillez réessayer."),
+      error: () => this.toast.error("Impossible d'enregistrer le produit. Veuillez réessayer."),
     });
   }
 
   requestDeleteProduct(product: NutritionProduct): void {
-    this.error.set(null);
     this.pendingDelete.set({ type: 'product', id: product.id, name: product.name });
   }
 
   // --- Catégories ---
 
   openCategories(): void {
-    this.categoryError.set(null);
     this.categoryPanelOpen.set(true);
   }
 
   closeCategories(): void {
     this.categoryPanelOpen.set(false);
     this.newCategoryName.set('');
-    this.categoryError.set(null);
     this.cancelEditCategory();
   }
 
   addCategory(): void {
     const name = this.newCategoryName().trim();
     if (!name) return;
-    this.categoryError.set(null);
     this.service.createCategory({ name }).subscribe({
       next: () => {
         this.newCategoryName.set('');
         this.loadCategories();
       },
       error: (err) =>
-        this.categoryError.set(
+        this.toast.error(
           err?.status === 409 ? 'Cette catégorie existe déjà.' : "Impossible d'ajouter la catégorie.",
         ),
     });
   }
 
   startEditCategory(category: NutritionCategory): void {
-    this.categoryError.set(null);
     this.editingCategoryId.set(category.id);
     this.editingCategoryName.set(category.name);
   }
@@ -460,14 +446,13 @@ export class NutritionProductsPage {
       this.cancelEditCategory();
       return;
     }
-    this.categoryError.set(null);
     this.service.updateCategory(category.id, { name }).subscribe({
       next: () => {
         this.cancelEditCategory();
         this.loadCategories();
       },
       error: (err) =>
-        this.categoryError.set(
+        this.toast.error(
           err?.status === 409
             ? 'Cette catégorie existe déjà.'
             : 'Impossible de modifier la catégorie.',
@@ -476,7 +461,6 @@ export class NutritionProductsPage {
   }
 
   requestDeleteCategory(category: NutritionCategory): void {
-    this.categoryError.set(null);
     this.pendingDelete.set({ type: 'category', id: category.id, name: category.name });
   }
 
@@ -501,7 +485,7 @@ export class NutritionProductsPage {
         error: () => {
           this.deleting.set(false);
           this.pendingDelete.set(null);
-          this.error.set('Impossible de supprimer le produit.');
+          this.toast.error('Impossible de supprimer le produit.');
         },
       });
     } else {
@@ -517,7 +501,7 @@ export class NutritionProductsPage {
         error: (err) => {
           this.deleting.set(false);
           this.pendingDelete.set(null);
-          this.categoryError.set(
+          this.toast.error(
             err?.status === 409
               ? 'Cette catégorie contient des produits et ne peut pas être supprimée.'
               : 'Impossible de supprimer la catégorie.',

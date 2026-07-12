@@ -1,7 +1,23 @@
 import { ChangeDetectionStrategy, Component, effect, inject, input, output } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import type { NutritionEvent } from '../../../core/models';
+
+/**
+ * Valide qu'un chrono cible strictement positif est renseigné (heures +
+ * minutes). Appliqué au groupe pour couvrir les deux champs.
+ */
+function chronoRequiredValidator(group: AbstractControl): ValidationErrors | null {
+  const hours = group.get('targetHours')?.value ?? 0;
+  const minutes = group.get('targetMinutes')?.value ?? 0;
+  return hours * 60 + minutes > 0 ? null : { chronoRequired: true };
+}
 
 /**
  * Organism : formulaire de création/modification d'un évènement (stratégie).
@@ -78,7 +94,7 @@ import type { NutritionEvent } from '../../../core/models';
       <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
         <h3 class="text-sm font-semibold text-slate-800">Objectifs</h3>
         <div>
-          <label [class]="labelClass">Chrono cible (facultatif)</label>
+          <label [class]="labelClass">Chrono cible</label>
           <div class="flex items-center gap-2">
             <input
               type="number"
@@ -102,9 +118,15 @@ import type { NutritionEvent } from '../../../core/models';
             />
             <span class="text-slate-400">min</span>
           </div>
-          <p class="mt-1 text-xs text-slate-400">
-            Utilisé pour calculer les besoins totaux à partir des besoins horaires.
-          </p>
+          @if (form.hasError('chronoRequired') && form.get('targetHours')?.touched) {
+            <p class="mt-1 text-xs text-rose-600">
+              Le chrono cible est requis pour établir une stratégie alimentaire.
+            </p>
+          } @else {
+            <p class="mt-1 text-xs text-slate-400">
+              Base du plan de consommation et des besoins totaux (à partir des besoins horaires).
+            </p>
+          }
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
@@ -141,19 +163,22 @@ export class NutritionEventFormComponent {
   protected readonly inputClass =
     'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
 
-  readonly form = this.fb.group({
-    name: ['', Validators.required],
-    description: [''],
-    date: ['', Validators.required],
-    location: [''],
-    distance: [null as number | null, Validators.min(0)],
-    elevationGain: [null as number | null, Validators.min(0)],
-    elevationLoss: [null as number | null, Validators.min(0)],
-    targetHours: [null as number | null, Validators.min(0)],
-    targetMinutes: [null as number | null, [Validators.min(0), Validators.max(59)]],
-    hourlyEnergy: [200 as number | null, [Validators.required, Validators.min(0)]],
-    hourlyCarbs: [50 as number | null, [Validators.required, Validators.min(0)]],
-  });
+  readonly form = this.fb.group(
+    {
+      name: ['', Validators.required],
+      description: [''],
+      date: ['', Validators.required],
+      location: [''],
+      distance: [null as number | null, Validators.min(0)],
+      elevationGain: [null as number | null, Validators.min(0)],
+      elevationLoss: [null as number | null, Validators.min(0)],
+      targetHours: [null as number | null, Validators.min(0)],
+      targetMinutes: [null as number | null, [Validators.min(0), Validators.max(59)]],
+      hourlyEnergy: [200 as number | null, [Validators.required, Validators.min(0)]],
+      hourlyCarbs: [50 as number | null, [Validators.required, Validators.min(0)]],
+    },
+    { validators: chronoRequiredValidator },
+  );
 
   constructor() {
     // Pré-remplit le formulaire quand un évènement à éditer est fourni.

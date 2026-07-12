@@ -15,6 +15,25 @@ const eventItemSchema = new Schema(
 );
 
 /**
+ * Prise planifiée : une (ou plusieurs) unité(s) d'un produit consommée(s) sur
+ * une fenêtre de temps du parcours (plan de consommation).
+ */
+const intakeSchema = new Schema(
+  {
+    /** Identifiant unique généré côté client. */
+    id: { type: String, required: true },
+    productId: { type: Schema.Types.ObjectId, ref: 'NutritionProduct', required: true },
+    /** Début de la prise, en minutes depuis le départ. */
+    startMinute: { type: Number, required: true, min: 0 },
+    /** Durée de consommation en minutes. */
+    durationMinutes: { type: Number, required: true, min: 1 },
+    /** Nombre d'unités consommées sur cette prise. */
+    quantity: { type: Number, required: true, min: 1, default: 1 },
+  },
+  { _id: false },
+);
+
+/**
  * Schéma d'un évènement / stratégie alimentaire (collection `nutritionevents`).
  * Associe un évènement (course, sortie longue) à une liste de produits emportés
  * et aux besoins horaires cibles (énergie et glucides).
@@ -41,6 +60,10 @@ const nutritionEventSchema = new Schema(
     hourlyCarbs: { type: Number, required: true, min: 0, default: 50 },
     /** Produits emportés (inventaire). */
     items: { type: [eventItemSchema], default: [] },
+    /** Granularité (minutes) des séquences du plan de consommation. */
+    planSequenceMinutes: { type: Number, enum: [5, 10, 15, 20], default: 10 },
+    /** Répartition des prises sur le parcours (plan de consommation). */
+    intakes: { type: [intakeSchema], default: [] },
   },
   {
     timestamps: true,

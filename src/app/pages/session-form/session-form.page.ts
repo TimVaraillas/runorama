@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { SessionService } from '../../features/sessions/services/session.service';
+import { ToastService } from '../../core/services/toast.service';
 import { IconComponent } from '../../components/atoms/icon/icon.component';
 import { SessionFormComponent } from '../../components/organisms/session-form/session-form.component';
 import type { Session } from '../../core/models';
@@ -28,10 +29,6 @@ import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
         <p class="text-slate-500">Composez votre séance en blocs et exercices.</p>
       </div>
 
-      @if (error()) {
-        <p class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{ error() }}</p>
-      }
-
       <ui-session-form (save)="onSave($event)" (cancel)="onCancel()" />
     </section>
   `,
@@ -39,19 +36,18 @@ import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 export class SessionFormPage {
   private readonly service = inject(SessionService);
   private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
 
   readonly faArrowLeft = faArrowLeft;
 
-  protected readonly error = signal<string | null>(null);
   protected readonly saving = signal(false);
 
   onSave(payload: Partial<Session>): void {
     this.saving.set(true);
-    this.error.set(null);
     this.service.create(payload).subscribe({
       next: () => this.router.navigate(['/sessions']),
       error: () => {
-        this.error.set("Impossible d'enregistrer la séance. Veuillez réessayer.");
+        this.toast.error("Impossible d'enregistrer la séance. Veuillez réessayer.");
         this.saving.set(false);
       },
     });

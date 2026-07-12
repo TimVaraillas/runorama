@@ -10,6 +10,7 @@ import {
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
+import { ToastService } from '../../../core/services/toast.service';
 import type { NutritionCategory, NutritionProduct } from '../../../core/models';
 import { faImage, faTrash } from '@fortawesome/free-solid-svg-icons';
 
@@ -98,9 +99,6 @@ const IMAGE_QUALITY = 0.8;
                   Retirer la photo
                 </ui-button>
               }
-              @if (imageError()) {
-                <p class="text-xs text-red-600">{{ imageError() }}</p>
-              }
             </div>
           </div>
         </div>
@@ -147,6 +145,7 @@ const IMAGE_QUALITY = 0.8;
 })
 export class NutritionProductFormComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly toast = inject(ToastService);
 
   /** Produit à éditer (mode modification). Absent = création. */
   readonly product = input<NutritionProduct | null>(null);
@@ -161,7 +160,6 @@ export class NutritionProductFormComponent {
 
   /** Aperçu de la photo (data URL) ; `null` si aucune. */
   protected readonly imagePreview = signal<string | null>(null);
-  protected readonly imageError = signal<string | null>(null);
 
   protected readonly labelClass = 'mb-1 block text-xs font-medium text-slate-600';
   protected readonly inputClass =
@@ -196,7 +194,6 @@ export class NutritionProductFormComponent {
           salt: product.salt,
         });
         this.imagePreview.set(product.image ?? null);
-        this.imageError.set(null);
       }
     });
   }
@@ -206,16 +203,15 @@ export class NutritionProductFormComponent {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
-    this.imageError.set(null);
 
     if (!file.type.startsWith('image/')) {
-      this.imageError.set('Veuillez choisir un fichier image.');
+      this.toast.error('Veuillez choisir un fichier image.');
       return;
     }
 
     const reader = new FileReader();
     reader.onload = () => this.resizeImage(String(reader.result));
-    reader.onerror = () => this.imageError.set("Impossible de lire l'image.");
+    reader.onerror = () => this.toast.error("Impossible de lire l'image.");
     reader.readAsDataURL(file);
   }
 
@@ -237,14 +233,13 @@ export class NutritionProductFormComponent {
       ctx.drawImage(img, 0, 0, width, height);
       this.imagePreview.set(canvas.toDataURL('image/jpeg', IMAGE_QUALITY));
     };
-    img.onerror = () => this.imageError.set("Format d'image non pris en charge.");
+    img.onerror = () => this.toast.error("Format d'image non pris en charge.");
     img.src = dataUrl;
   }
 
   /** Retire la photo et réinitialise le champ fichier. */
   removeImage(fileInput: HTMLInputElement): void {
     this.imagePreview.set(null);
-    this.imageError.set(null);
     fileInput.value = '';
   }
 

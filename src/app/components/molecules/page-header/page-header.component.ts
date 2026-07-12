@@ -18,7 +18,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="flex flex-wrap items-start justify-between gap-3">
+    <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
       <div class="min-w-0">
         <h1 class="font-display text-2xl font-bold text-slate-900">{{ title() }}</h1>
         @if (subtitle()) {
