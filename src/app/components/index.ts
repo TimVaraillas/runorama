@@ -44,6 +44,7 @@ export * from './organisms/nutrition-strategy-inventory/nutrition-strategy-inven
 export * from './organisms/inventory-item-list/inventory-item-list.component';
 export * from './organisms/plan-palette/plan-palette.component';
 export * from './organisms/plan-timeline-block/plan-timeline-block.component';
+export * from './organisms/plan-timeline/plan-timeline.component';
 export * from './organisms/consumption-plan/consumption-plan.component';
 export * from './organisms/toaster/toaster.component';
 

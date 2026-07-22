@@ -1,7 +1,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
   OnDestroy,
   computed,
   input,
@@ -10,17 +9,9 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import {
-  CdkDrag,
-  CdkDragDrop,
-  CdkDragMove,
-  CdkDropList,
-  CdkDropListGroup,
-} from '@angular/cdk/drag-drop';
+import { CdkDragDrop, CdkDragMove, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { PlanPaletteComponent } from '../plan-palette/plan-palette.component';
-import { PlanTimelineBlockComponent } from '../plan-timeline-block/plan-timeline-block.component';
-import { PlanTimelineGutterComponent } from '../../molecules/plan-timeline-gutter/plan-timeline-gutter.component';
-import { PlanGhostBlockComponent } from '../../atoms/plan-ghost-block/plan-ghost-block.component';
+import { PlanTimelineComponent } from '../plan-timeline/plan-timeline.component';
 import type {
   DragPayload,
   GhostBlock,
@@ -28,6 +19,7 @@ import type {
   NutritionIntake,
   NutritionProduct,
   PaletteEntry,
+  PlanConstrainPosition,
   PlanHourlyRecap,
   PlanSequenceMinutes,
   PositionedIntake,
@@ -58,12 +50,8 @@ const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
   standalone: true,
   imports: [
     CdkDropListGroup,
-    CdkDropList,
-    CdkDrag,
     PlanPaletteComponent,
-    PlanTimelineGutterComponent,
-    PlanTimelineBlockComponent,
-    PlanGhostBlockComponent,
+    PlanTimelineComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -102,71 +90,21 @@ const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
 
         <!-- Timeline (scroll indépendant) -->
         <div class="space-y-6 lg:flex lg:min-h-0 lg:flex-col">
-          <div class="rounded-2xl bg-white p-5 shadow-sm lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
-            <div class="flex gap-2">
-              <ui-plan-timeline-gutter [marks]="sequenceMarks()" [height]="trackHeight()" />
-
-              <!-- Piste -->
-              <div
-                #track
-                cdkDropList
-                [cdkDropListData]="'timeline'"
-                [cdkDropListSortingDisabled]="true"
-                (cdkDropListDropped)="onTimelineDrop($event)"
-                class="relative flex-1 overflow-hidden rounded-xl bg-slate-50/60"
-                [style.height.px]="trackHeight()"
-              >
-                <!-- Lignes de séquence -->
-                @for (mark of sequenceMarks(); track mark.minute) {
-                  <div
-                    class="absolute inset-x-0 border-t"
-                    [class]="mark.major ? 'border-slate-200/70' : 'border-slate-100/70'"
-                    [style.top.px]="mark.top"
-                  ></div>
-                }
-
-                <!-- Blocs de prises -->
-                @for (intake of positionedIntakes(); track intake.id) {
-                  <!--
-                    L'enveloppe porte le positionnement (couloir/hauteur) : le
-                    CDK ne manipule que le bloc interne pendant le drag, ce qui
-                    évite qu'il n'écrase nos styles de couloir au dépôt.
-                  -->
-                  <div
-                    class="absolute transition-[left,width]"
-                    [style.top.px]="intake.top"
-                    [style.height.px]="intake.height"
-                    [style.left]="laneLeft(intake.lane)"
-                    [style.width]="laneWidth()"
-                  >
-                    <ui-plan-timeline-block
-                      cdkDrag
-                      cdkDragLockAxis="y"
-                      [cdkDragConstrainPosition]="constrainToSequence"
-                      [cdkDragData]="{ kind: 'intake', intakeId: intake.id }"
-                      (cdkDragStarted)="dragging.set(true)"
-                      (cdkDragMoved)="onDragMoved($event)"
-                      (cdkDragEnded)="onDragEnded()"
-                      [intake]="intake"
-                      [dragging]="dragging()"
-                      (remove)="removeIntake(intake.id)"
-                      (resizeStart)="startResize($event.event, intake, $event.edge)"
-                    />
-                  </div>
-                }
-
-                <!-- Emplacement fantôme (drag depuis la palette) -->
-                @if (ghostBlock(); as ghost) {
-                  <ui-plan-ghost-block
-                    [top]="ghost.top"
-                    [height]="ghost.height"
-                    [left]="laneLeft(ghost.lane)"
-                    [width]="laneWidth()"
-                  />
-                }
-              </div>
-            </div>
-          </div>
+          <ui-plan-timeline
+            [marks]="sequenceMarks()"
+            [intakes]="positionedIntakes()"
+            [ghost]="ghostBlock()"
+            [trackHeight]="trackHeight()"
+            [laneCount]="laneCount()"
+            [dragging]="dragging()"
+            [constrainPosition]="constrainToSequence"
+            (timelineDrop)="onTimelineDrop($event)"
+            (dragStarted)="dragging.set(true)"
+            (dragMoved)="onDragMoved($event)"
+            (dragEnded)="onDragEnded()"
+            (removeIntake)="removeIntake($event)"
+            (resizeStart)="startResize($event.event, $event.intake, $event.edge)"
+          />
         </div>
         </div>
       </div>
@@ -184,7 +122,12 @@ export class ConsumptionPlanComponent implements OnDestroy {
   /** Émis quand la granularité des séquences change. */
   readonly planSequenceChange = output<PlanSequenceMinutes>();
 
-  private readonly trackRef = viewChild<ElementRef<HTMLElement>>('track');
+  private readonly timeline = viewChild(PlanTimelineComponent);
+
+  /** Élément DOM de la piste (exposé par le composant timeline). */
+  private trackElement(): HTMLElement | undefined {
+    return this.timeline()?.trackElement();
+  }
 
   protected readonly sequenceOptions = SEQUENCE_OPTIONS;
 
@@ -302,14 +245,6 @@ export class ConsumptionPlanComponent implements OnDestroy {
     }),
   );
 
-  protected laneLeft(lane: number): string {
-    return `calc(${(lane / this.laneCount()) * 100}% + 2px)`;
-  }
-
-  protected laneWidth(): string {
-    return `calc(${100 / this.laneCount()}% - 4px)`;
-  }
-
   onSequenceChange(value: PlanSequenceMinutes): void {
     this.sequenceOverride.set(value);
     this.planSequenceChange.emit(value);
@@ -369,13 +304,12 @@ export class ConsumptionPlanComponent implements OnDestroy {
    * la grille de séquences. Ainsi ce que l'on voit pendant le drag correspond
    * exactement à l'emplacement de dépôt : plus d'effet de « saut » au lâcher.
    */
-  protected readonly constrainToSequence = (
-    point: { x: number; y: number },
-    _drag: unknown,
-    dimensions: DOMRect,
-    pickup: { x: number; y: number },
-  ): { x: number; y: number } => {
-    const track = this.trackRef()?.nativeElement;
+  protected readonly constrainToSequence: PlanConstrainPosition = (
+    point,
+    _drag,
+    dimensions,
+  ) => {
+    const track = this.trackElement();
     if (!track) return point;
     const rect = track.getBoundingClientRect();
     const total = this.totalMinutes();
@@ -415,7 +349,7 @@ export class ConsumptionPlanComponent implements OnDestroy {
    */
   private refreshDragPreview(): void {
     const drag = this.lastDrag;
-    const track = this.trackRef()?.nativeElement;
+    const track = this.trackElement();
     if (!drag || !track) return;
     const rect = track.getBoundingClientRect();
     const { x, y } = drag;
@@ -464,7 +398,7 @@ export class ConsumptionPlanComponent implements OnDestroy {
    * piste. Résolu dynamiquement (plus robuste qu'une `viewChild` sur la carte).
    */
   private scrollContainer(): HTMLElement | null {
-    let el = this.trackRef()?.nativeElement?.parentElement ?? null;
+    let el = this.trackElement()?.parentElement ?? null;
     while (el) {
       const oy = getComputedStyle(el).overflowY;
       if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight) return el;
@@ -550,7 +484,7 @@ export class ConsumptionPlanComponent implements OnDestroy {
 
   private onResizeMove(event: PointerEvent): void {
     const state = this.resizeState;
-    const track = this.trackRef()?.nativeElement;
+    const track = this.trackElement();
     if (!state || !track) return;
     const total = this.totalMinutes();
     const seq = this.sequenceMinutes();
@@ -613,7 +547,7 @@ export class ConsumptionPlanComponent implements OnDestroy {
 
   /** Déduit la minute (alignée sur la séquence) du point de dépôt. */
   private minuteFromDrop(event: CdkDragDrop<string>): number | null {
-    const track = this.trackRef()?.nativeElement;
+    const track = this.trackElement();
     if (!track) return null;
     const rect = track.getBoundingClientRect();
     const native = event.event;

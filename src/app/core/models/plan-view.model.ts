@@ -55,3 +55,19 @@ export interface ResizeStartEvent {
   event: PointerEvent;
   edge: ResizeEdge;
 }
+
+/** Évènement émis quand une prise placée démarre un redimensionnement. */
+export interface IntakeResizeStartEvent extends ResizeStartEvent {
+  intake: PositionedIntake;
+}
+
+/**
+ * Fonction contraignant, en direct, la position d'un bloc glissé sur la
+ * grille de séquences (signature de `cdkDragConstrainPosition`).
+ */
+export type PlanConstrainPosition = (
+  point: { x: number; y: number },
+  drag: unknown,
+  dimensions: DOMRect,
+  pickup: { x: number; y: number },
+) => { x: number; y: number };
