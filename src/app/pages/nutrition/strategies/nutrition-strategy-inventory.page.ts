@@ -37,7 +37,13 @@ import { faArrowLeft, faStopwatch, faUtensils } from '@fortawesome/free-solid-sv
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="space-y-6">
+    <section
+      [class]="
+        activeTab() === 'plan'
+          ? 'lg:flex lg:h-[calc(100vh-243px)] lg:flex-col'
+          : ''
+      "
+    >
       <ui-page-header
         [title]="event()?.name ?? 'Stratégie alimentaire'"
         subtitle="Quelle est la composition de votre stratégie alimentaire ?"
@@ -60,12 +66,14 @@ import { faArrowLeft, faStopwatch, faUtensils } from '@fortawesome/free-solid-sv
             (remove)="removeProduct($event)"
           />
         } @else {
-          <ui-consumption-plan
-            [event]="ev"
-            [products]="products()"
-            (intakesChange)="onIntakesChange($event)"
-            (planSequenceChange)="onPlanSequenceChange($event)"
-          />
+          <div class="lg:min-h-0 lg:flex-1">
+            <ui-consumption-plan
+              [event]="ev"
+              [products]="products()"
+              (intakesChange)="onIntakesChange($event)"
+              (planSequenceChange)="onPlanSequenceChange($event)"
+            />
+          </div>
         }
       } @else if (notFound()) {
         <div

@@ -20,6 +20,8 @@ import { PlanPaletteComponent } from '../plan-palette/plan-palette.component';
 import { PlanTimelineBlockComponent } from '../plan-timeline-block/plan-timeline-block.component';
 import { PlanTimelineGutterComponent } from '../../molecules/plan-timeline-gutter/plan-timeline-gutter.component';
 import { PlanGhostBlockComponent } from '../../atoms/plan-ghost-block/plan-ghost-block.component';
+import { IconComponent } from '../../atoms/icon/icon.component';
+import { faCompress, faExpand } from '@fortawesome/free-solid-svg-icons';
 import type {
   DragPayload,
   GhostBlock,
@@ -40,7 +42,7 @@ import {
 } from '../../../core/utils/plan-layout.util';
 import type { DragOverState, ResizePreviewState } from '../../../core/utils/plan-layout.util';
 
-const PX_PER_SEQUENCE = 56;
+const PX_PER_SEQUENCE = 25;
 const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
 
 /**
@@ -63,8 +65,12 @@ const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
     PlanTimelineGutterComponent,
     PlanTimelineBlockComponent,
     PlanGhostBlockComponent,
+    IconComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(document:keydown.escape)': 'exitFullscreen()',
+  },
   template: `
     @if (totalMinutes() <= 0) {
       <p class="rounded-lg bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
@@ -75,24 +81,42 @@ const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
         Ajoutez des produits dans l'inventaire pour pouvoir les répartir sur le parcours.
       </p>
     } @else {
-      <div cdkDropListGroup class="grid gap-6 lg:grid-cols-[minmax(0,20rem)_1fr]">
-        <!-- Palette : produits à placer + récapitulatif -->
-        <ui-plan-palette
-          [entries]="paletteEntries()"
-          [unplacedUnits]="unplacedUnits()"
-          [sequenceMinutes]="sequenceMinutes()"
-          [sequenceOptions]="sequenceOptions"
-          [recapRows]="hourlyRecap()"
-          (sequenceChange)="onSequenceChange($event)"
-          (paletteDropped)="onPaletteDrop($event)"
-          (dragStarted)="dragging.set(true)"
-          (dragMoved)="onDragMoved($event)"
-          (dragEnded)="onDragEnded()"
-        />
+      <div [class]="containerClass()">
+        <!-- Bascule plein écran : superposée pour ne pas ajouter de hauteur -->
+        <button
+          type="button"
+          (click)="toggleFullscreen()"
+          [attr.aria-pressed]="isFullscreen()"
+          [attr.aria-label]="isFullscreen() ? 'Quitter le plein écran' : 'Plein écran'"
+          class="absolute right-2 top-2 z-20 inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white/90 px-2.5 text-sm font-medium text-slate-600 shadow-sm backdrop-blur transition hover:bg-white"
+        >
+          <ui-icon [icon]="isFullscreen() ? faCompress : faExpand" size="sm" fixedWidth />
+          <span>{{ isFullscreen() ? 'Quitter le plein écran' : 'Plein écran' }}</span>
+        </button>
 
-        <!-- Timeline -->
-        <div class="space-y-6">
-          <div class="rounded-2xl bg-white p-5 shadow-sm">
+        <div
+          cdkDropListGroup
+          class="grid gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,20rem)_1fr]"
+        >
+          <!-- Palette : produits à placer + récapitulatif (scroll indépendant) -->
+        <div class="lg:flex lg:min-h-0 lg:flex-col">
+          <ui-plan-palette
+            [entries]="paletteEntries()"
+            [unplacedUnits]="unplacedUnits()"
+            [sequenceMinutes]="sequenceMinutes()"
+            [sequenceOptions]="sequenceOptions"
+            [recapRows]="hourlyRecap()"
+            (sequenceChange)="onSequenceChange($event)"
+            (paletteDropped)="onPaletteDrop($event)"
+            (dragStarted)="dragging.set(true)"
+            (dragMoved)="onDragMoved($event)"
+            (dragEnded)="onDragEnded()"
+          />
+        </div>
+
+        <!-- Timeline (scroll indépendant) -->
+        <div class="space-y-6 lg:flex lg:min-h-0 lg:flex-col">
+          <div class="rounded-2xl bg-white p-5 shadow-sm lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
             <div class="flex gap-2">
               <ui-plan-timeline-gutter [marks]="sequenceMarks()" [height]="trackHeight()" />
 
@@ -158,6 +182,7 @@ const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
             </div>
           </div>
         </div>
+        </div>
       </div>
     }
   `,
@@ -176,6 +201,19 @@ export class ConsumptionPlanComponent implements OnDestroy {
   private readonly trackRef = viewChild<ElementRef<HTMLElement>>('track');
 
   protected readonly sequenceOptions = SEQUENCE_OPTIONS;
+
+  /** Icônes de la bascule plein écran. */
+  protected readonly faExpand = faExpand;
+  protected readonly faCompress = faCompress;
+
+  /** Affichage du plan en superposition plein écran. */
+  protected readonly isFullscreen = signal(false);
+  /** Classes du conteneur du plan selon le mode (normal / plein écran). */
+  protected readonly containerClass = computed(() =>
+    this.isFullscreen()
+      ? 'fixed inset-0 z-50 flex flex-col overflow-y-auto bg-slate-50 p-4 lg:overflow-hidden lg:p-6'
+      : 'relative flex flex-col lg:h-full',
+  );
 
   /** Vrai pendant qu'un élément est glissé (indice visuel d'empilement). */
   protected readonly dragging = signal(false);
@@ -295,6 +333,16 @@ export class ConsumptionPlanComponent implements OnDestroy {
     this.planSequenceChange.emit(value);
   }
 
+  /** Bascule l'affichage du plan en plein écran. */
+  protected toggleFullscreen(): void {
+    this.isFullscreen.update((open) => !open);
+  }
+
+  /** Quitte le plein écran (bouton ou touche Échap). */
+  protected exitFullscreen(): void {
+    if (this.isFullscreen()) this.isFullscreen.set(false);
+  }
+
   /** Dépose sur la timeline : crée une prise (produit) ou déplace (prise). */
   onTimelineDrop(event: CdkDragDrop<string>): void {
     const payload = event.item.data as DragPayload;
@@ -372,17 +420,33 @@ export class ConsumptionPlanComponent implements OnDestroy {
     return { x: point.x, y: rect.top + snappedTop };
   };
 
+  /** Dernière position pointeur d'un drag en cours (coordonnées viewport). */
+  private lastDrag: { x: number; y: number; payload: DragPayload } | null = null;
+
   /** Met à jour l'aperçu du créneau survolé pendant un drag. */
   onDragMoved(event: CdkDragMove): void {
-    const track = this.trackRef()?.nativeElement;
-    if (!track) return;
-    const rect = track.getBoundingClientRect();
     const { x, y } = event.pointerPosition;
+    this.lastDrag = { x, y, payload: event.source.data as DragPayload };
+    this.updateAutoScroll(y);
+    this.refreshDragPreview();
+  }
+
+  /**
+   * Recalcule l'aperçu (fantôme) à partir de la dernière position pointeur.
+   * Réévalué aussi pendant l'auto-scroll pour que le fantôme suive la piste
+   * qui défile sous un curseur immobile.
+   */
+  private refreshDragPreview(): void {
+    const drag = this.lastDrag;
+    const track = this.trackRef()?.nativeElement;
+    if (!drag || !track) return;
+    const rect = track.getBoundingClientRect();
+    const { x, y } = drag;
     if (y < rect.top || y > rect.bottom || x < rect.left || x > rect.right) {
       this.dragOverPreview.set(null);
       return;
     }
-    const payload = event.source.data as DragPayload;
+    const payload = drag.payload;
     const seq = this.sequenceMinutes();
     const total = this.totalMinutes();
     let duration: number = seq;
@@ -405,6 +469,78 @@ export class ConsumptionPlanComponent implements OnDestroy {
   onDragEnded(): void {
     this.dragging.set(false);
     this.dragOverPreview.set(null);
+    this.stopAutoScroll();
+    this.lastDrag = null;
+  }
+
+  // --- Auto-scroll de la piste pendant un drag ---
+
+  /** Zone (px) près des bords où l'auto-scroll s'enclenche. */
+  private static readonly SCROLL_ZONE = 56;
+  /** Vitesse max de défilement (px par frame). */
+  private static readonly SCROLL_MAX_SPEED = 16;
+  private autoScrollFrame = 0;
+  private autoScrollSpeed = 0;
+
+  /**
+   * Conteneur défilant de la timeline : plus proche ancêtre scrollable de la
+   * piste. Résolu dynamiquement (plus robuste qu'une `viewChild` sur la carte).
+   */
+  private scrollContainer(): HTMLElement | null {
+    let el = this.trackRef()?.nativeElement?.parentElement ?? null;
+    while (el) {
+      const oy = getComputedStyle(el).overflowY;
+      if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight) return el;
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  /**
+   * Détermine la vitesse d'auto-scroll selon la proximité du curseur avec le
+   * haut/bas de la zone défilante, puis (dés)active la boucle d'animation.
+   */
+  private updateAutoScroll(pointerY: number): void {
+    const scroller = this.scrollContainer();
+    if (!scroller) {
+      this.stopAutoScroll();
+      return;
+    }
+    const rect = scroller.getBoundingClientRect();
+    const zone = ConsumptionPlanComponent.SCROLL_ZONE;
+    const max = ConsumptionPlanComponent.SCROLL_MAX_SPEED;
+    let speed = 0;
+    if (pointerY < rect.top + zone) {
+      speed = -max * Math.min(1, (rect.top + zone - pointerY) / zone);
+    } else if (pointerY > rect.bottom - zone) {
+      speed = max * Math.min(1, (pointerY - (rect.bottom - zone)) / zone);
+    }
+    this.autoScrollSpeed = speed;
+    if (speed !== 0) this.startAutoScroll();
+    else this.stopAutoScroll();
+  }
+
+  private startAutoScroll(): void {
+    if (this.autoScrollFrame) return;
+    const step = () => {
+      const scroller = this.scrollContainer();
+      if (!scroller || this.autoScrollSpeed === 0) {
+        this.autoScrollFrame = 0;
+        return;
+      }
+      const before = scroller.scrollTop;
+      scroller.scrollTop = before + this.autoScrollSpeed;
+      // Le fantôme suit la piste qui défile sous le curseur immobile.
+      if (scroller.scrollTop !== before) this.refreshDragPreview();
+      this.autoScrollFrame = requestAnimationFrame(step);
+    };
+    this.autoScrollFrame = requestAnimationFrame(step);
+  }
+
+  private stopAutoScroll(): void {
+    if (this.autoScrollFrame) cancelAnimationFrame(this.autoScrollFrame);
+    this.autoScrollFrame = 0;
+    this.autoScrollSpeed = 0;
   }
 
   // --- Redimensionnement au pointeur ---
@@ -478,6 +614,7 @@ export class ConsumptionPlanComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.cleanupResize();
+    this.stopAutoScroll();
   }
 
   private updateIntake(id: string, patch: (intake: NutritionIntake) => NutritionIntake): void {
