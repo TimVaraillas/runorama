@@ -19,7 +19,7 @@ import { ToasterComponent } from '../../organisms/toaster/toaster.component';
         <router-outlet />
       </main>
       <footer class="border-t border-slate-200 py-6 text-center text-sm text-slate-400">
-        Runorama — Créez et planifiez vos séances de course à pied.
+        Runorama — Planifiez votre nutrition sportive.
       </footer>
     </div>
     <ui-toaster />

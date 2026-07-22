@@ -1,11 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { IconComponent } from '../../atoms/icon/icon.component';
-import {
-  faPersonRunning,
-  faDumbbell,
-  faAppleWhole,
-} from '@fortawesome/free-solid-svg-icons';
+import { faPersonRunning, faAppleWhole } from '@fortawesome/free-solid-svg-icons';
 
 /**
  * Organism : barre de navigation principale.
@@ -45,8 +41,8 @@ import {
 export class HeaderComponent {
   readonly logo = faPersonRunning;
 
+  // NOTE : le lien « Séances » est temporairement masqué (partie sportive non fonctionnelle).
   readonly links = [
-    { path: '/sessions', label: 'Séances', icon: faDumbbell, exact: false },
     { path: '/nutrition', label: 'Nutrition', icon: faAppleWhole, exact: false },
   ];
 }
