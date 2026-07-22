@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { NutritionService } from '../../../features/nutrition/services/nutrition.service';
+import { NutritionExportService } from '../../../features/nutrition/services/nutrition-export.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ButtonComponent } from '../../../components/atoms/button/button.component';
 import { IconComponent } from '../../../components/atoms/icon/icon.component';
@@ -15,7 +16,7 @@ import type {
   NutritionProduct,
   PlanSequenceMinutes,
 } from '../../../core/models';
-import { faArrowLeft, faStopwatch, faUtensils } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faFilePdf, faStopwatch, faUtensils } from '@fortawesome/free-solid-svg-icons';
 
 /**
  * Sous-page Nutrition : détail d'une stratégie alimentaire (`strategies/:id`).
@@ -48,9 +49,19 @@ import { faArrowLeft, faStopwatch, faUtensils } from '@fortawesome/free-solid-sv
         [title]="event()?.name ?? 'Stratégie alimentaire'"
         subtitle="Quelle est la composition de votre stratégie alimentaire ?"
       >
-        <ui-button actions variant="ghost" size="sm" [icon]="faArrowLeft" (clicked)="goBack()">
-          Retour aux stratégies
+
+        <ui-button
+          actions
+          variant="secondary"
+          size="sm"
+          [icon]="faFilePdf"
+          [disabled]="!event()"
+          (clicked)="exportPdf()"
+        >
+          Exporter en PDF
         </ui-button>
+
+         <ui-button actions variant="secondary" size="sm" [icon]="faArrowLeft" (clicked)="goBack()" title="Retour aux stratégies" />
       </ui-page-header>
 
       @if (event(); as ev) {
@@ -95,6 +106,7 @@ import { faArrowLeft, faStopwatch, faUtensils } from '@fortawesome/free-solid-sv
 })
 export class NutritionStrategyInventoryPage implements OnInit {
   private readonly service = inject(NutritionService);
+  private readonly exportService = inject(NutritionExportService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
 
@@ -102,6 +114,7 @@ export class NutritionStrategyInventoryPage implements OnInit {
   readonly id = input.required<string>();
 
   protected readonly faArrowLeft = faArrowLeft;
+  protected readonly faFilePdf = faFilePdf;
   protected readonly faUtensils = faUtensils;
 
   protected readonly tabs: TabItem[] = [
@@ -145,6 +158,16 @@ export class NutritionStrategyInventoryPage implements OnInit {
 
   goBack(): void {
     this.router.navigate(['/nutrition/strategies']);
+  }
+
+  /** Exporte la stratégie (inventaire + plan) en PDF via l'aperçu d'impression. */
+  exportPdf(): void {
+    const event = this.event();
+    if (!event) return;
+    const opened = this.exportService.exportStrategyToPdf(event, this.products());
+    if (!opened) {
+      this.toast.error("Autorisez les fenêtres pop-up pour exporter la stratégie en PDF.");
+    }
   }
 
   // --- Inventaire (association de produits) ---
