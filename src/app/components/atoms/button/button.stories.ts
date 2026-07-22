@@ -7,9 +7,13 @@ const meta: Meta<ButtonComponent> = {
   component: ButtonComponent,
   tags: ['autodocs'],
   argTypes: {
-    variant: {
+    color: {
       control: 'select',
-      options: ['primary', 'secondary', 'ghost', 'danger'],
+      options: ['primary', 'secondary', 'default', 'info', 'warning', 'danger'],
+    },
+    variant: {
+      control: 'inline-radio',
+      options: ['full', 'outlined', 'ghost'],
     },
     size: { control: 'select', options: ['sm', 'md', 'lg'] },
     iconPosition: { control: 'inline-radio', options: ['left', 'right'] },
@@ -18,6 +22,7 @@ const meta: Meta<ButtonComponent> = {
   render: (args) => ({
     props: args,
     template: `<ui-button
+      [color]="color"
       [variant]="variant"
       [size]="size"
       [disabled]="disabled"
@@ -31,29 +36,41 @@ export default meta;
 type Story = StoryObj<ButtonComponent>;
 
 export const Primary: Story = {
-  args: { variant: 'primary', size: 'md' },
+  args: { color: 'primary', variant: 'full', size: 'md' },
 };
 
 export const Secondary: Story = {
-  args: { variant: 'secondary', size: 'md' },
+  args: { color: 'secondary', variant: 'full', size: 'md' },
+};
+
+export const Outlined: Story = {
+  args: { color: 'primary', variant: 'outlined', size: 'md' },
 };
 
 export const Ghost: Story = {
-  args: { variant: 'ghost', size: 'md' },
+  args: { color: 'default', variant: 'ghost', size: 'md' },
+};
+
+export const Info: Story = {
+  args: { color: 'info', variant: 'full', size: 'md' },
+};
+
+export const Warning: Story = {
+  args: { color: 'warning', variant: 'full', size: 'md' },
 };
 
 export const Danger: Story = {
-  args: { variant: 'danger', size: 'md' },
+  args: { color: 'danger', variant: 'full', size: 'md' },
 };
 
 export const WithIcon: Story = {
-  args: { variant: 'primary', icon: faPlus },
+  args: { color: 'primary', variant: 'full', icon: faPlus },
 };
 
 export const IconRight: Story = {
-  args: { variant: 'secondary', icon: faDownload, iconPosition: 'right' },
+  args: { color: 'secondary', variant: 'outlined', icon: faDownload, iconPosition: 'right' },
 };
 
 export const Disabled: Story = {
-  args: { variant: 'primary', disabled: true },
+  args: { color: 'primary', variant: 'full', disabled: true },
 };

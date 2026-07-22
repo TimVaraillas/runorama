@@ -5,6 +5,7 @@ import {
   OnDestroy,
   computed,
   input,
+  model,
   output,
   signal,
   viewChild,
@@ -20,8 +21,6 @@ import { PlanPaletteComponent } from '../plan-palette/plan-palette.component';
 import { PlanTimelineBlockComponent } from '../plan-timeline-block/plan-timeline-block.component';
 import { PlanTimelineGutterComponent } from '../../molecules/plan-timeline-gutter/plan-timeline-gutter.component';
 import { PlanGhostBlockComponent } from '../../atoms/plan-ghost-block/plan-ghost-block.component';
-import { IconComponent } from '../../atoms/icon/icon.component';
-import { faCompress, faExpand } from '@fortawesome/free-solid-svg-icons';
 import type {
   DragPayload,
   GhostBlock,
@@ -65,7 +64,6 @@ const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
     PlanTimelineGutterComponent,
     PlanTimelineBlockComponent,
     PlanGhostBlockComponent,
-    IconComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -82,18 +80,6 @@ const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
       </p>
     } @else {
       <div [class]="containerClass()">
-        <!-- Bascule plein écran : superposée pour ne pas ajouter de hauteur -->
-        <button
-          type="button"
-          (click)="toggleFullscreen()"
-          [attr.aria-pressed]="isFullscreen()"
-          [attr.aria-label]="isFullscreen() ? 'Quitter le plein écran' : 'Plein écran'"
-          class="absolute right-2 top-2 z-20 inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white/90 px-2.5 text-sm font-medium text-slate-600 shadow-sm backdrop-blur transition hover:bg-white"
-        >
-          <ui-icon [icon]="isFullscreen() ? faCompress : faExpand" size="sm" fixedWidth />
-          <span>{{ isFullscreen() ? 'Quitter le plein écran' : 'Plein écran' }}</span>
-        </button>
-
         <div
           cdkDropListGroup
           class="grid gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,20rem)_1fr]"
@@ -202,15 +188,11 @@ export class ConsumptionPlanComponent implements OnDestroy {
 
   protected readonly sequenceOptions = SEQUENCE_OPTIONS;
 
-  /** Icônes de la bascule plein écran. */
-  protected readonly faExpand = faExpand;
-  protected readonly faCompress = faCompress;
-
-  /** Affichage du plan en superposition plein écran. */
-  protected readonly isFullscreen = signal(false);
+  /** Affichage du plan en superposition plein écran (pilotable par le parent). */
+  readonly fullscreen = model(false);
   /** Classes du conteneur du plan selon le mode (normal / plein écran). */
   protected readonly containerClass = computed(() =>
-    this.isFullscreen()
+    this.fullscreen()
       ? 'fixed inset-0 z-50 flex flex-col overflow-y-auto bg-slate-50 p-4 lg:overflow-hidden lg:p-6'
       : 'relative flex flex-col lg:h-full',
   );
@@ -333,14 +315,9 @@ export class ConsumptionPlanComponent implements OnDestroy {
     this.planSequenceChange.emit(value);
   }
 
-  /** Bascule l'affichage du plan en plein écran. */
-  protected toggleFullscreen(): void {
-    this.isFullscreen.update((open) => !open);
-  }
-
-  /** Quitte le plein écran (bouton ou touche Échap). */
+  /** Quitte le plein écran (touche Échap). */
   protected exitFullscreen(): void {
-    if (this.isFullscreen()) this.isFullscreen.set(false);
+    if (this.fullscreen()) this.fullscreen.set(false);
   }
 
   /** Dépose sur la timeline : crée une prise (produit) ou déplace (prise). */

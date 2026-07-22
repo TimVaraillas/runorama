@@ -142,7 +142,7 @@ function chronoRequiredValidator(group: AbstractControl): ValidationErrors | nul
       </section>
 
       <div class="flex items-center justify-end gap-3">
-        <ui-button type="button" variant="ghost" (clicked)="cancel.emit()">Annuler</ui-button>
+        <ui-button type="button" color="default" variant="ghost" (clicked)="cancel.emit()">Annuler</ui-button>
         <ui-button type="submit" [disabled]="form.invalid">
           {{ event() ? 'Enregistrer' : "Créer l'évènement" }}
         </ui-button>

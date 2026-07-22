@@ -23,7 +23,7 @@ export type ModalSize = 'sm' | 'md' | 'lg';
  * <ui-modal [open]="isOpen()" title="Confirmer" (close)="isOpen.set(false)">
  *   <p>Contenu…</p>
  *   <div modalFooter>
- *     <ui-button variant="ghost" (clicked)="isOpen.set(false)">Annuler</ui-button>
+ *     <ui-button color="default" variant="ghost" (clicked)="isOpen.set(false)">Annuler</ui-button>
  *   </div>
  * </ui-modal>
  */

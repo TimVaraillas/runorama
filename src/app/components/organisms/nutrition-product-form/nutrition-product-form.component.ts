@@ -91,11 +91,11 @@ const IMAGE_QUALITY = 0.8;
                 class="hidden"
                 (change)="onFileSelected($event)"
               />
-              <ui-button type="button" variant="secondary" size="sm" [icon]="faImage" (clicked)="fileInput.click()">
+              <ui-button type="button" color="secondary" variant="outlined" size="sm" [icon]="faImage" (clicked)="fileInput.click()">
                 {{ imagePreview() ? 'Changer la photo' : 'Ajouter une photo' }}
               </ui-button>
               @if (imagePreview()) {
-                <ui-button type="button" variant="ghost" size="sm" [icon]="faTrash" (clicked)="removeImage(fileInput)">
+                <ui-button type="button" color="default" variant="ghost" size="sm" [icon]="faTrash" (clicked)="removeImage(fileInput)">
                   Retirer la photo
                 </ui-button>
               }
@@ -135,7 +135,7 @@ const IMAGE_QUALITY = 0.8;
       </section>
 
       <div class="flex items-center justify-end gap-3">
-        <ui-button type="button" variant="ghost" (clicked)="cancel.emit()">Annuler</ui-button>
+        <ui-button type="button" color="default" variant="ghost" (clicked)="cancel.emit()">Annuler</ui-button>
         <ui-button type="submit" [disabled]="form.invalid">
           {{ product() ? 'Enregistrer' : 'Ajouter le produit' }}
         </ui-button>

@@ -34,7 +34,7 @@ import { faPlus, faChevronRight, faPersonRunning } from '@fortawesome/free-solid
               <ui-icon [icon]="faPersonRunning" size="xl" />
             </div>
             <p class="text-slate-600">Aucune séance pour le moment.</p>
-            <ui-button variant="secondary" [icon]="faPlus" (clicked)="newSession()">Créer ma première séance</ui-button>
+            <ui-button color="secondary" variant="outlined" [icon]="faPlus" (clicked)="newSession()">Créer ma première séance</ui-button>
           </div>
         } @else {
           <div class="grid gap-4 lg:grid-cols-1">

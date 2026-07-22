@@ -53,7 +53,7 @@ type PendingDelete =
   template: `
     <section class="space-y-6">
       <div class="flex flex-wrap items-center justify-end gap-2">
-        <ui-button variant="secondary" [icon]="faTags" (clicked)="openCategories()">Catégories</ui-button>
+        <ui-button color="secondary" variant="outlined" [icon]="faTags" (clicked)="openCategories()">Catégories</ui-button>
         <ui-button [icon]="faPlus" [disabled]="categories().length === 0" (clicked)="newProduct()">
           Nouveau produit
         </ui-button>
@@ -91,7 +91,8 @@ type PendingDelete =
             @if (list.length === 0) {
               <p class="text-slate-600">Aucun produit pour le moment.</p>
               <ui-button
-                variant="secondary"
+                color="secondary"
+                variant="outlined"
                 [icon]="faPlus"
                 [disabled]="categories().length === 0"
                 (clicked)="newProduct()"
@@ -280,8 +281,8 @@ type PendingDelete =
         </p>
       }
       <div modalFooter class="flex items-center justify-end gap-3">
-        <ui-button variant="ghost" [disabled]="deleting()" (clicked)="cancelDelete()">Annuler</ui-button>
-        <ui-button variant="danger" [icon]="faTrash" [disabled]="deleting()" (clicked)="confirmDelete()">
+        <ui-button color="default" variant="ghost" [disabled]="deleting()" (clicked)="cancelDelete()">Annuler</ui-button>
+        <ui-button color="danger" [icon]="faTrash" [disabled]="deleting()" (clicked)="confirmDelete()">
           Supprimer
         </ui-button>
       </div>

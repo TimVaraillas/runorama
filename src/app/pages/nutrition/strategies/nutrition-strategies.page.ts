@@ -74,7 +74,7 @@ import { faPlus, faTrash, faXmark, faUtensils } from '@fortawesome/free-solid-sv
               <ui-icon [icon]="faUtensils" size="xl" />
             </div>
             <p class="text-slate-600">Aucune stratégie pour le moment.</p>
-            <ui-button variant="secondary" [icon]="faPlus" (clicked)="newEvent()">
+            <ui-button color="secondary" variant="outlined" [icon]="faPlus" (clicked)="newEvent()">
               Créer ma première stratégie
             </ui-button>
           </div>
@@ -155,8 +155,8 @@ import { faPlus, faTrash, faXmark, faUtensils } from '@fortawesome/free-solid-sv
         </p>
       }
       <div modalFooter class="flex items-center justify-end gap-3">
-        <ui-button variant="ghost" [disabled]="deleting()" (clicked)="cancelDelete()">Annuler</ui-button>
-        <ui-button variant="danger" [icon]="faTrash" [disabled]="deleting()" (clicked)="confirmDelete()">
+        <ui-button color="default" variant="ghost" [disabled]="deleting()" (clicked)="cancelDelete()">Annuler</ui-button>
+        <ui-button color="danger" [icon]="faTrash" [disabled]="deleting()" (clicked)="confirmDelete()">
           Supprimer
         </ui-button>
       </div>

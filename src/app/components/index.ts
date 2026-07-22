@@ -1,5 +1,6 @@
 // Atoms
 export * from './atoms/button/button.component';
+export * from './atoms/tooltip/tooltip.component';
 export * from './atoms/icon/icon.component';
 export * from './atoms/badge/badge.component';
 export * from './atoms/zone-chip/zone-chip.component';

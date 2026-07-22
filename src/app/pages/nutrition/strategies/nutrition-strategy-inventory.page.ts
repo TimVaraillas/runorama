@@ -16,7 +16,7 @@ import type {
   NutritionProduct,
   PlanSequenceMinutes,
 } from '../../../core/models';
-import { faArrowLeft, faFilePdf, faStopwatch, faUtensils } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faCompress, faExpand, faFilePdf, faStopwatch, faUtensils } from '@fortawesome/free-solid-svg-icons';
 
 /**
  * Sous-page Nutrition : détail d'une stratégie alimentaire (`strategies/:id`).
@@ -52,16 +52,36 @@ import { faArrowLeft, faFilePdf, faStopwatch, faUtensils } from '@fortawesome/fr
 
         <ui-button
           actions
-          variant="secondary"
+          color="secondary"
+          variant="outlined"
           size="sm"
           [icon]="faFilePdf"
           [disabled]="!event()"
           (clicked)="exportPdf()"
         >
-          Exporter en PDF
+          Exporter votre stratégie
         </ui-button>
 
-         <ui-button actions variant="secondary" size="sm" [icon]="faArrowLeft" (clicked)="goBack()" title="Retour aux stratégies" />
+        @if (activeTab() === 'plan') {
+          <ui-button
+            actions
+            [class]="planFullscreen() ? 'fixed right-6 top-6 z-60' : ''"
+            color="default"
+            [variant]="planFullscreen() ? 'full' : 'outlined'"
+            size="sm"
+            [icon]="planFullscreen() ? faCompress : faExpand"
+            [attr.aria-pressed]="planFullscreen()"
+            [tooltipContent]="planFullscreen() ? 'Quitter le mode plein écran' : ''"
+            tooltipPosition="left"
+            (clicked)="planFullscreen.set(!planFullscreen())"
+          >
+            @if (!planFullscreen()) {
+              Plein écran
+            }
+          </ui-button>
+        }
+
+         <ui-button actions color="default" variant="ghost" size="sm" [icon]="faArrowLeft" (clicked)="goBack()" tooltipContent="Retour aux stratégies" />
       </ui-page-header>
 
       @if (event(); as ev) {
@@ -81,6 +101,7 @@ import { faArrowLeft, faFilePdf, faStopwatch, faUtensils } from '@fortawesome/fr
             <ui-consumption-plan
               [event]="ev"
               [products]="products()"
+              [(fullscreen)]="planFullscreen"
               (intakesChange)="onIntakesChange($event)"
               (planSequenceChange)="onPlanSequenceChange($event)"
             />
@@ -94,7 +115,7 @@ import { faArrowLeft, faFilePdf, faStopwatch, faUtensils } from '@fortawesome/fr
             <ui-icon [icon]="faUtensils" size="xl" />
           </div>
           <p class="text-slate-600">Cette stratégie est introuvable.</p>
-          <ui-button variant="secondary" [icon]="faArrowLeft" (clicked)="goBack()">
+          <ui-button color="secondary" variant="outlined" [icon]="faArrowLeft" (clicked)="goBack()">
             Retour aux stratégies
           </ui-button>
         </div>
@@ -116,12 +137,17 @@ export class NutritionStrategyInventoryPage implements OnInit {
   protected readonly faArrowLeft = faArrowLeft;
   protected readonly faFilePdf = faFilePdf;
   protected readonly faUtensils = faUtensils;
+  protected readonly faExpand = faExpand;
+  protected readonly faCompress = faCompress;
 
   protected readonly tabs: TabItem[] = [
     { id: 'inventory', label: 'Inventaire', icon: faUtensils },
     { id: 'plan', label: 'Plan de consommation', icon: faStopwatch },
   ];
   protected readonly activeTab = signal<'inventory' | 'plan'>('inventory');
+
+  /** État plein écran du plan de consommation (piloté depuis l'en-tête). */
+  protected readonly planFullscreen = signal(false);
 
   protected readonly event = signal<NutritionEvent | null>(null);
   protected readonly products = signal<NutritionProduct[]>([]);

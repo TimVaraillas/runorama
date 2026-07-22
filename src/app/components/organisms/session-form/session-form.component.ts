@@ -172,21 +172,21 @@ import {
                 </div>
               }
 
-              <ui-button type="button" variant="ghost" size="sm" [icon]="faPlus" (clicked)="addExercise(bi)">
+              <ui-button type="button" color="default" variant="ghost" size="sm" [icon]="faPlus" (clicked)="addExercise(bi)">
                 Ajouter un exercice
               </ui-button>
             </div>
           </section>
         }
 
-        <ui-button type="button" variant="secondary" [icon]="faPlus" (clicked)="addBlock()">
+        <ui-button type="button" color="secondary" variant="outlined" [icon]="faPlus" (clicked)="addBlock()">
           Ajouter un bloc
         </ui-button>
       </div>
 
       <!-- Actions -->
       <div class="flex items-center justify-end gap-3">
-        <ui-button type="button" variant="ghost" (clicked)="cancel.emit()">Annuler</ui-button>
+        <ui-button type="button" color="default" variant="ghost" (clicked)="cancel.emit()">Annuler</ui-button>
         <ui-button type="submit" [disabled]="form.invalid">
           {{ session() ? 'Enregistrer' : 'Créer la séance' }}
         </ui-button>
