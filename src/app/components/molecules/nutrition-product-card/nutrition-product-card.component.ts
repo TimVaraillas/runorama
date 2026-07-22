@@ -40,24 +40,26 @@ import { faAppleWhole, faPen, faTrash } from '@fortawesome/free-solid-svg-icons'
             </div>
           }
         </div>
-        <div class="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
-            (click)="edit.emit(product())"
-            aria-label="Modifier le produit"
-          >
-            <ui-icon [icon]="faPen" size="sm" />
-          </button>
-          <button
-            type="button"
-            class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
-            (click)="delete.emit(product())"
-            aria-label="Supprimer le produit"
-          >
-            <ui-icon [icon]="faTrash" size="sm" />
-          </button>
-        </div>
+        @if (!readonly()) {
+          <div class="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
+              (click)="edit.emit(product())"
+              aria-label="Modifier le produit"
+            >
+              <ui-icon [icon]="faPen" size="sm" />
+            </button>
+            <button
+              type="button"
+              class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+              (click)="delete.emit(product())"
+              aria-label="Supprimer le produit"
+            >
+              <ui-icon [icon]="faTrash" size="sm" />
+            </button>
+          </div>
+        }
       </div>
 
       <div class="mt-auto grid grid-cols-3 gap-2 border-t border-slate-100 p-4">
@@ -76,6 +78,8 @@ export class NutritionProductCardComponent {
   readonly product = input.required<NutritionProduct>();
   /** Nom de la catégorie à afficher (facultatif). */
   readonly categoryLabel = input<string>('');
+  /** Masque les actions d'édition/suppression (lecture seule). */
+  readonly readonly = input(false);
 
   readonly edit = output<NutritionProduct>();
   readonly delete = output<NutritionProduct>();

@@ -5,9 +5,12 @@ import {
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import { join } from 'node:path';
 import 'dotenv/config';
 import { createApiRouter } from './server/routes/api.route';
+import { createAuthRouter } from './server/routes/auth.route';
+import { attachUser } from './server/auth/auth.middleware';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
@@ -19,6 +22,10 @@ const angularApp = new AngularNodeAppEngine();
  * Limite relevée à 5 Mo pour accepter les photos de produits en base64.
  */
 app.use(express.json({ limit: '5mb' }));
+app.use(cookieParser());
+// Attache l'utilisateur authentifié (si cookie JWT valide) à chaque requête API.
+app.use('/api', attachUser);
+app.use('/api/auth', createAuthRouter());
 app.use('/api', createApiRouter());
 
 /**

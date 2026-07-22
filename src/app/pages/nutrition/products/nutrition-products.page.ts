@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { FormsModule } from '@angular/forms';
 import { NutritionService } from '../../../features/nutrition/services/nutrition.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { AuthService } from '../../../features/auth/services/auth.service';
 import { ButtonComponent } from '../../../components/atoms/button/button.component';
 import { IconComponent } from '../../../components/atoms/icon/icon.component';
 import { ViewToggleComponent, type ProductViewMode } from '../../../components/atoms/view-toggle/view-toggle.component';
@@ -53,10 +54,12 @@ type PendingDelete =
   template: `
     <section class="space-y-6">
       <div class="flex flex-wrap items-center justify-end gap-2">
-        <ui-button color="secondary" variant="outlined" [icon]="faTags" (clicked)="openCategories()">Catégories</ui-button>
-        <ui-button [icon]="faPlus" [disabled]="categories().length === 0" (clicked)="newProduct()">
-          Nouveau produit
-        </ui-button>
+        @if (isAdmin()) {
+          <ui-button color="secondary" variant="outlined" [icon]="faTags" (clicked)="openCategories()">Catégories</ui-button>
+          <ui-button [icon]="faPlus" [disabled]="categories().length === 0" (clicked)="newProduct()">
+            Nouveau produit
+          </ui-button>
+        }
       </div>
 
       <!-- Filtres -->
@@ -90,17 +93,19 @@ type PendingDelete =
             </div>
             @if (list.length === 0) {
               <p class="text-slate-600">Aucun produit pour le moment.</p>
-              <ui-button
-                color="secondary"
-                variant="outlined"
-                [icon]="faPlus"
-                [disabled]="categories().length === 0"
-                (clicked)="newProduct()"
-              >
-                Ajouter mon premier produit
-              </ui-button>
-              @if (categories().length === 0) {
-                <p class="text-xs text-slate-400">Commencez par créer une catégorie.</p>
+              @if (isAdmin()) {
+                <ui-button
+                  color="secondary"
+                  variant="outlined"
+                  [icon]="faPlus"
+                  [disabled]="categories().length === 0"
+                  (clicked)="newProduct()"
+                >
+                  Ajouter mon premier produit
+                </ui-button>
+                @if (categories().length === 0) {
+                  <p class="text-xs text-slate-400">Commencez par créer une catégorie.</p>
+                }
               }
             } @else {
               <p class="text-slate-600">Aucun produit ne correspond à votre recherche.</p>
@@ -111,6 +116,7 @@ type PendingDelete =
             <ui-nutrition-product-table
               [products]="filteredProducts()"
               [categories]="categories()"
+              [readonly]="!isAdmin()"
               (edit)="editProduct($event)"
               (delete)="requestDeleteProduct($event)"
             />
@@ -118,6 +124,7 @@ type PendingDelete =
             <ui-nutrition-product-grid
               [products]="filteredProducts()"
               [categories]="categories()"
+              [readonly]="!isAdmin()"
               (edit)="editProduct($event)"
               (delete)="requestDeleteProduct($event)"
             />
@@ -292,6 +299,10 @@ type PendingDelete =
 export class NutritionProductsPage {
   private readonly service = inject(NutritionService);
   private readonly toast = inject(ToastService);
+  private readonly auth = inject(AuthService);
+
+  /** Vrai si l'utilisateur peut éditer la base produits partagée. */
+  protected readonly isAdmin = this.auth.isAdmin;
 
   readonly faPlus = faPlus;
   readonly faTrash = faTrash;

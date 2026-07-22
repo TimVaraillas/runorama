@@ -6,6 +6,7 @@ import { PlannedSessionModel } from '../models/planned-session.schema';
 import { NutritionCategoryModel } from '../models/nutrition-category.schema';
 import { NutritionProductModel } from '../models/nutrition-product.schema';
 import { NutritionEventModel } from '../models/nutrition-event.schema';
+import { requireAdmin, requireAuth } from '../auth/auth.middleware';
 
 /**
  * Normalise un document `lean` Mongo pour l'API :
@@ -74,6 +75,11 @@ export function createApiRouter(): Router {
     }
   });
 
+  // Toutes les routes de cette API nécessitent une authentification.
+  // (La base produits reste lisible par tout utilisateur connecté ; seule
+  // l'écriture produits/catégories exige en plus le rôle admin.)
+  router.use(requireAuth);
+
   // Rejette proprement un identifiant qui n'est pas un ObjectId valide
   // (évite un CastError 500 quand l'id vaut "undefined" ou est malformé).
   router.param('id', (_req: Request, res: Response, next, id) => {
@@ -86,13 +92,18 @@ export function createApiRouter(): Router {
   // ----------------------------------------------------------------------
   // Séances (sessions)
   // ----------------------------------------------------------------------
-  router.get('/sessions', async (_req: Request, res: Response) => {
-    const sessions = await SessionModel.find().sort({ updatedAt: -1 }).lean();
+  router.get('/sessions', async (req: Request, res: Response) => {
+    const sessions = await SessionModel.find({ userId: req.user!.id })
+      .sort({ updatedAt: -1 })
+      .lean();
     return res.json(serializeMany(sessions));
   });
 
   router.get('/sessions/:id', async (req: Request, res: Response) => {
-    const session = await SessionModel.findById(req.params['id']).lean();
+    const session = await SessionModel.findOne({
+      _id: req.params['id'],
+      userId: req.user!.id,
+    }).lean();
     if (!session) {
       return res.status(404).json({ message: 'Séance introuvable' });
     }
@@ -100,15 +111,17 @@ export function createApiRouter(): Router {
   });
 
   router.post('/sessions', async (req: Request, res: Response) => {
-    const created = await SessionModel.create(req.body);
+    const created = await SessionModel.create({ ...req.body, userId: req.user!.id });
     return res.status(201).json(created.toJSON());
   });
 
   router.put('/sessions/:id', async (req: Request, res: Response) => {
-    const updated = await SessionModel.findByIdAndUpdate(req.params['id'], req.body, {
-      returnDocument: 'after',
-      runValidators: true,
-    });
+    const { userId: _ignored, ...payload } = req.body ?? {};
+    const updated = await SessionModel.findOneAndUpdate(
+      { _id: req.params['id'], userId: req.user!.id },
+      payload,
+      { returnDocument: 'after', runValidators: true },
+    );
     if (!updated) {
       return res.status(404).json({ message: 'Séance introuvable' });
     }
@@ -116,7 +129,10 @@ export function createApiRouter(): Router {
   });
 
   router.delete('/sessions/:id', async (req: Request, res: Response) => {
-    const deleted = await SessionModel.findByIdAndDelete(req.params['id']);
+    const deleted = await SessionModel.findOneAndDelete({
+      _id: req.params['id'],
+      userId: req.user!.id,
+    });
     if (!deleted) {
       return res.status(404).json({ message: 'Séance introuvable' });
     }
@@ -128,7 +144,7 @@ export function createApiRouter(): Router {
   // ----------------------------------------------------------------------
   router.get('/planned-sessions', async (req: Request, res: Response) => {
     const { from, to } = req.query as { from?: string; to?: string };
-    const filter: Record<string, unknown> = {};
+    const filter: Record<string, unknown> = { userId: req.user!.id };
     if (from || to) {
       filter['date'] = {};
       if (from) (filter['date'] as Record<string, string>)['$gte'] = from;
@@ -142,15 +158,17 @@ export function createApiRouter(): Router {
   });
 
   router.post('/planned-sessions', async (req: Request, res: Response) => {
-    const created = await PlannedSessionModel.create(req.body);
+    const created = await PlannedSessionModel.create({ ...req.body, userId: req.user!.id });
     return res.status(201).json(created.toJSON());
   });
 
   router.put('/planned-sessions/:id', async (req: Request, res: Response) => {
-    const updated = await PlannedSessionModel.findByIdAndUpdate(req.params['id'], req.body, {
-      returnDocument: 'after',
-      runValidators: true,
-    });
+    const { userId: _ignored, ...payload } = req.body ?? {};
+    const updated = await PlannedSessionModel.findOneAndUpdate(
+      { _id: req.params['id'], userId: req.user!.id },
+      payload,
+      { returnDocument: 'after', runValidators: true },
+    );
     if (!updated) {
       return res.status(404).json({ message: 'Séance planifiée introuvable' });
     }
@@ -158,7 +176,10 @@ export function createApiRouter(): Router {
   });
 
   router.delete('/planned-sessions/:id', async (req: Request, res: Response) => {
-    const deleted = await PlannedSessionModel.findByIdAndDelete(req.params['id']);
+    const deleted = await PlannedSessionModel.findOneAndDelete({
+      _id: req.params['id'],
+      userId: req.user!.id,
+    });
     if (!deleted) {
       return res.status(404).json({ message: 'Séance planifiée introuvable' });
     }
@@ -173,7 +194,7 @@ export function createApiRouter(): Router {
     return res.json(serializeMany(categories));
   });
 
-  router.post('/nutrition/categories', async (req: Request, res: Response) => {
+  router.post('/nutrition/categories', requireAdmin, async (req: Request, res: Response) => {
     try {
       const created = await NutritionCategoryModel.create(req.body);
       return res.status(201).json(created.toJSON());
@@ -185,7 +206,7 @@ export function createApiRouter(): Router {
     }
   });
 
-  router.put('/nutrition/categories/:id', async (req: Request, res: Response) => {
+  router.put('/nutrition/categories/:id', requireAdmin, async (req: Request, res: Response) => {
     const updated = await NutritionCategoryModel.findByIdAndUpdate(req.params['id'], req.body, {
       returnDocument: 'after',
       runValidators: true,
@@ -196,7 +217,7 @@ export function createApiRouter(): Router {
     return res.json(updated.toJSON());
   });
 
-  router.delete('/nutrition/categories/:id', async (req: Request, res: Response) => {
+  router.delete('/nutrition/categories/:id', requireAdmin, async (req: Request, res: Response) => {
     const inUse = await NutritionProductModel.exists({ categoryId: req.params['id'] });
     if (inUse) {
       return res
@@ -226,12 +247,12 @@ export function createApiRouter(): Router {
     return res.json(serializeMany(products));
   });
 
-  router.post('/nutrition/products', async (req: Request, res: Response) => {
+  router.post('/nutrition/products', requireAdmin, async (req: Request, res: Response) => {
     const created = await NutritionProductModel.create(req.body);
     return res.status(201).json(created.toJSON());
   });
 
-  router.put('/nutrition/products/:id', async (req: Request, res: Response) => {
+  router.put('/nutrition/products/:id', requireAdmin, async (req: Request, res: Response) => {
     const updated = await NutritionProductModel.findByIdAndUpdate(req.params['id'], req.body, {
       returnDocument: 'after',
       runValidators: true,
@@ -242,7 +263,7 @@ export function createApiRouter(): Router {
     return res.json(updated.toJSON());
   });
 
-  router.delete('/nutrition/products/:id', async (req: Request, res: Response) => {
+  router.delete('/nutrition/products/:id', requireAdmin, async (req: Request, res: Response) => {
     const deleted = await NutritionProductModel.findByIdAndDelete(req.params['id']);
     if (!deleted) {
       return res.status(404).json({ message: 'Produit introuvable' });
@@ -253,8 +274,8 @@ export function createApiRouter(): Router {
   // ----------------------------------------------------------------------
   // Nutrition — Évènements / stratégies alimentaires
   // ----------------------------------------------------------------------
-  router.get('/nutrition/events', async (_req: Request, res: Response) => {
-    const events = await NutritionEventModel.find()
+  router.get('/nutrition/events', async (req: Request, res: Response) => {
+    const events = await NutritionEventModel.find({ userId: req.user!.id })
       .populate('items.productId')
       .sort({ date: 1 })
       .lean();
@@ -262,7 +283,10 @@ export function createApiRouter(): Router {
   });
 
   router.get('/nutrition/events/:id', async (req: Request, res: Response) => {
-    const event = await NutritionEventModel.findById(req.params['id'])
+    const event = await NutritionEventModel.findOne({
+      _id: req.params['id'],
+      userId: req.user!.id,
+    })
       .populate('items.productId')
       .lean();
     if (!event) {
@@ -272,15 +296,17 @@ export function createApiRouter(): Router {
   });
 
   router.post('/nutrition/events', async (req: Request, res: Response) => {
-    const created = await NutritionEventModel.create(req.body);
+    const created = await NutritionEventModel.create({ ...req.body, userId: req.user!.id });
     return res.status(201).json(created.toJSON());
   });
 
   router.put('/nutrition/events/:id', async (req: Request, res: Response) => {
-    const updated = await NutritionEventModel.findByIdAndUpdate(req.params['id'], req.body, {
-      returnDocument: 'after',
-      runValidators: true,
-    });
+    const { userId: _ignored, ...payload } = req.body ?? {};
+    const updated = await NutritionEventModel.findOneAndUpdate(
+      { _id: req.params['id'], userId: req.user!.id },
+      payload,
+      { returnDocument: 'after', runValidators: true },
+    );
     if (!updated) {
       return res.status(404).json({ message: 'Évènement introuvable' });
     }
@@ -288,7 +314,10 @@ export function createApiRouter(): Router {
   });
 
   router.delete('/nutrition/events/:id', async (req: Request, res: Response) => {
-    const deleted = await NutritionEventModel.findByIdAndDelete(req.params['id']);
+    const deleted = await NutritionEventModel.findOneAndDelete({
+      _id: req.params['id'],
+      userId: req.user!.id,
+    });
     if (!deleted) {
       return res.status(404).json({ message: 'Évènement introuvable' });
     }

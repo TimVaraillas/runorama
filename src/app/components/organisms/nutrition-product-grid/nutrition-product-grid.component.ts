@@ -16,6 +16,7 @@ import type { NutritionCategory, NutritionProduct } from '../../../core/models';
         <ui-nutrition-product-card
           [product]="product"
           [categoryLabel]="labelFor(product.categoryId)"
+          [readonly]="readonly()"
           (edit)="edit.emit($event)"
           (delete)="delete.emit($event)"
         />
@@ -28,6 +29,8 @@ export class NutritionProductGridComponent {
   readonly products = input<NutritionProduct[]>([]);
   /** Catégories disponibles (pour résoudre le nom affiché). */
   readonly categories = input<NutritionCategory[]>([]);
+  /** Masque les actions d'édition/suppression (lecture seule). */
+  readonly readonly = input(false);
 
   readonly edit = output<NutritionProduct>();
   readonly delete = output<NutritionProduct>();

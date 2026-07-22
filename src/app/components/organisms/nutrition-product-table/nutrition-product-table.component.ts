@@ -39,7 +39,9 @@ export type ProductTableMode = 'manage' | 'picker';
               <th class="px-4 py-3 text-right font-medium">Lip.</th>
               <th class="px-4 py-3 text-right font-medium">Prot.</th>
               <th class="px-4 py-3 text-right font-medium">Sel</th>
-              <th class="px-4 py-3"></th>
+              @if (!readonly()) {
+                <th class="px-4 py-3"></th>
+              }
             }
           </tr>
         </thead>
@@ -89,26 +91,28 @@ export type ProductTableMode = 'manage' | 'picker';
                 <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.fats }} g</td>
                 <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.proteins }} g</td>
                 <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.salt }} mg</td>
-                <td class="px-4 py-3">
-                  <div class="flex items-center justify-end gap-1">
-                    <button
-                      type="button"
-                      class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
-                      (click)="edit.emit(product)"
-                      aria-label="Modifier le produit"
-                    >
-                      <ui-icon [icon]="faPen" size="sm" />
-                    </button>
-                    <button
-                      type="button"
-                      class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
-                      (click)="delete.emit(product)"
-                      aria-label="Supprimer le produit"
-                    >
-                      <ui-icon [icon]="faTrash" size="sm" />
-                    </button>
-                  </div>
-                </td>
+                @if (!readonly()) {
+                  <td class="px-4 py-3">
+                    <div class="flex items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
+                        (click)="edit.emit(product)"
+                        aria-label="Modifier le produit"
+                      >
+                        <ui-icon [icon]="faPen" size="sm" />
+                      </button>
+                      <button
+                        type="button"
+                        class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                        (click)="delete.emit(product)"
+                        aria-label="Supprimer le produit"
+                      >
+                        <ui-icon [icon]="faTrash" size="sm" />
+                      </button>
+                    </div>
+                  </td>
+                }
               }
             </tr>
           }
@@ -124,6 +128,8 @@ export class NutritionProductTableComponent {
   readonly categories = input<NutritionCategory[]>([]);
   /** Mode d'affichage (`manage` par défaut). */
   readonly mode = input<ProductTableMode>('manage');
+  /** Masque les actions d'édition/suppression (lecture seule). */
+  readonly readonly = input(false);
   /** Identifiants des produits sélectionnés (mode `picker`). */
   readonly selectedIds = input<Set<string>>(new Set());
 
