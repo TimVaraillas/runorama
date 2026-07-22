@@ -71,8 +71,6 @@ import { faArrowLeft, faCompress, faExpand, faFilePdf, faStopwatch, faUtensils }
             size="sm"
             [icon]="planFullscreen() ? faCompress : faExpand"
             [attr.aria-pressed]="planFullscreen()"
-            [tooltipContent]="planFullscreen() ? 'Quitter le mode plein écran' : ''"
-            tooltipPosition="left"
             (clicked)="planFullscreen.set(!planFullscreen())"
           >
             @if (!planFullscreen()) {
