@@ -47,22 +47,6 @@ export const routes: Routes = [
     title: 'Mon profil — Runorama',
     canActivate: [authGuard],
   },
-  // NOTE : la partie sportive (séances d'entraînement) est temporairement masquée
-  // car elle n'est pas encore fonctionnelle. Restaurer ces routes pour la réactiver.
-  // {
-  //   path: 'sessions',
-  //   loadComponent: () =>
-  //     import('./pages/sessions/sessions.page').then((m) => m.SessionsPage),
-  //   title: 'Séances — Runorama',
-  //   canActivate: [authGuard],
-  // },
-  // {
-  //   path: 'sessions/new',
-  //   loadComponent: () =>
-  //     import('./pages/session-form/session-form.page').then((m) => m.SessionFormPage),
-  //   title: 'Nouvelle séance — Runorama',
-  //   canActivate: [authGuard],
-  // },
   {
     path: 'nutrition',
     loadComponent: () =>

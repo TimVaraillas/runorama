@@ -3,7 +3,7 @@ import mongoose, { type InferSchemaType } from 'mongoose';
 const { Schema, model, models } = mongoose;
 
 /**
- * Schéma d'une catégorie de produit nutritionnel (collection `nutritioncategories`).
+ * Schéma d'une catégorie de produit nutritionnel (collection `nutrition_categories`).
  * Exemples : « Gels », « Boissons d'effort », « Barres ».
  */
 const nutritionCategorySchema = new Schema(
@@ -11,6 +11,7 @@ const nutritionCategorySchema = new Schema(
     name: { type: String, required: true, trim: true, unique: true },
   },
   {
+    collection: 'nutrition_categories',
     timestamps: true,
     toJSON: {
       versionKey: false,

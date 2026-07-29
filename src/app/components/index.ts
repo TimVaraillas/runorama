@@ -6,7 +6,6 @@ export * from './atoms/dropdown-menu-item/dropdown-menu-item.component';
 export * from './atoms/tooltip/tooltip.component';
 export * from './atoms/icon/icon.component';
 export * from './atoms/badge/badge.component';
-export * from './atoms/zone-chip/zone-chip.component';
 export * from './atoms/view-toggle/view-toggle.component';
 export * from './atoms/nutrient-stat/nutrient-stat.component';
 export * from './atoms/search-input/search-input.component';
@@ -39,8 +38,6 @@ export * from './molecules/plan-timeline-gutter/plan-timeline-gutter.component';
 // Organisms
 export * from './organisms/header/header.component';
 export * from './organisms/user-menu/user-menu.component';
-export * from './organisms/session-details/session-details.component';
-export * from './organisms/session-form/session-form.component';
 export * from './organisms/nutrition-product-form/nutrition-product-form.component';
 export * from './organisms/nutrition-product-grid/nutrition-product-grid.component';
 export * from './organisms/nutrition-product-table/nutrition-product-table.component';

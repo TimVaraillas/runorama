@@ -19,7 +19,7 @@ import { AuthService } from '../../features/auth/services/auth.service';
       <div class="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
         <h1 class="text-2xl font-bold text-slate-900">Connexion</h1>
         <p class="mt-1 text-sm text-slate-500">
-          Accédez à vos stratégies alimentaires et à vos séances.
+          Accédez à vos stratégies alimentaires.
         </p>
 
         <form class="mt-6 grid gap-4" [formGroup]="form" (ngSubmit)="submit()">

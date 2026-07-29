@@ -3,7 +3,7 @@ import mongoose, { type InferSchemaType } from 'mongoose';
 const { Schema, model, models } = mongoose;
 
 /**
- * Schéma d'un produit nutritionnel (collection `nutritionproducts`).
+ * Schéma d'un produit nutritionnel (collection `nutrition_products`).
  * Rattaché à une catégorie et porteur de sa composition pour 1 unité.
  */
 const nutritionProductSchema = new Schema(
@@ -27,6 +27,7 @@ const nutritionProductSchema = new Schema(
     image: { type: String },
   },
   {
+    collection: 'nutrition_products',
     timestamps: true,
     toJSON: {
       virtuals: true,

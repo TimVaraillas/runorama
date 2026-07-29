@@ -43,7 +43,7 @@ const intakeSchema = new Schema(
 );
 
 /**
- * Schéma d'un évènement / stratégie alimentaire (collection `nutritionevents`).
+ * Schéma d'un évènement / stratégie alimentaire (collection `nutrition_events`).
  * Associe un évènement (course, sortie longue) à une liste de produits emportés
  * et aux besoins horaires cibles (énergie et glucides).
  */
@@ -76,6 +76,7 @@ const nutritionEventSchema = new Schema(
     intakes: { type: [intakeSchema], default: [] },
   },
   {
+    collection: 'nutrition_events',
     timestamps: true,
     toJSON: {
       versionKey: false,

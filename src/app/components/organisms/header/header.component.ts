@@ -46,7 +46,6 @@ import { faPersonRunning, faAppleWhole } from '@fortawesome/free-solid-svg-icons
 export class HeaderComponent {
   readonly logo = faPersonRunning;
 
-  // NOTE : le lien « Séances » est temporairement masqué (partie sportive non fonctionnelle).
   readonly links = [
     { path: '/nutrition', label: 'Nutrition', icon: faAppleWhole, exact: false },
   ];

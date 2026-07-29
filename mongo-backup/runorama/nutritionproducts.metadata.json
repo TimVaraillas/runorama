@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"categoryId":{"$numberInt":"1"}},"name":"categoryId_1"}],"uuid":"28272f2ab5c848369bae854b143115ea","collectionName":"nutritionproducts","type":"collection"}

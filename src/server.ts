@@ -18,7 +18,7 @@ const app = express();
 const angularApp = new AngularNodeAppEngine();
 
 /**
- * API REST de Runorama (séances, planning).
+ * API REST de Runorama (nutrition).
  * Limite relevée à 5 Mo pour accepter les photos de produits en base64.
  */
 app.use(express.json({ limit: '5mb' }));

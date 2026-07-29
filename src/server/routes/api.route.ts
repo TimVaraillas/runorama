@@ -1,8 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import mongoose from 'mongoose';
 import { connectToDatabase } from '../db/mongoose';
-import { SessionModel } from '../models/session.schema';
-import { PlannedSessionModel } from '../models/planned-session.schema';
 import { NutritionCategoryModel } from '../models/nutrition-category.schema';
 import { NutritionProductModel } from '../models/nutrition-product.schema';
 import { NutritionEventModel } from '../models/nutrition-event.schema';
@@ -11,7 +9,6 @@ import { requireAdmin, requireAuth } from '../auth/auth.middleware';
 /**
  * Normalise un document `lean` Mongo pour l'API :
  * remplace `_id` (ObjectId) par `id` (string) et retire `__v`.
- * Si `sessionId` est peuplé (objet), l'expose sous `session` et garde `sessionId` en string.
  */
 function serialize(doc: Record<string, unknown> | null): Record<string, unknown> | null {
   if (!doc) {
@@ -21,12 +18,6 @@ function serialize(doc: Record<string, unknown> | null): Record<string, unknown>
   const out: Record<string, unknown> = { ...rest };
   if (_id !== undefined && _id !== null) {
     out['id'] = String(_id);
-  }
-  const sessionId = out['sessionId'];
-  if (sessionId && typeof sessionId === 'object') {
-    const session = serialize(sessionId as Record<string, unknown>);
-    out['session'] = session;
-    out['sessionId'] = session?.['id'];
   }
   const categoryId = out['categoryId'];
   if (categoryId && typeof categoryId === 'object') {
@@ -100,103 +91,6 @@ export function createApiRouter(): Router {
       return res.status(400).json({ message: 'Identifiant invalide' });
     }
     return next();
-  });
-
-  // ----------------------------------------------------------------------
-  // Séances (sessions)
-  // ----------------------------------------------------------------------
-  router.get('/sessions', async (req: Request, res: Response) => {
-    const sessions = await SessionModel.find({ userId: req.user!.id })
-      .sort({ updatedAt: -1 })
-      .lean();
-    return res.json(serializeMany(sessions));
-  });
-
-  router.get('/sessions/:id', async (req: Request, res: Response) => {
-    const session = await SessionModel.findOne({
-      _id: req.params['id'],
-      userId: req.user!.id,
-    }).lean();
-    if (!session) {
-      return res.status(404).json({ message: 'Séance introuvable' });
-    }
-    return res.json(serialize(session));
-  });
-
-  router.post('/sessions', async (req: Request, res: Response) => {
-    const created = await SessionModel.create({ ...req.body, userId: req.user!.id });
-    return res.status(201).json(created.toJSON());
-  });
-
-  router.put('/sessions/:id', async (req: Request, res: Response) => {
-    const { userId: _ignored, ...payload } = req.body ?? {};
-    const updated = await SessionModel.findOneAndUpdate(
-      { _id: req.params['id'], userId: req.user!.id },
-      payload,
-      { returnDocument: 'after', runValidators: true },
-    );
-    if (!updated) {
-      return res.status(404).json({ message: 'Séance introuvable' });
-    }
-    return res.json(updated.toJSON());
-  });
-
-  router.delete('/sessions/:id', async (req: Request, res: Response) => {
-    const deleted = await SessionModel.findOneAndDelete({
-      _id: req.params['id'],
-      userId: req.user!.id,
-    });
-    if (!deleted) {
-      return res.status(404).json({ message: 'Séance introuvable' });
-    }
-    return res.status(204).end();
-  });
-
-  // ----------------------------------------------------------------------
-  // Planning (séances planifiées)
-  // ----------------------------------------------------------------------
-  router.get('/planned-sessions', async (req: Request, res: Response) => {
-    const { from, to } = req.query as { from?: string; to?: string };
-    const filter: Record<string, unknown> = { userId: req.user!.id };
-    if (from || to) {
-      filter['date'] = {};
-      if (from) (filter['date'] as Record<string, string>)['$gte'] = from;
-      if (to) (filter['date'] as Record<string, string>)['$lte'] = to;
-    }
-    const sessions = await PlannedSessionModel.find(filter)
-      .populate('sessionId')
-      .sort({ date: 1 })
-      .lean();
-    return res.json(serializeMany(sessions));
-  });
-
-  router.post('/planned-sessions', async (req: Request, res: Response) => {
-    const created = await PlannedSessionModel.create({ ...req.body, userId: req.user!.id });
-    return res.status(201).json(created.toJSON());
-  });
-
-  router.put('/planned-sessions/:id', async (req: Request, res: Response) => {
-    const { userId: _ignored, ...payload } = req.body ?? {};
-    const updated = await PlannedSessionModel.findOneAndUpdate(
-      { _id: req.params['id'], userId: req.user!.id },
-      payload,
-      { returnDocument: 'after', runValidators: true },
-    );
-    if (!updated) {
-      return res.status(404).json({ message: 'Séance planifiée introuvable' });
-    }
-    return res.json(updated.toJSON());
-  });
-
-  router.delete('/planned-sessions/:id', async (req: Request, res: Response) => {
-    const deleted = await PlannedSessionModel.findOneAndDelete({
-      _id: req.params['id'],
-      userId: req.user!.id,
-    });
-    if (!deleted) {
-      return res.status(404).json({ message: 'Séance planifiée introuvable' });
-    }
-    return res.status(204).end();
   });
 
   // ----------------------------------------------------------------------
