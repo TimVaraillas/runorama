@@ -22,7 +22,16 @@ const intakeSchema = new Schema(
   {
     /** Identifiant unique généré côté client. */
     id: { type: String, required: true },
-    productId: { type: Schema.Types.ObjectId, ref: 'NutritionProduct', required: true },
+    /** Nature de la prise : produit de l'inventaire ou eau (illimitée). */
+    kind: { type: String, enum: ['product', 'water'], default: 'product' },
+    /** Produit consommé (requis sauf pour une prise d'eau). */
+    productId: {
+      type: Schema.Types.ObjectId,
+      ref: 'NutritionProduct',
+      required: function (this: { kind?: string }) {
+        return this.kind !== 'water';
+      },
+    },
     /** Début de la prise, en minutes depuis le départ. */
     startMinute: { type: Number, required: true, min: 0 },
     /** Durée de consommation en minutes. */

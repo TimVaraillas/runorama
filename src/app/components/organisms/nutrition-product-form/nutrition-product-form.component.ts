@@ -10,6 +10,7 @@ import {
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
+import { TextInputComponent } from '../../atoms/text-input/text-input.component';
 import { ToastService } from '../../../core/services/toast.service';
 import type { NutritionCategory, NutritionProduct } from '../../../core/models';
 import { faImage, faTrash } from '@fortawesome/free-solid-svg-icons';
@@ -28,7 +29,7 @@ const IMAGE_QUALITY = 0.8;
 @Component({
   selector: 'ui-nutrition-product-form',
   standalone: true,
-  imports: [ReactiveFormsModule, ButtonComponent, IconComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, IconComponent, TextInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-5">
@@ -49,26 +50,12 @@ const IMAGE_QUALITY = 0.8;
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label [class]="labelClass" for="product-brand">Marque</label>
-            <input
-              id="product-brand"
-              type="text"
-              formControlName="brand"
-              [class]="inputClass"
-              placeholder="Ex : Maurten"
-            />
-          </div>
-          <div>
-            <label [class]="labelClass" for="product-name">Nom du produit</label>
-            <input
-              id="product-name"
-              type="text"
-              formControlName="name"
-              [class]="inputClass"
-              placeholder="Ex : Gel 100"
-            />
-          </div>
+          <ui-text-input formControlName="brand" label="Marque" placeholder="Ex : Maurten" />
+          <ui-text-input
+            formControlName="name"
+            label="Nom du produit"
+            placeholder="Ex : Gel 100"
+          />
         </div>
 
         <div>
@@ -107,30 +94,48 @@ const IMAGE_QUALITY = 0.8;
       <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
         <h3 class="text-sm font-semibold text-slate-800">Composition (par unité)</h3>
         <div class="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label [class]="labelClass" for="product-weight">Poids unitaire (g)</label>
-            <input id="product-weight" type="number" min="0" step="0.1" formControlName="unitWeight" [class]="inputClass" />
-          </div>
-          <div>
-            <label [class]="labelClass" for="product-energy">Apport énergétique (kcal)</label>
-            <input id="product-energy" type="number" min="0" step="1" formControlName="energy" [class]="inputClass" />
-          </div>
-          <div>
-            <label [class]="labelClass" for="product-carbs">Glucides (g)</label>
-            <input id="product-carbs" type="number" min="0" step="0.1" formControlName="carbs" [class]="inputClass" />
-          </div>
-          <div>
-            <label [class]="labelClass" for="product-fats">Lipides (g)</label>
-            <input id="product-fats" type="number" min="0" step="0.1" formControlName="fats" [class]="inputClass" />
-          </div>
-          <div>
-            <label [class]="labelClass" for="product-proteins">Protéines (g)</label>
-            <input id="product-proteins" type="number" min="0" step="0.1" formControlName="proteins" [class]="inputClass" />
-          </div>
-          <div>
-            <label [class]="labelClass" for="product-salt">Sel (mg)</label>
-            <input id="product-salt" type="number" min="0" step="1" formControlName="salt" [class]="inputClass" />
-          </div>
+          <ui-text-input
+            formControlName="unitWeight"
+            label="Poids unitaire (g)"
+            type="number"
+            min="0"
+            step="0.1"
+          />
+          <ui-text-input
+            formControlName="energy"
+            label="Apport énergétique (kcal)"
+            type="number"
+            min="0"
+            step="1"
+          />
+          <ui-text-input
+            formControlName="carbs"
+            label="Glucides (g)"
+            type="number"
+            min="0"
+            step="0.1"
+          />
+          <ui-text-input
+            formControlName="fats"
+            label="Lipides (g)"
+            type="number"
+            min="0"
+            step="0.1"
+          />
+          <ui-text-input
+            formControlName="proteins"
+            label="Protéines (g)"
+            type="number"
+            min="0"
+            step="0.1"
+          />
+          <ui-text-input
+            formControlName="salt"
+            label="Sel (mg)"
+            type="number"
+            min="0"
+            step="1"
+          />
         </div>
       </section>
 

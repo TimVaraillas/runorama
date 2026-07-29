@@ -7,6 +7,7 @@ import type {
   PositionedIntake,
   SequenceMark,
 } from '../models';
+import { resolveIntakeProduct } from './water.util';
 
 /** Aperçu live d'une prise en cours de redimensionnement. */
 export interface ResizePreviewState {
@@ -48,7 +49,7 @@ export function computePlanLayout(params: {
 
   const resolved = intakes
     .map((intake) => {
-      const product = intake.product ?? productMap.get(intake.productId);
+      const product = resolveIntakeProduct(intake, productMap);
       if (!product) return null;
       // Aperçu live pendant un redimensionnement.
       const override = resizePreview && resizePreview.id === intake.id ? resizePreview : null;

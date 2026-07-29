@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ButtonComponent } from '../../components/atoms/button/button.component';
+import { TextInputComponent } from '../../components/atoms/text-input/text-input.component';
 import { ToastService } from '../../core/services/toast.service';
 import { AuthService } from '../../features/auth/services/auth.service';
 
@@ -11,7 +12,7 @@ import { AuthService } from '../../features/auth/services/auth.service';
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, ButtonComponent],
+  imports: [ReactiveFormsModule, RouterLink, ButtonComponent, TextInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4">
@@ -21,37 +22,31 @@ import { AuthService } from '../../features/auth/services/auth.service';
           Accédez à vos stratégies alimentaires et à vos séances.
         </p>
 
-        <form class="mt-6 space-y-4" [formGroup]="form" (ngSubmit)="submit()">
-          <div>
-            <label for="email" class="mb-1 block text-sm font-medium text-slate-700">
-              Adresse e-mail
-            </label>
-            <input
-              id="email"
-              type="email"
-              formControlName="email"
-              autocomplete="email"
-              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
-          </div>
+        <form class="mt-6 grid gap-4" [formGroup]="form" (ngSubmit)="submit()">
+          <ui-text-input
+            formControlName="email"
+            label="Adresse e-mail"
+            type="email"
+            autocomplete="email"
+          />
 
-          <div>
-            <label for="password" class="mb-1 block text-sm font-medium text-slate-700">
-              Mot de passe
-            </label>
-            <input
-              id="password"
-              type="password"
-              formControlName="password"
-              autocomplete="current-password"
-              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
-          </div>
+          <ui-text-input
+            formControlName="password"
+            label="Mot de passe"
+            type="password"
+            autocomplete="current-password"
+          />
 
           <ui-button type="submit" color="primary" [disabled]="form.invalid || loading()">
             {{ loading() ? 'Connexion…' : 'Se connecter' }}
           </ui-button>
         </form>
+
+        <p class="mt-4 text-center text-sm">
+          <a routerLink="/forgot-password" class="font-semibold text-brand-600 hover:underline">
+            Mot de passe oublié ?
+          </a>
+        </p>
 
         <p class="mt-6 text-center text-sm text-slate-500">
           Pas encore de compte ?

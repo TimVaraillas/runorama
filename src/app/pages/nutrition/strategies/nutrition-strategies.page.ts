@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { Router } from '@angular/router';
 import { NutritionService } from '../../../features/nutrition/services/nutrition.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { AuthService } from '../../../features/auth/services/auth.service';
 import { ButtonComponent } from '../../../components/atoms/button/button.component';
 import { IconComponent } from '../../../components/atoms/icon/icon.component';
 import { SearchInputComponent } from '../../../components/atoms/search-input/search-input.component';
@@ -91,6 +92,7 @@ import { faPlus, faTrash, faXmark, faUtensils } from '@fortawesome/free-solid-sv
           @if (viewMode() === 'table') {
             <ui-nutrition-event-table
               [events]="filteredEvents()"
+              [showOwner]="isAdmin()"
               (select)="openInventory($event)"
               (edit)="editEvent($event)"
               (delete)="requestDeleteEvent($event)"
@@ -167,6 +169,9 @@ export class NutritionStrategiesPage {
   private readonly service = inject(NutritionService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly auth = inject(AuthService);
+
+  protected readonly isAdmin = this.auth.isAdmin;
 
   protected readonly faPlus = faPlus;
   protected readonly faTrash = faTrash;

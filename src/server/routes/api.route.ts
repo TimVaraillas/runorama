@@ -34,6 +34,19 @@ function serialize(doc: Record<string, unknown> | null): Record<string, unknown>
     out['category'] = category;
     out['categoryId'] = category?.['id'];
   }
+  const userId = out['userId'];
+  if (userId && typeof userId === 'object') {
+    const owner = serialize(userId as Record<string, unknown>);
+    if (owner) {
+      out['owner'] = {
+        id: owner['id'],
+        firstName: owner['firstName'],
+        lastName: owner['lastName'],
+        email: owner['email'],
+      };
+    }
+    out['userId'] = owner?.['id'];
+  }
   const items = out['items'];
   if (Array.isArray(items)) {
     out['items'] = items.map((raw) => {
@@ -274,21 +287,31 @@ export function createApiRouter(): Router {
   // ----------------------------------------------------------------------
   // Nutrition — Évènements / stratégies alimentaires
   // ----------------------------------------------------------------------
+  // Portée d'accès aux stratégies alimentaires :
+  // - un administrateur accède aux stratégies de tous les utilisateurs ;
+  // - un utilisateur classique n'accède qu'aux siennes.
+  const eventScope = (req: Request): Record<string, unknown> =>
+    req.user!.role === 'admin' ? {} : { userId: req.user!.id };
+
   router.get('/nutrition/events', async (req: Request, res: Response) => {
-    const events = await NutritionEventModel.find({ userId: req.user!.id })
-      .populate('items.productId')
-      .sort({ date: 1 })
-      .lean();
+    const query = NutritionEventModel.find(eventScope(req)).populate('items.productId');
+    // L'admin voit toutes les stratégies : on expose leur propriétaire.
+    if (req.user!.role === 'admin') {
+      query.populate('userId', 'firstName lastName email');
+    }
+    const events = await query.sort({ date: 1 }).lean();
     return res.json(serializeMany(events));
   });
 
   router.get('/nutrition/events/:id', async (req: Request, res: Response) => {
-    const event = await NutritionEventModel.findOne({
+    const query = NutritionEventModel.findOne({
       _id: req.params['id'],
-      userId: req.user!.id,
-    })
-      .populate('items.productId')
-      .lean();
+      ...eventScope(req),
+    }).populate('items.productId');
+    if (req.user!.role === 'admin') {
+      query.populate('userId', 'firstName lastName email');
+    }
+    const event = await query.lean();
     if (!event) {
       return res.status(404).json({ message: 'Évènement introuvable' });
     }
@@ -303,7 +326,7 @@ export function createApiRouter(): Router {
   router.put('/nutrition/events/:id', async (req: Request, res: Response) => {
     const { userId: _ignored, ...payload } = req.body ?? {};
     const updated = await NutritionEventModel.findOneAndUpdate(
-      { _id: req.params['id'], userId: req.user!.id },
+      { _id: req.params['id'], ...eventScope(req) },
       payload,
       { returnDocument: 'after', runValidators: true },
     );
@@ -316,7 +339,7 @@ export function createApiRouter(): Router {
   router.delete('/nutrition/events/:id', async (req: Request, res: Response) => {
     const deleted = await NutritionEventModel.findOneAndDelete({
       _id: req.params['id'],
-      userId: req.user!.id,
+      ...eventScope(req),
     });
     if (!deleted) {
       return res.status(404).json({ message: 'Évènement introuvable' });

@@ -1,4 +1,5 @@
 import type { NutritionEvent, NutritionProduct } from '../models';
+import { resolveIntakeProduct } from './water.util';
 import { formatMinutes } from './plan-layout.util';
 
 /** Échappe une chaîne pour une insertion sûre dans du HTML. */
@@ -65,7 +66,7 @@ function buildProductMap(
   for (const product of products) map.set(product.id, product);
   for (const item of event.items) if (item.product) map.set(item.productId, item.product);
   for (const intake of event.intakes ?? []) {
-    if (intake.product) map.set(intake.productId, intake.product);
+    if (intake.product && intake.productId) map.set(intake.productId, intake.product);
   }
   return map;
 }
@@ -103,7 +104,7 @@ function buildPlan(event: NutritionEvent, map: Map<string, NutritionProduct>) {
   const total = event.targetTimeMinutes ?? 0;
   const rows: PlanRow[] = [];
   for (const intake of event.intakes ?? []) {
-    const product = intake.product ?? map.get(intake.productId);
+    const product = resolveIntakeProduct(intake, map);
     if (!product) continue;
     rows.push({
       start: intake.startMinute,
@@ -130,7 +131,7 @@ function buildPlan(event: NutritionEvent, map: Map<string, NutritionProduct>) {
       });
     }
     for (const intake of event.intakes ?? []) {
-      const product = intake.product ?? map.get(intake.productId);
+      const product = resolveIntakeProduct(intake, map);
       if (!product || intake.durationMinutes <= 0) continue;
       const energyPerMin = (product.energy * intake.quantity) / intake.durationMinutes;
       const carbsPerMin = (product.carbs * intake.quantity) / intake.durationMinutes;

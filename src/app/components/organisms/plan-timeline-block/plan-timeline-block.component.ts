@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { CdkDragHandle, CdkDragPreview } from '@angular/cdk/drag-drop';
-import { faAppleWhole, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faAppleWhole, faDroplet, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { PlanResizeHandleComponent } from '../../atoms/plan-resize-handle/plan-resize-handle.component';
 import type { PositionedIntake, ResizeStartEvent } from '../../../core/models';
 import { formatMinutes } from '../../../core/utils/plan-layout.util';
+import { isWaterProduct } from '../../../core/utils/water.util';
 
 /**
  * Organism : bloc d'une prise placée sur la timeline.
@@ -32,7 +33,7 @@ import { formatMinutes } from '../../../core/utils/plan-layout.util';
   },
   template: `
     <!-- Liseré d'identité -->
-    <span class="absolute inset-y-0 left-0 w-1 bg-secondary-500"></span>
+    <span [class]="accentClass()"></span>
 
     <!-- Poignée de redimensionnement (haut) -->
     <ui-plan-resize-handle
@@ -46,9 +47,7 @@ import { formatMinutes } from '../../../core/utils/plan-layout.util';
       class="flex h-full cursor-grab flex-col py-2.5 pl-3 pr-1.5 active:cursor-grabbing"
     >
       <div class="flex items-center gap-1.5">
-        <div
-          class="grid h-6 w-6 shrink-0 place-items-center overflow-hidden rounded-md bg-white text-secondary-400"
-        >
+        <div [class]="iconWrapClass()">
           @if (intake().product.image) {
             <img
               [src]="intake().product.image"
@@ -56,16 +55,16 @@ import { formatMinutes } from '../../../core/utils/plan-layout.util';
               class="h-full w-full object-cover"
             />
           } @else {
-            <ui-icon [icon]="faAppleWhole" size="xs" />
+            <ui-icon [icon]="isWater() ? faDroplet : faAppleWhole" size="xs" />
           }
         </div>
-        <p class="min-w-0 flex-1 truncate text-xs font-semibold text-secondary-800">
+        <p [class]="nameClass()">
           {{ intake().product.name }}
         </p>
       </div>
 
       @if (intake().height >= 52) {
-        <span class="mt-auto text-[11px] font-medium tabular-nums text-secondary-600">
+        <span [class]="timeClass()">
           {{ formatMinutes(intake().startMinute) }}–{{ formatMinutes(intake().endMinute) }}
         </span>
       }
@@ -88,10 +87,7 @@ import { formatMinutes } from '../../../core/utils/plan-layout.util';
       (grab)="resizeStart.emit({ event: $event, edge: 'bottom' })"
     />
 
-    <div
-      *cdkDragPreview
-      class="rounded-lg border border-secondary-400 bg-secondary-100 px-3 py-1.5 text-xs font-semibold text-secondary-800 shadow-lg"
-    >
+    <div *cdkDragPreview [class]="previewClass()">
       {{ intake().product.name }}
     </div>
   `,
@@ -108,17 +104,61 @@ export class PlanTimelineBlockComponent {
   readonly resizeStart = output<ResizeStartEvent>();
 
   protected readonly faAppleWhole = faAppleWhole;
+  protected readonly faDroplet = faDroplet;
   protected readonly faXmark = faXmark;
   protected readonly formatMinutes = formatMinutes;
 
+  /** Vrai si la prise correspond au produit virtuel « Eau ». */
+  protected readonly isWater = computed(() => isWaterProduct(this.intake().product));
+
   protected readonly hostClass = computed(() => {
     const base =
-      'group absolute inset-0 overflow-hidden rounded-xl shadow-md shadow-secondary-200/40 transition-[opacity,background-color,box-shadow]';
+      'group absolute inset-0 overflow-hidden rounded-xl shadow-md transition-[opacity,background-color,box-shadow]';
+    if (this.isWater()) {
+      const water = `${base} shadow-sky-200/40`;
+      if (this.intake().overlapped) return `${water} bg-sky-100 ring-2 ring-sky-400`;
+      return this.dragging()
+        ? `${water} bg-sky-100/80 opacity-80 shadow-lg`
+        : `${water} bg-sky-50`;
+    }
+    const other = `${base} shadow-secondary-200/40`;
     if (this.intake().overlapped) {
-      return `${base} bg-secondary-100 ring-2 ring-secondary-400`;
+      return `${other} bg-secondary-100 ring-2 ring-secondary-400`;
     }
     return this.dragging()
-      ? `${base} bg-secondary-100/80 opacity-80 shadow-lg`
-      : `${base} bg-secondary-50`;
+      ? `${other} bg-secondary-100/80 opacity-80 shadow-lg`
+      : `${other} bg-secondary-50`;
+  });
+
+  /** Liseré d'identité latéral (bleu pour l'eau). */
+  protected readonly accentClass = computed(() => {
+    const base = 'absolute inset-y-0 left-0 w-1';
+    return this.isWater() ? `${base} bg-sky-500` : `${base} bg-secondary-500`;
+  });
+
+  /** Vignette de l'icône / image du produit. */
+  protected readonly iconWrapClass = computed(() => {
+    const base = 'grid h-6 w-6 shrink-0 place-items-center overflow-hidden rounded-md bg-white';
+    return this.isWater() ? `${base} text-sky-500` : `${base} text-secondary-400`;
+  });
+
+  /** Libellé du nom du produit. */
+  protected readonly nameClass = computed(() => {
+    const base = 'min-w-0 flex-1 truncate text-xs font-semibold';
+    return this.isWater() ? `${base} text-sky-800` : `${base} text-secondary-800`;
+  });
+
+  /** Plage horaire de la prise. */
+  protected readonly timeClass = computed(() => {
+    const base = 'mt-auto text-[11px] font-medium tabular-nums';
+    return this.isWater() ? `${base} text-sky-600` : `${base} text-secondary-600`;
+  });
+
+  /** Aperçu affiché pendant le glisser-déposer. */
+  protected readonly previewClass = computed(() => {
+    const base = 'rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-lg';
+    return this.isWater()
+      ? `${base} border-sky-400 bg-sky-100 text-sky-800`
+      : `${base} border-secondary-400 bg-secondary-100 text-secondary-800`;
   });
 }

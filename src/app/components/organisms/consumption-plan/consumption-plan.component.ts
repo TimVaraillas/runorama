@@ -32,6 +32,7 @@ import {
   computePlanLayout,
 } from '../../../core/utils/plan-layout.util';
 import type { DragOverState, ResizePreviewState } from '../../../core/utils/plan-layout.util';
+import { WATER_PRODUCT, WATER_PRODUCT_ID } from '../../../core/utils/water.util';
 
 const PX_PER_SEQUENCE = 25;
 const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
@@ -164,7 +165,7 @@ export class ConsumptionPlanComponent implements OnDestroy {
       if (item.product) map.set(item.productId, item.product);
     }
     for (const intake of this.event().intakes ?? []) {
-      if (intake.product) map.set(intake.productId, intake.product);
+      if (intake.product && intake.productId) map.set(intake.productId, intake.product);
     }
     return map;
   });
@@ -194,6 +195,7 @@ export class ConsumptionPlanComponent implements OnDestroy {
   private readonly placedByProduct = computed(() => {
     const map = new Map<string, number>();
     for (const intake of this.event().intakes ?? []) {
+      if (intake.kind === 'water' || !intake.productId) continue;
       map.set(intake.productId, (map.get(intake.productId) ?? 0) + intake.quantity);
     }
     return map;
@@ -203,7 +205,7 @@ export class ConsumptionPlanComponent implements OnDestroy {
   protected readonly paletteEntries = computed<PaletteEntry[]>(() => {
     const map = this.productMap();
     const placed = this.placedByProduct();
-    return this.event()
+    const inventory = this.event()
       .items.map((item) => {
         const product = item.product ?? map.get(item.productId);
         if (!product) return null;
@@ -211,11 +213,19 @@ export class ConsumptionPlanComponent implements OnDestroy {
         return { product, carried, remaining: carried - (placed.get(item.productId) ?? 0) };
       })
       .filter((entry): entry is PaletteEntry => entry !== null);
+    // L'eau est toujours disponible, en quantité illimitée, en tête de palette.
+    return [
+      { product: WATER_PRODUCT, carried: Infinity, remaining: Infinity, unlimited: true },
+      ...inventory,
+    ];
   });
 
-  /** Total d'unités restant à placer. */
+  /** Total d'unités restant à placer (hors éléments illimités comme l'eau). */
   protected readonly unplacedUnits = computed(() =>
-    this.paletteEntries().reduce((sum, entry) => sum + Math.max(0, entry.remaining), 0),
+    this.paletteEntries().reduce(
+      (sum, entry) => (entry.unlimited ? sum : sum + Math.max(0, entry.remaining)),
+      0,
+    ),
   );
 
   /** Nombre de séquences sur le parcours. */
@@ -267,13 +277,22 @@ export class ConsumptionPlanComponent implements OnDestroy {
       if (!entry || entry.remaining <= 0) return;
       const duration = seq;
       const start = this.clampStart(minute, duration);
-      const intake: NutritionIntake = {
-        id: this.newId(),
-        productId: payload.productId,
-        startMinute: start,
-        durationMinutes: duration,
-        quantity: 1,
-      };
+      const isWater = payload.productId === WATER_PRODUCT_ID;
+      const intake: NutritionIntake = isWater
+        ? {
+            id: this.newId(),
+            kind: 'water',
+            startMinute: start,
+            durationMinutes: duration,
+            quantity: 1,
+          }
+        : {
+            id: this.newId(),
+            productId: payload.productId,
+            startMinute: start,
+            durationMinutes: duration,
+            quantity: 1,
+          };
       this.emit([...(this.event().intakes ?? []), intake]);
     } else {
       // On applique la position prévisualisée (WYSIWYG) plutôt que de

@@ -17,6 +17,36 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/auth/register.page').then((m) => m.RegisterPage),
     title: 'Inscription — Runorama',
   },
+  {
+    path: 'registration-success',
+    loadComponent: () =>
+      import('./pages/auth/registration-success.page').then((m) => m.RegistrationSuccessPage),
+    title: 'Inscription confirmée — Runorama',
+  },
+  {
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./pages/auth/forgot-password.page').then((m) => m.ForgotPasswordPage),
+    title: 'Mot de passe oublié — Runorama',
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./pages/auth/reset-password.page').then((m) => m.ResetPasswordPage),
+    title: 'Réinitialiser le mot de passe — Runorama',
+  },
+  {
+    path: 'verify-email',
+    loadComponent: () =>
+      import('./pages/auth/verify-email.page').then((m) => m.VerifyEmailPage),
+    title: 'Confirmation de l’adresse e-mail — Runorama',
+  },
+  {
+    path: 'profile',
+    loadComponent: () => import('./pages/profile/profile.page').then((m) => m.ProfilePage),
+    title: 'Mon profil — Runorama',
+    canActivate: [authGuard],
+  },
   // NOTE : la partie sportive (séances d'entraînement) est temporairement masquée
   // car elle n'est pas encore fonctionnelle. Restaurer ces routes pour la réactiver.
   // {

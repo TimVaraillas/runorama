@@ -1,5 +1,8 @@
 // Atoms
 export * from './atoms/button/button.component';
+export * from './atoms/avatar/avatar.component';
+export * from './atoms/text-input/text-input.component';
+export * from './atoms/dropdown-menu-item/dropdown-menu-item.component';
 export * from './atoms/tooltip/tooltip.component';
 export * from './atoms/icon/icon.component';
 export * from './atoms/badge/badge.component';
@@ -15,6 +18,9 @@ export * from './atoms/plan-ghost-block/plan-ghost-block.component';
 
 // Molecules
 export * from './molecules/stat-card/stat-card.component';
+export * from './molecules/user-badge/user-badge.component';
+export * from './molecules/dropdown-menu/dropdown-menu.component';
+export * from './molecules/password-strength/password-strength.component';
 export * from './molecules/filter-bar/filter-bar.component';
 export * from './molecules/page-header/page-header.component';
 export * from './molecules/side-panel/side-panel.component';
@@ -32,6 +38,7 @@ export * from './molecules/plan-timeline-gutter/plan-timeline-gutter.component';
 
 // Organisms
 export * from './organisms/header/header.component';
+export * from './organisms/user-menu/user-menu.component';
 export * from './organisms/session-details/session-details.component';
 export * from './organisms/session-form/session-form.component';
 export * from './organisms/nutrition-product-form/nutrition-product-form.component';

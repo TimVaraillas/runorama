@@ -27,6 +27,9 @@ import {
         <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
           <tr>
             <th class="px-4 py-3 font-medium">Stratégie</th>
+            @if (showOwner()) {
+              <th class="px-4 py-3 font-medium">Utilisateur</th>
+            }
             <th class="px-4 py-3 font-medium">Date</th>
             <th class="px-4 py-3 font-medium">Lieu</th>
             <th class="px-4 py-3 text-right font-medium">Distance</th>
@@ -45,6 +48,15 @@ import {
               <td class="min-w-48 max-w-64 px-4 py-3">
                 <div class="truncate font-bold text-slate-900">{{ event.name }}</div>
               </td>
+              @if (showOwner()) {
+                <td class="px-4 py-3 text-slate-700">
+                  @if (event.owner; as owner) {
+                    <span class="truncate">{{ owner.firstName }} {{ owner.lastName }}</span>
+                  } @else {
+                    <span class="text-slate-300">—</span>
+                  }
+                </td>
+              }
               <td class="whitespace-nowrap px-4 py-3 text-slate-700">
                 <span class="flex items-center gap-1.5">
                   {{ formatDate(event.date) }}
@@ -113,6 +125,8 @@ import {
 export class NutritionEventTableComponent {
   /** Évènements à afficher. */
   readonly events = input<NutritionEvent[]>([]);
+  /** Affiche la colonne « Utilisateur » (propriétaire de la stratégie). */
+  readonly showOwner = input(false);
 
   readonly select = output<NutritionEvent>();
   readonly edit = output<NutritionEvent>();

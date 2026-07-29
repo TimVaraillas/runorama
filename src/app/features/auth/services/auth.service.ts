@@ -1,7 +1,16 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
-import type { LoginPayload, RegisterPayload, User } from '../../../core/models';
+import type {
+  ForgotPasswordPayload,
+  LoginPayload,
+  MessageResponse,
+  RegisterPayload,
+  ResendVerificationPayload,
+  ResetPasswordPayload,
+  User,
+  VerifyEmailPayload,
+} from '../../../core/models';
 
 /**
  * Service d'authentification.
@@ -24,10 +33,10 @@ export class AuthService {
   /** Vrai si l'utilisateur connecté est administrateur. */
   readonly isAdmin = computed(() => this.currentUserSig()?.role === 'admin');
 
-  register(payload: RegisterPayload): Observable<User> {
-    return this.http
-      .post<User>(`${this.baseUrl}/register`, payload)
-      .pipe(tap((user) => this.currentUserSig.set(user)));
+  register(payload: RegisterPayload): Observable<MessageResponse> {
+    // L'inscription ne connecte plus automatiquement : l'utilisateur doit d'abord
+    // confirmer son adresse e-mail via le lien reçu.
+    return this.http.post<MessageResponse>(`${this.baseUrl}/register`, payload);
   }
 
   login(payload: LoginPayload): Observable<User> {
@@ -40,6 +49,31 @@ export class AuthService {
     return this.http
       .post<void>(`${this.baseUrl}/logout`, {})
       .pipe(tap(() => this.currentUserSig.set(null)));
+  }
+
+  /** Demande l'envoi d'un lien de réinitialisation de mot de passe. */
+  forgotPassword(payload: ForgotPasswordPayload): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/forgot-password`, payload);
+  }
+
+  /** Réinitialise le mot de passe à partir d'un token reçu par e-mail. */
+  resetPassword(payload: ResetPasswordPayload): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/reset-password`, payload);
+  }
+
+  /**
+   * Confirme l'adresse e-mail à partir du token reçu à l'inscription. En cas de
+   * succès, l'utilisateur est automatiquement connecté (cookie de session posé).
+   */
+  verifyEmail(payload: VerifyEmailPayload): Observable<User> {
+    return this.http
+      .post<User>(`${this.baseUrl}/verify-email`, payload)
+      .pipe(tap((user) => this.currentUserSig.set(user)));
+  }
+
+  /** Renvoie l'e-mail de confirmation d'adresse. */
+  resendVerification(payload: ResendVerificationPayload): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${this.baseUrl}/resend-verification`, payload);
   }
 
   /** Récupère l'utilisateur courant depuis le cookie de session. */

@@ -1,17 +1,25 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ButtonComponent } from '../../components/atoms/button/button.component';
+import { TextInputComponent } from '../../components/atoms/text-input/text-input.component';
+import { PasswordStrengthComponent } from '../../components/molecules/password-strength/password-strength.component';
 import { ToastService } from '../../core/services/toast.service';
+import { passwordStrengthValidator } from '../../core/utils/password-policy';
 import { AuthService } from '../../features/auth/services/auth.service';
 
 /**
  * Page d'inscription (création de compte email + mot de passe).
+ *
+ * L'inscription ne connecte pas immédiatement : un e-mail de confirmation est
+ * envoyé et l'utilisateur est redirigé vers une page dédiée l'invitant à
+ * confirmer son adresse. La connexion reste bloquée tant qu'elle n'est pas vérifiée.
  */
 @Component({
   selector: 'app-register-page',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, ButtonComponent],
+  imports: [ReactiveFormsModule, RouterLink, ButtonComponent, TextInputComponent, PasswordStrengthComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4">
@@ -22,43 +30,33 @@ import { AuthService } from '../../features/auth/services/auth.service';
         </p>
 
         <form class="mt-6 space-y-4" [formGroup]="form" (ngSubmit)="submit()">
-          <div>
-            <label for="displayName" class="mb-1 block text-sm font-medium text-slate-700">
-              Nom affiché <span class="text-slate-400">(facultatif)</span>
-            </label>
-            <input
-              id="displayName"
-              type="text"
-              formControlName="displayName"
-              autocomplete="nickname"
-              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <ui-text-input formControlName="firstName" label="Prénom" autocomplete="given-name" />
+            <ui-text-input
+              formControlName="lastName"
+              label="Nom de famille"
+              autocomplete="family-name"
             />
           </div>
 
-          <div>
-            <label for="email" class="mb-1 block text-sm font-medium text-slate-700">
-              Adresse e-mail
-            </label>
-            <input
-              id="email"
-              type="email"
+          <div class="grid gap-4">
+            <ui-text-input
               formControlName="email"
+              label="Adresse e-mail"
+              type="email"
               autocomplete="email"
-              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
-          </div>
 
-          <div>
-            <label for="password" class="mb-1 block text-sm font-medium text-slate-700">
-              Mot de passe <span class="text-slate-400">(8 caractères minimum)</span>
-            </label>
-            <input
-              id="password"
-              type="password"
-              formControlName="password"
-              autocomplete="new-password"
-              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
+            <div>
+              <ui-text-input
+                formControlName="password"
+                label="Mot de passe"
+                type="password"
+                autocomplete="new-password"
+
+              />
+              <ui-password-strength [value]="passwordValue()" />
+            </div>
           </div>
 
           <ui-button type="submit" color="primary" [disabled]="form.invalid || loading()">
@@ -85,9 +83,15 @@ export class RegisterPage {
   protected readonly loading = signal(false);
 
   protected readonly form = this.fb.nonNullable.group({
-    displayName: [''],
+    firstName: ['', [Validators.required]],
+    lastName: ['', [Validators.required]],
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]],
+    password: ['', [Validators.required, passwordStrengthValidator]],
+  });
+
+  /** Valeur réactive du mot de passe, pour l'indicateur de robustesse. */
+  protected readonly passwordValue = toSignal(this.form.controls.password.valueChanges, {
+    initialValue: '',
   });
 
   protected submit(): void {
@@ -95,14 +99,16 @@ export class RegisterPage {
       return;
     }
     this.loading.set(true);
-    const { displayName, email, password } = this.form.getRawValue();
+    const { firstName, lastName, email, password } = this.form.getRawValue();
+    const normalizedEmail = email.trim().toLowerCase();
     this.auth
-      .register({ email, password, displayName: displayName.trim() || undefined })
+      .register({ email, password, firstName: firstName.trim(), lastName: lastName.trim() })
       .subscribe({
         next: () => {
           this.loading.set(false);
-          this.toast.success('Compte créé, bienvenue !');
-          void this.router.navigate(['/nutrition']);
+          void this.router.navigate(['/registration-success'], {
+            queryParams: { email: normalizedEmail },
+          });
         },
         error: (err) => {
           this.loading.set(false);

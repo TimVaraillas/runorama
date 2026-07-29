@@ -1,13 +1,8 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 import { IconComponent } from '../../atoms/icon/icon.component';
-import { ButtonComponent } from '../../atoms/button/button.component';
-import {
-  faPersonRunning,
-  faAppleWhole,
-  faRightFromBracket,
-} from '@fortawesome/free-solid-svg-icons';
-import { AuthService } from '../../../features/auth/services/auth.service';
+import { UserMenuComponent } from '../user-menu/user-menu.component';
+import { faPersonRunning, faAppleWhole } from '@fortawesome/free-solid-svg-icons';
 
 /**
  * Organism : barre de navigation principale.
@@ -15,7 +10,7 @@ import { AuthService } from '../../../features/auth/services/auth.service';
 @Component({
   selector: 'ui-header',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, IconComponent, ButtonComponent],
+  imports: [RouterLink, RouterLinkActive, IconComponent, UserMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="sticky top-0 z-40 border-b border-slate-200 bg-white/80 backdrop-blur">
@@ -43,49 +38,16 @@ import { AuthService } from '../../../features/auth/services/auth.service';
           </nav>
         </div>
 
-        @if (auth.currentUser(); as user) {
-          <div class="flex items-center gap-3">
-            <span class="hidden text-sm text-slate-500 sm:inline">
-              {{ user.displayName || user.email }}
-              @if (auth.isAdmin()) {
-                <span
-                  class="ml-1 rounded bg-brand-100 px-1.5 py-0.5 text-xs font-semibold text-brand-700"
-                  >admin</span
-                >
-              }
-            </span>
-            <ui-button
-              color="default"
-              variant="ghost"
-              size="sm"
-              [icon]="faRightFromBracket"
-              tooltipContent="Se déconnecter"
-              tooltipPosition="bottom"
-              (clicked)="logout()"
-            >
-            </ui-button>
-          </div>
-        }
+        <ui-user-menu />
       </div>
     </header>
   `,
 })
 export class HeaderComponent {
-  protected readonly auth = inject(AuthService);
-  private readonly router = inject(Router);
-
   readonly logo = faPersonRunning;
-  protected readonly faRightFromBracket = faRightFromBracket;
 
   // NOTE : le lien « Séances » est temporairement masqué (partie sportive non fonctionnelle).
   readonly links = [
     { path: '/nutrition', label: 'Nutrition', icon: faAppleWhole, exact: false },
   ];
-
-  protected logout(): void {
-    this.auth.logout().subscribe({
-      next: () => void this.router.navigate(['/login']),
-      error: () => void this.router.navigate(['/login']),
-    });
-  }
 }

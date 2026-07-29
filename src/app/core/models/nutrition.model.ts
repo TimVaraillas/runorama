@@ -57,8 +57,13 @@ export type PlanSequenceMinutes = 5 | 10 | 15 | 20;
 export interface NutritionIntake {
   /** Identifiant unique de la prise (généré côté client). */
   id: string;
-  /** Identifiant du produit consommé. */
-  productId: string;
+  /**
+   * Nature de la prise : un produit de l'inventaire (par défaut) ou de l'eau
+   * (illimitée, sans produit réel).
+   */
+  kind?: 'product' | 'water';
+  /** Identifiant du produit consommé (absent pour une prise d'eau). */
+  productId?: string;
   /** Produit dénormalisé (optionnel, pour l'affichage et les calculs). */
   product?: NutritionProduct;
   /** Instant de début de la prise, en minutes depuis le départ. */
@@ -70,11 +75,20 @@ export interface NutritionIntake {
 }
 
 /**
+ * Propriétaire d'une stratégie alimentaire, tel qu'exposé aux administrateurs.
+ */
+export interface NutritionEventOwner {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+/**
  * Un évènement / stratégie alimentaire : associe un évènement (course, sortie
  * longue) à une liste de produits emportés et à des besoins horaires cibles.
  */
-export interface NutritionEvent {
-  id: string;
+export interface NutritionEvent {  id: string;
   name: string;
   description?: string;
   /** Date au format ISO `YYYY-MM-DD`. */
@@ -98,6 +112,11 @@ export interface NutritionEvent {
   planSequenceMinutes?: PlanSequenceMinutes;
   /** Répartition des prises sur le parcours (plan de consommation). */
   intakes?: NutritionIntake[];
+  /**
+   * Propriétaire de la stratégie (renseigné uniquement pour les
+   * administrateurs, qui accèdent aux stratégies de tous les utilisateurs).
+   */
+  owner?: NutritionEventOwner;
   createdAt?: string;
   updatedAt?: string;
 }

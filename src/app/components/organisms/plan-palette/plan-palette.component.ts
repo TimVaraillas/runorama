@@ -55,13 +55,14 @@ import type { PaletteEntry, PlanHourlyRecap, PlanSequenceMinutes } from '../../.
           <ui-plan-palette-item
             cdkDrag
             [cdkDragData]="{ kind: 'product', productId: entry.product.id }"
-            [cdkDragDisabled]="entry.remaining <= 0"
+            [cdkDragDisabled]="!entry.unlimited && entry.remaining <= 0"
             (cdkDragStarted)="dragStarted.emit()"
             (cdkDragMoved)="dragMoved.emit($event)"
             (cdkDragEnded)="dragEnded.emit()"
             [product]="entry.product"
             [carried]="entry.carried"
             [remaining]="entry.remaining"
+            [unlimited]="entry.unlimited ?? false"
           />
         }
       </div>

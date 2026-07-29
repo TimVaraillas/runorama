@@ -13,6 +13,8 @@ export interface PaletteEntry {
   product: NutritionProduct;
   carried: number;
   remaining: number;
+  /** Vrai pour un élément toujours disponible en quantité illimitée (eau). */
+  unlimited?: boolean;
 }
 
 /** Prise résolue (produit inclus) et positionnée sur la timeline. */
