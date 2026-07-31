@@ -23,6 +23,16 @@ const angularApp = new AngularNodeAppEngine();
  */
 app.use(express.json({ limit: '5mb' }));
 app.use(cookieParser());
+
+/**
+ * Endpoint de health check (utilisé par l'hébergeur, ex. Render).
+ * Géré directement par Express : il court-circuite le rendu Angular et sa
+ * validation d'hôte/SSRF, et répond toujours 200 quel que soit le header Host.
+ */
+app.get('/healthz', (_req, res) => {
+  res.status(200).send('ok');
+});
+
 // Attache l'utilisateur authentifié (si cookie JWT valide) à chaque requête API.
 app.use('/api', attachUser);
 app.use('/api/auth', createAuthRouter());

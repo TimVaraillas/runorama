@@ -10,7 +10,7 @@ services:
     branch: main
     buildCommand: npm ci --include=dev && npm run build
     startCommand: npm run serve:ssr:runorama
-    healthCheckPath: /
+    healthCheckPath: /healthz
     envVars:
       # Version de Node (alignée avec .nvmrc et les prérequis Angular 22)
       - key: NODE_VERSION
