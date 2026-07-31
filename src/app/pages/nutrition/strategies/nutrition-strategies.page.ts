@@ -151,14 +151,23 @@ import { faPlus, faTrash, faXmark, faUtensils } from '@fortawesome/free-solid-sv
     >
       @if (pendingDelete(); as pending) {
         <p>
-          Voulez-vous vraiment supprimer la stratégie
-          <strong class="font-semibold text-slate-900">« {{ pending.name }} »</strong> ? Cette action
-          est irréversible.
+          Cette action est irréversible. Pour confirmer la suppression, saisissez le nom de la
+          stratégie
+          <strong class="font-semibold text-slate-900">« {{ pending.name }} »</strong>.
         </p>
+        <input
+          type="text"
+          class="mt-4 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+          [value]="deleteConfirmName()"
+          (input)="deleteConfirmName.set($any($event.target).value)"
+          placeholder="Nom de la stratégie"
+          aria-label="Nom de la stratégie à confirmer"
+          autocomplete="off"
+        />
       }
       <div modalFooter class="flex items-center justify-end gap-3">
         <ui-button color="default" variant="ghost" [disabled]="deleting()" (clicked)="cancelDelete()">Annuler</ui-button>
-        <ui-button color="danger" [icon]="faTrash" [disabled]="deleting()" (clicked)="confirmDelete()">
+        <ui-button color="danger" [icon]="faTrash" [disabled]="!deleteNameMatches() || deleting()" (clicked)="confirmDelete()">
           Supprimer
         </ui-button>
       </div>
@@ -190,6 +199,12 @@ export class NutritionStrategiesPage {
 
   protected readonly pendingDelete = signal<{ id: string; name: string } | null>(null);
   protected readonly deleting = signal(false);
+  /** Nom saisi par l'utilisateur pour confirmer la suppression. */
+  protected readonly deleteConfirmName = signal('');
+  /** Vrai lorsque le nom saisi correspond exactement au nom de la stratégie. */
+  protected readonly deleteNameMatches = computed(
+    () => this.deleteConfirmName().trim() === (this.pendingDelete()?.name.trim() ?? ''),
+  );
 
   /** Évènements filtrés par titre et par intervalle de dates. */
   protected readonly filteredEvents = computed(() => {
@@ -256,27 +271,31 @@ export class NutritionStrategiesPage {
   }
 
   requestDeleteEvent(event: NutritionEvent): void {
+    this.deleteConfirmName.set('');
     this.pendingDelete.set({ id: event.id, name: event.name });
   }
 
   cancelDelete(): void {
     if (this.deleting()) return;
     this.pendingDelete.set(null);
+    this.deleteConfirmName.set('');
   }
 
   confirmDelete(): void {
     const pending = this.pendingDelete();
-    if (!pending) return;
+    if (!pending || !this.deleteNameMatches()) return;
     this.deleting.set(true);
     this.service.removeEvent(pending.id).subscribe({
       next: () => {
         this.deleting.set(false);
         this.pendingDelete.set(null);
+        this.deleteConfirmName.set('');
         this.loadEvents();
       },
       error: () => {
         this.deleting.set(false);
         this.pendingDelete.set(null);
+        this.deleteConfirmName.set('');
         this.toast.error('Impossible de supprimer la stratégie.');
       },
     });
