@@ -22,9 +22,9 @@ services:
       - key: NG_ALLOWED_HOSTS
         value: runorama.app,www.runorama.app,runorama.onrender.com
       # Render est un proxy de confiance qui termine le TLS : on autorise les
-      # headers X-Forwarded-* afin qu'Angular détecte le bon protocole/hôte.
+      # headers X-Forwarded-* afin qu'Angular détecte le bon protocole/hôte/IP.
       - key: NG_TRUST_PROXY_HEADERS
-        value: x-forwarded-host,x-forwarded-proto
+        value: x-forwarded-host,x-forwarded-proto,x-forwarded-for,x-forwarded-port
       # Secrets à renseigner dans le dashboard Render (Environment).
       # sync: false => valeur saisie manuellement, jamais stockée dans le repo.
       - key: MONGODB_URI
