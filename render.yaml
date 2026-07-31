@@ -14,7 +14,7 @@ services:
     envVars:
       # Version de Node (alignée avec .nvmrc et les prérequis Angular 22)
       - key: NODE_VERSION
-        value: 22.12.0
+        value: 22.22.3
       - key: NODE_ENV
         value: production
       # Secrets à renseigner dans le dashboard Render (Environment).
