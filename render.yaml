@@ -1,0 +1,32 @@
+# Configuration de déploiement Render (Infrastructure as Code).
+# Render lira ce fichier via "Blueprint" pour créer/mettre à jour le service.
+# Doc : https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: runorama
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    buildCommand: npm ci && npm run build
+    startCommand: npm run serve:ssr:runorama
+    healthCheckPath: /
+    envVars:
+      # Version de Node (alignée avec .nvmrc et les prérequis Angular 22)
+      - key: NODE_VERSION
+        value: 22.12.0
+      - key: NODE_ENV
+        value: production
+      # Secrets à renseigner dans le dashboard Render (Environment).
+      # sync: false => valeur saisie manuellement, jamais stockée dans le repo.
+      - key: MONGODB_URI
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: APP_BASE_URL
+        sync: false
+      # Généré automatiquement par Render à la création du service.
+      - key: JWT_SECRET
+        generateValue: true

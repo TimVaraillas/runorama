@@ -54,5 +54,8 @@ Thumbs.db
 # Scripts
 scripts/
 
+# Dump base de données (contient des données utilisateurs, ne pas versionner)
+mongo-backup/
+
 *storybook.log
 .editorconfig
