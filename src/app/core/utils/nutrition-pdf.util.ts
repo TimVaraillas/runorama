@@ -1,4 +1,5 @@
-import type { NutritionEvent, NutritionProduct } from '../models';
+import type { NutrientGoalKey, NutritionEvent, NutritionProduct } from '../models';
+import { enabledGoals, type ResolvedGoal } from './nutrition-goals.util';
 import { resolveIntakeProduct } from './water.util';
 import { formatMinutes } from './plan-layout.util';
 
@@ -49,12 +50,18 @@ interface PlanRow {
   carbs: number;
 }
 
+/** Apport planifié vs cible d'un nutriment sur une tranche horaire. */
+interface RecapNutrient {
+  key: NutrientGoalKey;
+  label: string;
+  unit: string;
+  planned: number;
+  target: number;
+}
+
 interface RecapRow {
   hour: number;
-  energy: number;
-  targetEnergy: number;
-  carbs: number;
-  targetCarbs: number;
+  nutrients: RecapNutrient[];
 }
 
 /** Construit la table produit par identifiant (catalogue + dénormalisés). */
@@ -100,7 +107,11 @@ function buildInventory(event: NutritionEvent, map: Map<string, NutritionProduct
 }
 
 /** Compose les prises planifiées (triées) et le récapitulatif horaire. */
-function buildPlan(event: NutritionEvent, map: Map<string, NutritionProduct>) {
+function buildPlan(
+  event: NutritionEvent,
+  map: Map<string, NutritionProduct>,
+  goals: ResolvedGoal[],
+) {
   const total = event.targetTimeMinutes ?? 0;
   const rows: PlanRow[] = [];
   for (const intake of event.intakes ?? []) {
@@ -118,30 +129,32 @@ function buildPlan(event: NutritionEvent, map: Map<string, NutritionProduct>) {
   rows.sort((a, b) => a.start - b.start || a.end - b.end);
 
   const recap: RecapRow[] = [];
-  if (total > 0) {
+  if (total > 0 && goals.length > 0) {
     const hours = Math.ceil(total / 60);
     for (let h = 0; h < hours; h++) {
       const minutesInHour = Math.min(60, total - h * 60);
       recap.push({
         hour: h + 1,
-        energy: 0,
-        carbs: 0,
-        targetEnergy: (event.hourlyEnergy * minutesInHour) / 60,
-        targetCarbs: (event.hourlyCarbs * minutesInHour) / 60,
+        nutrients: goals.map((goal) => ({
+          key: goal.key,
+          label: goal.label,
+          unit: goal.unit,
+          planned: 0,
+          target: (goal.hourly * minutesInHour) / 60,
+        })),
       });
     }
     for (const intake of event.intakes ?? []) {
       const product = resolveIntakeProduct(intake, map);
       if (!product || intake.durationMinutes <= 0) continue;
-      const energyPerMin = (product.energy * intake.quantity) / intake.durationMinutes;
-      const carbsPerMin = (product.carbs * intake.quantity) / intake.durationMinutes;
       const start = intake.startMinute;
       const end = intake.startMinute + intake.durationMinutes;
       for (let h = 0; h < hours; h++) {
         const overlap = Math.min(end, (h + 1) * 60) - Math.max(start, h * 60);
-        if (overlap > 0) {
-          recap[h].energy += energyPerMin * overlap;
-          recap[h].carbs += carbsPerMin * overlap;
+        if (overlap <= 0) continue;
+        for (const nutrient of recap[h].nutrients) {
+          const perMin = (product[nutrient.key] * intake.quantity) / intake.durationMinutes;
+          nutrient.planned += perMin * overlap;
         }
       }
     }
@@ -160,10 +173,9 @@ export function buildStrategyPdfHtml(
 ): string {
   const map = buildProductMap(event, products);
   const { rows: inventoryRows, totals } = buildInventory(event, map);
-  const { rows: planRows, recap } = buildPlan(event, map);
+  const goals = enabledGoals(event);
+  const { rows: planRows, recap } = buildPlan(event, map, goals);
   const total = event.targetTimeMinutes ?? 0;
-  const targetEnergy = total > 0 ? (event.hourlyEnergy * total) / 60 : 0;
-  const targetCarbs = total > 0 ? (event.hourlyCarbs * total) / 60 : 0;
 
   const meta: string[] = [];
   if (event.date) meta.push(formatDate(event.date));
@@ -215,15 +227,30 @@ export function buildStrategyPdfHtml(
           .join('')
       : `<tr><td colspan="5" class="muted center">Aucune prise planifiée.</td></tr>`;
 
+  const recapHead = goals
+    .map((g) => `<th class="right">${escapeHtml(g.label)}</th>`)
+    .join('');
+
   const recapBody = recap
     .map(
       (r) => `
       <tr>
         <td>Heure ${r.hour}</td>
-        <td class="right">${num(r.energy)} / ${num(r.targetEnergy)} kcal</td>
-        <td class="right">${num(r.carbs)} / ${num(r.targetCarbs)} g</td>
+        ${r.nutrients
+          .map((n) => `<td class="right">${num(n.planned)} / ${num(n.target)} ${n.unit}</td>`)
+          .join('')}
       </tr>`,
     )
+    .join('');
+
+  /** Items de synthèse pour chaque objectif actif (emporté + couverture). */
+  const goalSummary = goals
+    .map((g) => {
+      const target = total > 0 ? (g.hourly * total) / 60 : 0;
+      return `<div class="item"><div class="label">${escapeHtml(g.label)}</div><div class="value">${num(
+        totals[g.key],
+      )} ${g.unit}${coverage(totals[g.key], target)}</div></div>`;
+    })
     .join('');
 
   const planSection =
@@ -249,7 +276,7 @@ export function buildStrategyPdfHtml(
         <h3>Récapitulatif horaire (planifié / cible)</h3>
         <table>
           <thead>
-            <tr><th>Tranche</th><th class="right">Énergie</th><th class="right">Glucides</th></tr>
+            <tr><th>Tranche</th>${recapHead}</tr>
           </thead>
           <tbody>${recapBody}</tbody>
         </table>`
@@ -307,12 +334,7 @@ export function buildStrategyPdfHtml(
       <div class="item"><div class="label">Poids total</div><div class="value">${num(
         totals.weight,
       )} g</div></div>
-      <div class="item"><div class="label">Énergie</div><div class="value">${num(
-        totals.energy,
-      )} kcal${coverage(totals.energy, targetEnergy)}</div></div>
-      <div class="item"><div class="label">Glucides</div><div class="value">${num(
-        totals.carbs,
-      )} g${coverage(totals.carbs, targetCarbs)}</div></div>
+      ${goalSummary}
     </div>
   </header>
 

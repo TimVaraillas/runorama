@@ -1,4 +1,4 @@
-import type { NutritionIntake, NutritionProduct } from './nutrition.model';
+import type { NutrientGoalKey, NutritionIntake, NutritionProduct } from './nutrition.model';
 
 /** Bord d'une prise saisi lors du redimensionnement. */
 export type ResizeEdge = 'top' | 'bottom';
@@ -35,13 +35,21 @@ export interface GhostBlock {
   height: number;
 }
 
-/** Repère horaire (glucides / énergie planifiés vs cible). */
+/** Apport planifié vs cible pour un nutriment donné, sur une tranche horaire. */
+export interface PlanHourlyNutrient {
+  key: NutrientGoalKey;
+  label: string;
+  unit: string;
+  /** Apport planifié sur la tranche. */
+  planned: number;
+  /** Cible sur la tranche (besoin horaire ajusté à la durée de la tranche). */
+  target: number;
+}
+
+/** Repère horaire : apports planifiés vs cible, par nutriment actif. */
 export interface PlanHourlyRecap {
   hour: number;
-  energy: number;
-  targetEnergy: number;
-  carbs: number;
-  targetCarbs: number;
+  nutrients: PlanHourlyNutrient[];
 }
 
 /** Repère de séquence positionné sur la piste (libellé horaire). */

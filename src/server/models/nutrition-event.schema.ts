@@ -43,9 +43,36 @@ const intakeSchema = new Schema(
 );
 
 /**
+ * Objectif horaire pour un nutriment : valeur cible (kcal/h, g/h ou mg/h) et
+ * indicateur d'activation (objectif pris en compte ou ignoré).
+ */
+const goalSchema = new Schema(
+  {
+    hourly: { type: Number, required: true, min: 0, default: 0 },
+    enabled: { type: Boolean, required: true, default: false },
+  },
+  { _id: false },
+);
+
+/**
+ * Objectifs horaires par nutriment. Les valeurs par défaut reprennent la
+ * configuration proposée à la création d'une stratégie.
+ */
+const goalsSchema = new Schema(
+  {
+    energy: { type: goalSchema, default: () => ({ hourly: 200, enabled: false }) },
+    carbs: { type: goalSchema, default: () => ({ hourly: 50, enabled: true }) },
+    fats: { type: goalSchema, default: () => ({ hourly: 15, enabled: false }) },
+    proteins: { type: goalSchema, default: () => ({ hourly: 10, enabled: true }) },
+    sodium: { type: goalSchema, default: () => ({ hourly: 500, enabled: true }) },
+  },
+  { _id: false },
+);
+
+/**
  * Schéma d'un évènement / stratégie alimentaire (collection `nutrition_events`).
  * Associe un évènement (course, sortie longue) à une liste de produits emportés
- * et aux besoins horaires cibles (énergie et glucides).
+ * et à des objectifs horaires par nutriment.
  */
 const nutritionEventSchema = new Schema(
   {
@@ -64,10 +91,8 @@ const nutritionEventSchema = new Schema(
     elevationLoss: { type: Number, min: 0 },
     /** Chrono cible exprimé en minutes (facultatif). */
     targetTimeMinutes: { type: Number, min: 0 },
-    /** Besoin énergétique horaire cible en kcal/h. */
-    hourlyEnergy: { type: Number, required: true, min: 0, default: 200 },
-    /** Besoin glucidique horaire cible en g/h. */
-    hourlyCarbs: { type: Number, required: true, min: 0, default: 50 },
+    /** Objectifs horaires par nutriment. */
+    goals: { type: goalsSchema, default: () => ({}) },
     /** Produits emportés (inventaire). */
     items: { type: [eventItemSchema], default: [] },
     /** Granularité (minutes) des séquences du plan de consommation. */

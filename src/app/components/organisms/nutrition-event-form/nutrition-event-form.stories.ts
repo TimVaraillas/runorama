@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import type { NutritionEvent } from '../../../core/models';
+import { createDefaultGoals } from '../../../core/utils/nutrition-goals.util';
 import { NutritionEventFormComponent } from './nutrition-event-form.component';
 
 const event: NutritionEvent = {
@@ -12,8 +13,7 @@ const event: NutritionEvent = {
   elevationGain: 3600,
   elevationLoss: 3600,
   targetTimeMinutes: 600,
-  hourlyEnergy: 250,
-  hourlyCarbs: 60,
+  goals: createDefaultGoals(),
   items: [],
 };
 

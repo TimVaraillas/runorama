@@ -7,6 +7,7 @@ import type {
   PositionedIntake,
   SequenceMark,
 } from '../models';
+import type { ResolvedGoal } from './nutrition-goals.util';
 import { resolveIntakeProduct } from './water.util';
 
 /** Aperçu live d'une prise en cours de redimensionnement. */
@@ -152,34 +153,36 @@ export function buildSequenceMarks(params: {
   return marks;
 }
 
-/** Construit le récapitulatif horaire (apports planifiés vs cible). */
+/** Construit le récapitulatif horaire (apports planifiés vs cible) par nutriment. */
 export function buildHourlyRecap(params: {
   total: number;
-  hourlyEnergy: number;
-  hourlyCarbs: number;
+  goals: ResolvedGoal[];
   intakes: PositionedIntake[];
 }): PlanHourlyRecap[] {
-  const { total, hourlyEnergy, hourlyCarbs, intakes } = params;
-  if (total <= 0) return [];
+  const { total, goals, intakes } = params;
+  if (total <= 0 || goals.length === 0) return [];
   const hours = Math.ceil(total / 60);
   const rows: PlanHourlyRecap[] = Array.from({ length: hours }, (_, h) => {
     const minutesInHour = Math.min(60, total - h * 60);
     return {
       hour: h + 1,
-      energy: 0,
-      carbs: 0,
-      targetEnergy: (hourlyEnergy * minutesInHour) / 60,
-      targetCarbs: (hourlyCarbs * minutesInHour) / 60,
+      nutrients: goals.map((goal) => ({
+        key: goal.key,
+        label: goal.label,
+        unit: goal.unit,
+        planned: 0,
+        target: (goal.hourly * minutesInHour) / 60,
+      })),
     };
   });
   for (const intake of intakes) {
-    const energyPerMin = (intake.product.energy * intake.quantity) / intake.durationMinutes;
-    const carbsPerMin = (intake.product.carbs * intake.quantity) / intake.durationMinutes;
+    if (intake.durationMinutes <= 0) continue;
     for (let h = 0; h < hours; h++) {
       const overlap = Math.min(intake.endMinute, (h + 1) * 60) - Math.max(intake.startMinute, h * 60);
-      if (overlap > 0) {
-        rows[h].energy += energyPerMin * overlap;
-        rows[h].carbs += carbsPerMin * overlap;
+      if (overlap <= 0) continue;
+      for (const nutrient of rows[h].nutrients) {
+        const perMin = (intake.product[nutrient.key] * intake.quantity) / intake.durationMinutes;
+        nutrient.planned += perMin * overlap;
       }
     }
   }

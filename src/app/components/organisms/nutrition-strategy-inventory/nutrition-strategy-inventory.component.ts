@@ -16,6 +16,7 @@ import type {
   NutritionEventItem,
   NutritionProduct,
 } from '../../../core/models';
+import { enabledGoals } from '../../../core/utils/nutrition-goals.util';
 import { faPlus, faWeightHanging, faXmark, faCheck } from '@fortawesome/free-solid-svg-icons';
 
 /** Totaux cumulés de l'inventaire. */
@@ -55,25 +56,23 @@ interface InventoryTotals {
   template: `
     <div class="space-y-6">
       <!-- Cibles vs emporté -->
-      <section class="grid gap-4 sm:grid-cols-2">
-        <ui-nutrition-target-gauge
-          label="Énergie"
-          unit="kcal"
-          [carried]="totals().energy"
-          [target]="targetEnergy()"
-        />
-        <ui-nutrition-target-gauge
-          label="Glucides"
-          unit="g"
-          [carried]="totals().carbs"
-          [target]="targetCarbs()"
-        />
-      </section>
+      @if (goalGauges().length > 0) {
+        <section class="grid gap-4 sm:grid-cols-2">
+          @for (gauge of goalGauges(); track gauge.key) {
+            <ui-nutrition-target-gauge
+              [label]="gauge.label"
+              [unit]="gauge.unit"
+              [carried]="gauge.carried"
+              [target]="gauge.target"
+            />
+          }
+        </section>
 
-      @if (targetEnergy() === null) {
-        <p class="rounded-lg bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
-          Définissez un chrono cible sur l'évènement pour comparer l'emporté à vos besoins.
-        </p>
+        @if (targetHours() === null) {
+          <p class="rounded-lg bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
+            Définissez un chrono cible sur l'évènement pour comparer l'emporté à vos besoins.
+          </p>
+        }
       }
 
       <!-- Totaux -->
@@ -247,21 +246,25 @@ export class NutritionStrategyInventoryComponent {
   );
 
   /** Durée cible en heures (null si non définie). */
-  private readonly targetHours = computed(() => {
+  protected readonly targetHours = computed(() => {
     const minutes = this.event().targetTimeMinutes;
     return minutes && minutes > 0 ? minutes / 60 : null;
   });
 
-  /** Besoin énergétique total cible (kcal), null si pas de chrono. */
-  protected readonly targetEnergy = computed(() => {
+  /**
+   * Jauges à afficher : une par objectif actif, avec l'emporté cumulé et la
+   * cible totale (besoin horaire × chrono cible, ou null sans chrono).
+   */
+  protected readonly goalGauges = computed(() => {
     const hours = this.targetHours();
-    return hours === null ? null : this.event().hourlyEnergy * hours;
-  });
-
-  /** Besoin glucidique total cible (g), null si pas de chrono. */
-  protected readonly targetCarbs = computed(() => {
-    const hours = this.targetHours();
-    return hours === null ? null : this.event().hourlyCarbs * hours;
+    const totals = this.totals();
+    return enabledGoals(this.event()).map((goal) => ({
+      key: goal.key,
+      label: goal.label,
+      unit: goal.unit,
+      carried: totals[goal.key],
+      target: hours === null ? null : goal.hourly * hours,
+    }));
   });
 
   /** Bascule la sélection d'un produit dans le panneau. */

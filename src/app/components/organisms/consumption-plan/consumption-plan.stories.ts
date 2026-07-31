@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import type { NutritionEvent, NutritionProduct } from '../../../core/models';
+import { createDefaultGoals } from '../../../core/utils/nutrition-goals.util';
 import { ConsumptionPlanComponent } from './consumption-plan.component';
 
 const products: NutritionProduct[] = [
@@ -14,8 +15,7 @@ const event: NutritionEvent = {
   location: 'Millau',
   distance: 76,
   targetTimeMinutes: 120,
-  hourlyEnergy: 250,
-  hourlyCarbs: 60,
+  goals: createDefaultGoals(),
   planSequenceMinutes: 10,
   items: [
     { productId: 'p1', quantity: 6 },

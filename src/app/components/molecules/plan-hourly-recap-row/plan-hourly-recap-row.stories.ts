@@ -19,12 +19,26 @@ type Story = StoryObj<PlanHourlyRecapRowComponent>;
 
 export const OnTarget: Story = {
   args: {
-    row: { hour: 1, carbs: 60, targetCarbs: 60, energy: 250, targetEnergy: 250 } as PlanHourlyRecap,
+    row: {
+      hour: 1,
+      nutrients: [
+        { key: 'carbs', label: 'Glucides', unit: 'g', planned: 60, target: 60 },
+        { key: 'proteins', label: 'Protéines', unit: 'g', planned: 10, target: 10 },
+        { key: 'sodium', label: 'Sodium', unit: 'mg', planned: 500, target: 500 },
+      ],
+    } as PlanHourlyRecap,
   },
 };
 
 export const BelowTarget: Story = {
   args: {
-    row: { hour: 2, carbs: 35, targetCarbs: 60, energy: 150, targetEnergy: 250 } as PlanHourlyRecap,
+    row: {
+      hour: 2,
+      nutrients: [
+        { key: 'carbs', label: 'Glucides', unit: 'g', planned: 35, target: 60 },
+        { key: 'proteins', label: 'Protéines', unit: 'g', planned: 4, target: 10 },
+        { key: 'sodium', label: 'Sodium', unit: 'mg', planned: 200, target: 500 },
+      ],
+    } as PlanHourlyRecap,
   },
 };

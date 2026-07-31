@@ -3,9 +3,30 @@ import type { PlanHourlyRecap } from '../../../core/models';
 import { PlanHourlyRecapComponent } from './plan-hourly-recap.component';
 
 const rows: PlanHourlyRecap[] = [
-  { hour: 1, carbs: 60, targetCarbs: 60, energy: 250, targetEnergy: 250 },
-  { hour: 2, carbs: 40, targetCarbs: 60, energy: 180, targetEnergy: 250 },
-  { hour: 3, carbs: 55, targetCarbs: 60, energy: 230, targetEnergy: 250 },
+  {
+    hour: 1,
+    nutrients: [
+      { key: 'carbs', label: 'Glucides', unit: 'g', planned: 60, target: 60 },
+      { key: 'proteins', label: 'Protéines', unit: 'g', planned: 10, target: 10 },
+      { key: 'sodium', label: 'Sodium', unit: 'mg', planned: 500, target: 500 },
+    ],
+  },
+  {
+    hour: 2,
+    nutrients: [
+      { key: 'carbs', label: 'Glucides', unit: 'g', planned: 40, target: 60 },
+      { key: 'proteins', label: 'Protéines', unit: 'g', planned: 6, target: 10 },
+      { key: 'sodium', label: 'Sodium', unit: 'mg', planned: 300, target: 500 },
+    ],
+  },
+  {
+    hour: 3,
+    nutrients: [
+      { key: 'carbs', label: 'Glucides', unit: 'g', planned: 55, target: 60 },
+      { key: 'proteins', label: 'Protéines', unit: 'g', planned: 9, target: 10 },
+      { key: 'sodium', label: 'Sodium', unit: 'mg', planned: 480, target: 500 },
+    ],
+  },
 ];
 
 const meta: Meta<PlanHourlyRecapComponent> = {
