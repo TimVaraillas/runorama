@@ -68,7 +68,7 @@ import { faAppleWhole, faPen, faTrash } from '@fortawesome/free-solid-svg-icons'
         <ui-nutrient-stat label="Glucides" [value]="product().carbs" unit="g" />
         <ui-nutrient-stat label="Lipides" [value]="product().fats" unit="g" />
         <ui-nutrient-stat label="Protéines" [value]="product().proteins" unit="g" />
-        <ui-nutrient-stat label="Sel" [value]="product().salt" unit="mg" />
+        <ui-nutrient-stat label="Sodium" [value]="product().sodium" unit="mg" />
       </div>
     </article>
   `,

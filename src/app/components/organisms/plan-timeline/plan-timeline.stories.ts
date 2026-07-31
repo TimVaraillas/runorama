@@ -14,7 +14,7 @@ const product = {
   carbs: 25,
   fats: 0,
   proteins: 0,
-  salt: 22,
+  sodium: 22,
 };
 
 const marks: SequenceMark[] = Array.from({ length: 7 }, (_, i) => ({

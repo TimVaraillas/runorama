@@ -130,8 +130,8 @@ const IMAGE_QUALITY = 0.8;
             step="0.1"
           />
           <ui-text-input
-            formControlName="salt"
-            label="Sel (mg)"
+            formControlName="sodium"
+            label="Sodium (mg)"
             type="number"
             min="0"
             step="1"
@@ -179,7 +179,7 @@ export class NutritionProductFormComponent {
     carbs: [null as number | null, [Validators.required, Validators.min(0)]],
     fats: [null as number | null, [Validators.required, Validators.min(0)]],
     proteins: [null as number | null, [Validators.required, Validators.min(0)]],
-    salt: [null as number | null, [Validators.required, Validators.min(0)]],
+    sodium: [null as number | null, [Validators.required, Validators.min(0)]],
   });
 
   constructor() {
@@ -196,7 +196,7 @@ export class NutritionProductFormComponent {
           carbs: product.carbs,
           fats: product.fats,
           proteins: product.proteins,
-          salt: product.salt,
+          sodium: product.sodium,
         });
         this.imagePreview.set(product.image ?? null);
       }
@@ -263,7 +263,7 @@ export class NutritionProductFormComponent {
       carbs: Number(value.carbs),
       fats: Number(value.fats),
       proteins: Number(value.proteins),
-      salt: Number(value.salt),
+      sodium: Number(value.sodium),
       // `null` pour permettre de retirer une photo existante lors d'une modification.
       image: this.imagePreview() ?? null,
     } as Partial<NutritionProduct>);

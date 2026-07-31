@@ -25,7 +25,7 @@ interface InventoryTotals {
   carbs: number;
   fats: number;
   proteins: number;
-  salt: number;
+  sodium: number;
 }
 
 /**
@@ -83,7 +83,7 @@ interface InventoryTotals {
         <ui-nutrient-stat label="Glucides" [value]="totals().carbs" unit="g" />
         <ui-nutrient-stat label="Lipides" [value]="totals().fats" unit="g" />
         <ui-nutrient-stat label="Protéines" [value]="totals().proteins" unit="g" />
-        <ui-nutrient-stat label="Sel" [value]="totals().salt" unit="mg" />
+        <ui-nutrient-stat label="Sodium" [value]="totals().sodium" unit="mg" />
       </section>
 
       <ui-divider class="my-10" variant="solid" />
@@ -240,9 +240,9 @@ export class NutritionStrategyInventoryComponent {
         carbs: acc.carbs + product.carbs * quantity,
         fats: acc.fats + product.fats * quantity,
         proteins: acc.proteins + product.proteins * quantity,
-        salt: acc.salt + product.salt * quantity,
+        sodium: acc.sodium + product.sodium * quantity,
       }),
-      { weight: 0, energy: 0, carbs: 0, fats: 0, proteins: 0, salt: 0 },
+      { weight: 0, energy: 0, carbs: 0, fats: 0, proteins: 0, sodium: 0 },
     ),
   );
 

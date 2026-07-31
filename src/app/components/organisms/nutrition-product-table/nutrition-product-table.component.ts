@@ -38,7 +38,7 @@ export type ProductTableMode = 'manage' | 'picker';
             @if (mode() !== 'picker') {
               <th class="px-4 py-3 text-right font-medium">Lip.</th>
               <th class="px-4 py-3 text-right font-medium">Prot.</th>
-              <th class="px-4 py-3 text-right font-medium">Sel</th>
+              <th class="px-4 py-3 text-right font-medium">Sodium</th>
               @if (!readonly()) {
                 <th class="px-4 py-3"></th>
               }
@@ -90,7 +90,7 @@ export type ProductTableMode = 'manage' | 'picker';
               @if (mode() !== 'picker') {
                 <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.fats }} g</td>
                 <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.proteins }} g</td>
-                <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.salt }} mg</td>
+                <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.sodium }} mg</td>
                 @if (!readonly()) {
                   <td class="px-4 py-3">
                     <div class="flex items-center justify-end gap-1">

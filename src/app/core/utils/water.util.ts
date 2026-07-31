@@ -23,7 +23,7 @@ export const WATER_PRODUCT: NutritionProduct = {
   carbs: 0,
   fats: 0,
   proteins: 0,
-  salt: 0,
+  sodium: 0,
 };
 
 /** Vrai si le produit est le produit virtuel « Eau ». */

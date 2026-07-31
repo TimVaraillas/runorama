@@ -21,8 +21,8 @@ const nutritionProductSchema = new Schema(
     fats: { type: Number, required: true, min: 0 },
     /** Protéines en grammes. */
     proteins: { type: Number, required: true, min: 0 },
-    /** Sel en milligrammes. */
-    salt: { type: Number, required: true, min: 0 },
+    /** Sodium en milligrammes. */
+    sodium: { type: Number, required: true, min: 0 },
     /** Photo du produit (data URL base64), facultative. */
     image: { type: String },
   },

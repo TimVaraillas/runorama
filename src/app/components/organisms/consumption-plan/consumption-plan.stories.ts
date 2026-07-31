@@ -3,8 +3,8 @@ import type { NutritionEvent, NutritionProduct } from '../../../core/models';
 import { ConsumptionPlanComponent } from './consumption-plan.component';
 
 const products: NutritionProduct[] = [
-  { id: 'p1', categoryId: 'c1', brand: 'Maurten', name: 'Gel 100', unitWeight: 40, energy: 100, carbs: 25, fats: 0, proteins: 0, salt: 22 },
-  { id: 'p2', categoryId: 'c2', brand: 'Clif', name: 'Bar Chocolate', unitWeight: 68, energy: 260, carbs: 44, fats: 6, proteins: 9, salt: 150 },
+  { id: 'p1', categoryId: 'c1', brand: 'Maurten', name: 'Gel 100', unitWeight: 40, energy: 100, carbs: 25, fats: 0, proteins: 0, sodium: 22 },
+  { id: 'p2', categoryId: 'c2', brand: 'Clif', name: 'Bar Chocolate', unitWeight: 68, energy: 260, carbs: 44, fats: 6, proteins: 9, sodium: 150 },
 ];
 
 const event: NutritionEvent = {

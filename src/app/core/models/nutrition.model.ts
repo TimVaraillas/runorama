@@ -29,8 +29,8 @@ export interface NutritionProduct {
   fats: number;
   /** Protéines en grammes. */
   proteins: number;
-  /** Sel en milligrammes. */
-  salt: number;
+  /** Sodium en milligrammes. */
+  sodium: number;
   /** Photo du produit (data URL base64), facultative. */
   image?: string;
   createdAt?: string;

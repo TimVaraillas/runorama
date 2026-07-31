@@ -10,7 +10,7 @@ const intake: PositionedIntake = {
   startMinute: 30,
   durationMinutes: 10,
   quantity: 1,
-  product: { id: 'p1', categoryId: 'c1', brand: 'Maurten', name: 'Gel 100', unitWeight: 40, energy: 100, carbs: 25, fats: 0, proteins: 0, salt: 22 },
+  product: { id: 'p1', categoryId: 'c1', brand: 'Maurten', name: 'Gel 100', unitWeight: 40, energy: 100, carbs: 25, fats: 0, proteins: 0, sodium: 22 },
   top: 0,
   height: 80,
   lane: 0,

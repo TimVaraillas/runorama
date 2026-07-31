@@ -4,12 +4,12 @@ import { PlanPaletteComponent } from './plan-palette.component';
 
 const entries: PaletteEntry[] = [
   {
-    product: { id: 'p1', categoryId: 'c1', brand: 'Maurten', name: 'Gel 100', unitWeight: 40, energy: 100, carbs: 25, fats: 0, proteins: 0, salt: 22 },
+    product: { id: 'p1', categoryId: 'c1', brand: 'Maurten', name: 'Gel 100', unitWeight: 40, energy: 100, carbs: 25, fats: 0, proteins: 0, sodium: 22 },
     carried: 6,
     remaining: 4,
   },
   {
-    product: { id: 'p2', categoryId: 'c2', brand: 'Clif', name: 'Bar Chocolate', unitWeight: 68, energy: 260, carbs: 44, fats: 6, proteins: 9, salt: 150 },
+    product: { id: 'p2', categoryId: 'c2', brand: 'Clif', name: 'Bar Chocolate', unitWeight: 68, energy: 260, carbs: 44, fats: 6, proteins: 9, sodium: 150 },
     carried: 3,
     remaining: 0,
   },

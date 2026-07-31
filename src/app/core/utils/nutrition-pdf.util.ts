@@ -74,7 +74,7 @@ function buildProductMap(
 /** Compose les données de l'inventaire (lignes + totaux). */
 function buildInventory(event: NutritionEvent, map: Map<string, NutritionProduct>) {
   const rows: InventoryRow[] = [];
-  const totals = { weight: 0, energy: 0, carbs: 0, fats: 0, proteins: 0, salt: 0 };
+  const totals = { weight: 0, energy: 0, carbs: 0, fats: 0, proteins: 0, sodium: 0 };
   for (const item of event.items) {
     const product = item.product ?? map.get(item.productId);
     if (!product) continue;
@@ -93,7 +93,7 @@ function buildInventory(event: NutritionEvent, map: Map<string, NutritionProduct
     totals.carbs += product.carbs * qty;
     totals.fats += product.fats * qty;
     totals.proteins += product.proteins * qty;
-    totals.salt += product.salt * qty;
+    totals.sodium += product.sodium * qty;
   }
   rows.sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
   return { rows, totals };

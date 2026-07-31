@@ -3,8 +3,8 @@ import type { NutritionProduct } from '../../../core/models';
 import type { ResolvedInventoryItem } from '../../molecules/inventory-item/inventory-item.component';
 import { InventoryItemListComponent } from './inventory-item-list.component';
 
-const p1: NutritionProduct = { id: 'p1', categoryId: 'c1', brand: 'Maurten', name: 'Gel 100', unitWeight: 40, energy: 100, carbs: 25, fats: 0, proteins: 0, salt: 22 };
-const p2: NutritionProduct = { id: 'p2', categoryId: 'c2', brand: 'Clif', name: 'Bar Chocolate', unitWeight: 68, energy: 260, carbs: 44, fats: 6, proteins: 9, salt: 150 };
+const p1: NutritionProduct = { id: 'p1', categoryId: 'c1', brand: 'Maurten', name: 'Gel 100', unitWeight: 40, energy: 100, carbs: 25, fats: 0, proteins: 0, sodium: 22 };
+const p2: NutritionProduct = { id: 'p2', categoryId: 'c2', brand: 'Clif', name: 'Bar Chocolate', unitWeight: 68, energy: 260, carbs: 44, fats: 6, proteins: 9, sodium: 150 };
 
 const items: ResolvedInventoryItem[] = [
   { productId: 'p1', quantity: 6, product: p1 },

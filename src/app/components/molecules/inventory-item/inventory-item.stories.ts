@@ -12,7 +12,7 @@ const product: NutritionProduct = {
   carbs: 22,
   fats: 0,
   proteins: 0,
-  salt: 10,
+  sodium: 10,
 };
 
 const item: ResolvedInventoryItem = { productId: 'p1', quantity: 4, product };
