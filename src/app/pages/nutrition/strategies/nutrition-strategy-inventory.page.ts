@@ -14,6 +14,7 @@ import { ConsumptionPlanComponent } from '../../../components/organisms/consumpt
 import type {
   NutritionCategory,
   NutritionEvent,
+  NutritionGoals,
   NutritionIntake,
   NutritionProduct,
   PlanSequenceMinutes,
@@ -121,6 +122,7 @@ import { faArrowLeft, faCompress, faExpand, faFilePdf, faPen, faStopwatch, faTra
             (applySelection)="applySelection($event)"
             (setQuantity)="setQuantity($event)"
             (remove)="removeProduct($event)"
+            (goalsChange)="saveGoals($event)"
           />
         } @else {
           <div class="lg:min-h-0 lg:flex-1">
@@ -263,6 +265,19 @@ export class NutritionStrategyInventoryPage implements OnInit {
         this.closePanel();
       },
       error: () => this.toast.error("Impossible d'enregistrer la stratégie. Veuillez réessayer."),
+    });
+  }
+
+  /** Enregistre les objectifs nutritionnels modifiés en ligne (sans le formulaire). */
+  saveGoals(goals: NutritionGoals): void {
+    const current = this.event();
+    if (!current) return;
+    this.service.updateEvent(current.id, { goals }).subscribe({
+      next: (updated) => {
+        this.event.set(updated);
+        this.toast.success('Objectifs nutritionnels mis à jour.');
+      },
+      error: () => this.toast.error("Impossible d'enregistrer les objectifs. Veuillez réessayer."),
     });
   }
 

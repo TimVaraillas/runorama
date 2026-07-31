@@ -32,7 +32,7 @@ import {
   computePlanLayout,
 } from '../../../core/utils/plan-layout.util';
 import type { DragOverState, ResizePreviewState } from '../../../core/utils/plan-layout.util';
-import { enabledGoals } from '../../../core/utils/nutrition-goals.util';
+import { enabledHourlyGoals } from '../../../core/utils/nutrition-goals.util';
 import { WATER_PRODUCT, WATER_PRODUCT_ID } from '../../../core/utils/water.util';
 
 const PX_PER_SEQUENCE = 25;
@@ -250,7 +250,7 @@ export class ConsumptionPlanComponent implements OnDestroy {
   protected readonly hourlyRecap = computed<PlanHourlyRecap[]>(() =>
     buildHourlyRecap({
       total: this.totalMinutes(),
-      goals: enabledGoals(this.event()),
+      goals: enabledHourlyGoals(this.event()),
       intakes: this.positionedIntakes(),
     }),
   );

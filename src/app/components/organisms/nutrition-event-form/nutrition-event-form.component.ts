@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -7,13 +7,9 @@ import {
   Validators,
 } from '@angular/forms';
 import { ButtonComponent } from '../../atoms/button/button.component';
-import {
-  NUTRIENT_GOALS,
-  type NutrientGoalKey,
-  type NutritionEvent,
-  type NutritionGoals,
-} from '../../../core/models';
-import { resolveGoals } from '../../../core/utils/nutrition-goals.util';
+import { NutritionGoalsEditorComponent } from '../../molecules/nutrition-goals-editor/nutrition-goals-editor.component';
+import { type NutritionEvent, type NutritionGoals } from '../../../core/models';
+import { createDefaultGoals, resolveGoals } from '../../../core/utils/nutrition-goals.util';
 
 /**
  * Valide qu'un chrono cible strictement positif est renseigné (heures +
@@ -34,7 +30,7 @@ function chronoRequiredValidator(group: AbstractControl): ValidationErrors | nul
 @Component({
   selector: 'ui-nutrition-event-form',
   standalone: true,
-  imports: [ReactiveFormsModule, ButtonComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, NutritionGoalsEditorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-5">
@@ -135,39 +131,15 @@ function chronoRequiredValidator(group: AbstractControl): ValidationErrors | nul
           }
         </div>
 
-        <div class="space-y-2" formGroupName="goals">
+        <div class="space-y-2">
           <p [class]="labelClass">Objectifs horaires par nutriment</p>
           <p class="text-xs text-slate-400">
-            Activez les nutriments à suivre et définissez leur besoin horaire cible.
+            Ajoutez les nutriments à suivre et définissez leur besoin horaire cible.
           </p>
-          @for (goal of nutrientGoals; track goal.key) {
-            <div
-              [formGroupName]="goal.key"
-              class="space-y-1.5 rounded-lg border border-slate-200 px-3 py-2"
-              [class.opacity-50]="!goalEnabled(goal.key)"
-            >
-              <div class="flex items-center gap-3">
-                <label class="inline-flex flex-1 items-center gap-2.5 text-sm text-slate-700">
-                  <input
-                    type="checkbox"
-                    formControlName="enabled"
-                    class="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-200"
-                  />
-                  <span class="font-medium">{{ goal.label }}</span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  [step]="goal.step"
-                  formControlName="hourly"
-                  [attr.aria-label]="'Objectif horaire ' + goal.label"
-                  class="w-24 rounded-lg border border-slate-300 bg-white px-3 py-2 text-right text-sm text-slate-900 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                />
-                <span class="w-12 text-xs text-slate-400">{{ goal.unit }}/h</span>
-              </div>
-              <p class="text-xs leading-snug text-slate-400">{{ goal.hint }}</p>
-            </div>
-          }
+          <ui-nutrition-goals-editor
+            [goals]="goalsDraft()"
+            (goalsChange)="goalsDraft.set($event)"
+          />
         </div>
       </section>
 
@@ -193,8 +165,8 @@ export class NutritionEventFormComponent {
   protected readonly inputClass =
     'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
 
-  /** Catalogue des nutriments configurables (pour le rendu du formulaire). */
-  protected readonly nutrientGoals = NUTRIENT_GOALS;
+  /** Objectifs nutritionnels édités (pilotés par le composant réutilisable). */
+  protected readonly goalsDraft = signal<NutritionGoals>(createDefaultGoals());
 
   readonly form = this.fb.group(
     {
@@ -207,27 +179,9 @@ export class NutritionEventFormComponent {
       elevationLoss: [null as number | null, Validators.min(0)],
       targetHours: [null as number | null, Validators.min(0)],
       targetMinutes: [null as number | null, [Validators.min(0), Validators.max(59)]],
-      goals: this.buildGoalsGroup(),
     },
     { validators: chronoRequiredValidator },
   );
-
-  /** Construit le sous-groupe des objectifs (un contrôle par nutriment). */
-  private buildGoalsGroup() {
-    const controls: Record<string, ReturnType<FormBuilder['group']>> = {};
-    for (const meta of NUTRIENT_GOALS) {
-      controls[meta.key] = this.fb.group({
-        enabled: [meta.defaultEnabled],
-        hourly: [meta.defaultHourly as number | null, [Validators.min(0)]],
-      });
-    }
-    return this.fb.group(controls);
-  }
-
-  /** Indique si l'objectif d'un nutriment est actif (pour l'affichage). */
-  protected goalEnabled(key: NutrientGoalKey): boolean {
-    return !!this.form.get(['goals', key, 'enabled'])?.value;
-  }
 
   constructor() {
     // Pré-remplit le formulaire quand un évènement à éditer est fourni.
@@ -245,8 +199,8 @@ export class NutritionEventFormComponent {
           elevationLoss: event.elevationLoss ?? null,
           targetHours: total !== null ? Math.floor(total / 60) : null,
           targetMinutes: total !== null ? total % 60 : null,
-          goals: resolveGoals(event),
         });
+        this.goalsDraft.set(resolveGoals(event));
       }
     });
   }
@@ -259,19 +213,6 @@ export class NutritionEventFormComponent {
     const minutes = v.targetMinutes ?? 0;
     const totalMinutes = hours * 60 + minutes;
 
-    const goalsValue = v.goals as Record<
-      NutrientGoalKey,
-      { enabled: boolean | null; hourly: number | null }
-    >;
-    const goals = NUTRIENT_GOALS.reduce((acc, meta) => {
-      const control = goalsValue[meta.key];
-      acc[meta.key] = {
-        enabled: !!control?.enabled,
-        hourly: control?.hourly ?? meta.defaultHourly,
-      };
-      return acc;
-    }, {} as NutritionGoals);
-
     const payload: Partial<NutritionEvent> = {
       name: v.name!.trim(),
       description: v.description?.trim() || undefined,
@@ -281,7 +222,7 @@ export class NutritionEventFormComponent {
       elevationGain: v.elevationGain ?? undefined,
       elevationLoss: v.elevationLoss ?? undefined,
       targetTimeMinutes: totalMinutes > 0 ? totalMinutes : undefined,
-      goals,
+      goals: this.goalsDraft(),
     };
 
     this.save.emit(payload);

@@ -65,6 +65,8 @@ const goalsSchema = new Schema(
     fats: { type: goalSchema, default: () => ({ hourly: 15, enabled: false }) },
     proteins: { type: goalSchema, default: () => ({ hourly: 10, enabled: true }) },
     sodium: { type: goalSchema, default: () => ({ hourly: 500, enabled: true }) },
+    /** Objectif de poids total de nourriture solide emportée (hors eau). */
+    weight: { type: goalSchema, default: () => ({ hourly: 500, enabled: false }) },
   },
   { _id: false },
 );

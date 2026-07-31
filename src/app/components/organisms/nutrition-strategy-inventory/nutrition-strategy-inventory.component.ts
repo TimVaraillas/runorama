@@ -10,14 +10,16 @@ import { NutritionTargetGaugeComponent } from '../../molecules/nutrition-target-
 import { NutritionProductTableComponent } from '../nutrition-product-table/nutrition-product-table.component';
 import { DividerComponent } from '../../atoms/divider/divider.component';
 import { InventoryItemListComponent } from '../inventory-item-list/inventory-item-list.component';
-import type {
-  NutritionCategory,
-  NutritionEvent,
-  NutritionEventItem,
-  NutritionProduct,
+import { NutritionGoalsEditorComponent } from '../../molecules/nutrition-goals-editor/nutrition-goals-editor.component';
+import {
+  type NutritionCategory,
+  type NutritionEvent,
+  type NutritionEventItem,
+  type NutritionGoals,
+  type NutritionProduct,
 } from '../../../core/models';
-import { enabledGoals } from '../../../core/utils/nutrition-goals.util';
-import { faPlus, faWeightHanging, faXmark, faCheck } from '@fortawesome/free-solid-svg-icons';
+import { enabledGoals, resolveGoals } from '../../../core/utils/nutrition-goals.util';
+import { faPlus, faWeightHanging, faXmark, faCheck, faSliders } from '@fortawesome/free-solid-svg-icons';
 
 /** Totaux cumulés de l'inventaire. */
 interface InventoryTotals {
@@ -51,32 +53,76 @@ interface InventoryTotals {
     NutritionProductTableComponent,
     DividerComponent,
     InventoryItemListComponent,
+    NutritionGoalsEditorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6">
-      <!-- Cibles vs emporté -->
-      @if (goalGauges().length > 0) {
-        <section class="grid gap-4 sm:grid-cols-2">
-          @for (gauge of goalGauges(); track gauge.key) {
-            <ui-nutrition-target-gauge
-              [label]="gauge.label"
-              [unit]="gauge.unit"
-              [carried]="gauge.carried"
-              [target]="gauge.target"
-            />
+      <!-- Objectifs nutritionnels : jauges (lecture) + édition inline -->
+      <section class="space-y-4">
+        <div class="flex items-center justify-between gap-3">
+          <h2 class="text-md font-semibold text-slate-700">Objectifs nutritionnels</h2>
+          @if (!editingGoals()) {
+            <button
+              type="button"
+              (click)="startEditGoals()"
+              class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            >
+              <ui-icon [icon]="faSliders" size="sm" />
+              Ajuster
+            </button>
           }
-        </section>
+        </div>
 
-        @if (targetHours() === null) {
-          <p class="rounded-lg bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
-            Définissez un chrono cible sur l'évènement pour comparer l'emporté à vos besoins.
+        @if (editingGoals()) {
+          <div class="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+            <ui-nutrition-goals-editor
+              [goals]="draftGoals()!"
+              (goalsChange)="draftGoals.set($event)"
+            />
+
+            <div class="flex items-center justify-end gap-2 mt-3">
+              <ui-button
+                type="button"
+                color="default"
+                variant="ghost"
+                (clicked)="cancelEditGoals()"
+              >
+                Annuler
+              </ui-button>
+              <ui-button type="button" color="secondary" [icon]="faCheck" (clicked)="saveGoals()">
+                Enregistrer
+              </ui-button>
+            </div>
+          </div>
+        } @else if (goalGauges().length > 0) {
+          <div class="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
+            @for (gauge of goalGauges(); track gauge.key) {
+              <ui-nutrition-target-gauge
+                [label]="gauge.label"
+                [unit]="gauge.unit"
+                [carried]="gauge.carried"
+                [target]="gauge.target"
+              />
+            }
+          </div>
+
+          @if (targetHours() === null && hasHourlyGoals()) {
+            <p class="rounded-lg bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
+              Définissez un chrono cible sur l'évènement pour comparer l'emporté à vos besoins.
+            </p>
+          }
+        } @else {
+          <p
+            class="rounded-lg border border-dashed border-slate-300 px-4 py-4 text-center text-sm text-slate-400"
+          >
+            Aucun objectif défini. Cliquez sur « Ajuster » pour en ajouter un.
           </p>
         }
-      }
+      </section>
 
       <!-- Totaux -->
-      <section class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <section class="grid grid-cols-3 gap-3 sm:grid-cols-2 lg:grid-cols-6">
         <ui-nutrient-stat label="Poids total" [value]="totals().weight" unit="g" />
         <ui-nutrient-stat label="Énergie" [value]="totals().energy" unit="kcal" />
         <ui-nutrient-stat label="Glucides" [value]="totals().carbs" unit="g" />
@@ -187,11 +233,19 @@ export class NutritionStrategyInventoryComponent {
   readonly setQuantity = output<{ productId: string; quantity: number }>();
   /** Retrait d'un produit. */
   readonly remove = output<string>();
+  /** Demande de mise à jour des objectifs nutritionnels (édition inline). */
+  readonly goalsChange = output<NutritionGoals>();
 
   protected readonly faPlus = faPlus;
   protected readonly faWeightHanging = faWeightHanging;
   protected readonly faXmark = faXmark;
   protected readonly faCheck = faCheck;
+  protected readonly faSliders = faSliders;
+
+  /** Édition inline des objectifs nutritionnels. */
+  protected readonly editingGoals = signal(false);
+  /** Copie de travail des objectifs pendant l'édition. */
+  protected readonly draftGoals = signal<NutritionGoals | null>(null);
 
   protected readonly selectClass =
     'min-w-48 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
@@ -252,8 +306,9 @@ export class NutritionStrategyInventoryComponent {
   });
 
   /**
-   * Jauges à afficher : une par objectif actif, avec l'emporté cumulé et la
-   * cible totale (besoin horaire × chrono cible, ou null sans chrono).
+   * Jauges à afficher : une par objectif actif. Pour un objectif horaire, la
+   * cible vaut le besoin horaire × chrono (ou null sans chrono) ; pour un
+   * objectif « total » (poids), la cible est la valeur fixée directement.
    */
   protected readonly goalGauges = computed(() => {
     const hours = this.targetHours();
@@ -263,9 +318,15 @@ export class NutritionStrategyInventoryComponent {
       label: goal.label,
       unit: goal.unit,
       carried: totals[goal.key],
-      target: hours === null ? null : goal.hourly * hours,
+      target:
+        goal.mode === 'total' ? goal.hourly : hours === null ? null : goal.hourly * hours,
     }));
   });
+
+  /** Vrai si au moins un objectif horaire est actif (pour l'avertissement chrono). */
+  protected readonly hasHourlyGoals = computed(() =>
+    enabledGoals(this.event()).some((goal) => goal.mode === 'hourly'),
+  );
 
   /** Bascule la sélection d'un produit dans le panneau. */
   onToggleSelect(productId: string): void {
@@ -298,5 +359,27 @@ export class NutritionStrategyInventoryComponent {
   onSetQuantity(productId: string, quantity: number): void {
     if (quantity < 1) return;
     this.setQuantity.emit({ productId, quantity });
+  }
+
+  // --- Édition inline des objectifs nutritionnels ---
+
+  /** Ouvre l'édition inline en partant des objectifs résolus de l'évènement. */
+  protected startEditGoals(): void {
+    this.draftGoals.set(resolveGoals(this.event()));
+    this.editingGoals.set(true);
+  }
+
+  /** Annule l'édition inline sans enregistrer. */
+  protected cancelEditGoals(): void {
+    this.editingGoals.set(false);
+    this.draftGoals.set(null);
+  }
+
+  /** Enregistre les objectifs édités : émet vers la page puis referme l'édition. */
+  protected saveGoals(): void {
+    const draft = this.draftGoals();
+    if (draft) this.goalsChange.emit(draft);
+    this.editingGoals.set(false);
+    this.draftGoals.set(null);
   }
 }

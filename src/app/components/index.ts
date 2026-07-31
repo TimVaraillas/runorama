@@ -27,6 +27,7 @@ export * from './molecules/modal/modal.component';
 export * from './molecules/confirm-delete-modal/confirm-delete-modal.component';
 export * from './molecules/nutrition-product-card/nutrition-product-card.component';
 export * from './molecules/nutrition-target-gauge/nutrition-target-gauge.component';
+export * from './molecules/nutrition-goals-editor/nutrition-goals-editor.component';
 export * from './molecules/nutrition-event-card/nutrition-event-card.component';
 export * from './molecules/inventory-item/inventory-item.component';
 export * from './molecules/tabs/tabs.component';

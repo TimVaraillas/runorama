@@ -153,6 +153,7 @@ function buildPlan(
         const overlap = Math.min(end, (h + 1) * 60) - Math.max(start, h * 60);
         if (overlap <= 0) continue;
         for (const nutrient of recap[h].nutrients) {
+          if (nutrient.key === 'weight') continue;
           const perMin = (product[nutrient.key] * intake.quantity) / intake.durationMinutes;
           nutrient.planned += perMin * overlap;
         }
@@ -174,7 +175,8 @@ export function buildStrategyPdfHtml(
   const map = buildProductMap(event, products);
   const { rows: inventoryRows, totals } = buildInventory(event, map);
   const goals = enabledGoals(event);
-  const { rows: planRows, recap } = buildPlan(event, map, goals);
+  const hourlyGoals = goals.filter((g) => g.mode === 'hourly');
+  const { rows: planRows, recap } = buildPlan(event, map, hourlyGoals);
   const total = event.targetTimeMinutes ?? 0;
 
   const meta: string[] = [];
@@ -227,7 +229,7 @@ export function buildStrategyPdfHtml(
           .join('')
       : `<tr><td colspan="5" class="muted center">Aucune prise planifiée.</td></tr>`;
 
-  const recapHead = goals
+  const recapHead = hourlyGoals
     .map((g) => `<th class="right">${escapeHtml(g.label)}</th>`)
     .join('');
 
@@ -246,7 +248,7 @@ export function buildStrategyPdfHtml(
   /** Items de synthèse pour chaque objectif actif (emporté + couverture). */
   const goalSummary = goals
     .map((g) => {
-      const target = total > 0 ? (g.hourly * total) / 60 : 0;
+      const target = g.mode === 'total' ? g.hourly : total > 0 ? (g.hourly * total) / 60 : 0;
       return `<div class="item"><div class="label">${escapeHtml(g.label)}</div><div class="value">${num(
         totals[g.key],
       )} ${g.unit}${coverage(totals[g.key], target)}</div></div>`;

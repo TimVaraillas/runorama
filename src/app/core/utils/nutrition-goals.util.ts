@@ -13,6 +13,8 @@ export interface ResolvedGoal {
   key: NutrientGoalKey;
   label: string;
   unit: string;
+  /** Mode de comptabilisation (`hourly` = besoin horaire, `total` = cible unique). */
+  mode: 'hourly' | 'total';
   hourly: number;
 }
 
@@ -64,8 +66,17 @@ export function enabledGoals(event: NutritionEvent): ResolvedGoal[] {
     key: meta.key,
     label: meta.label,
     unit: meta.unit,
+    mode: meta.mode,
     hourly: goals[meta.key].hourly,
   }));
+}
+
+/**
+ * Objectifs actifs à comptabilisation horaire (exclut les objectifs « total »
+ * comme le poids). Utilisé pour les récaps horaires (plan, PDF).
+ */
+export function enabledHourlyGoals(event: NutritionEvent): ResolvedGoal[] {
+  return enabledGoals(event).filter((goal) => goal.mode === 'hourly');
 }
 
 /** Indique si au moins un objectif est actif. */

@@ -181,6 +181,7 @@ export function buildHourlyRecap(params: {
       const overlap = Math.min(intake.endMinute, (h + 1) * 60) - Math.max(intake.startMinute, h * 60);
       if (overlap <= 0) continue;
       for (const nutrient of rows[h].nutrients) {
+        if (nutrient.key === 'weight') continue;
         const perMin = (intake.product[nutrient.key] * intake.quantity) / intake.durationMinutes;
         nutrient.planned += perMin * overlap;
       }

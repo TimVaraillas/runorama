@@ -79,7 +79,7 @@ export interface NutritionIntake {
  * correspondent aux champs numériques d'un {@link NutritionProduct}, ce qui
  * permet un calcul générique des apports planifiés.
  */
-export type NutrientGoalKey = 'energy' | 'carbs' | 'fats' | 'proteins' | 'sodium';
+export type NutrientGoalKey = 'energy' | 'carbs' | 'fats' | 'proteins' | 'sodium' | 'weight';
 
 /** Objectif horaire pour un nutriment donné. */
 export interface NutritionGoal {
@@ -97,8 +97,21 @@ export interface NutrientGoalMeta {
   key: NutrientGoalKey;
   label: string;
   unit: string;
+  /**
+   * Mode de comptabilisation : `hourly` (besoin horaire × chrono, comparé à
+   * l'emporté) ou `total` (cible unique sur toute la course).
+   */
+  mode: 'hourly' | 'total';
   /** Pas de saisie recommandé dans le formulaire. */
   step: number;
+  /** Borne haute du curseur de réglage. */
+  max: number;
+  /** Intervalle entre deux graduations du curseur. */
+  tickStep: number;
+  /** Borne basse de la zone recommandée (surlignée). Absente si non pertinente. */
+  recommendedMin?: number;
+  /** Borne haute de la zone recommandée (surlignée). Absente si non pertinente. */
+  recommendedMax?: number;
   /** Valeur horaire par défaut à la création. */
   defaultHourly: number;
   /** Objectif actif par défaut à la création. */
@@ -117,7 +130,12 @@ export const NUTRIENT_GOALS: readonly NutrientGoalMeta[] = [
     key: 'carbs',
     label: 'Glucides',
     unit: 'g',
+    mode: 'hourly',
     step: 5,
+    max: 160,
+    tickStep: 20,
+    recommendedMin: 30,
+    recommendedMax: 90,
     defaultHourly: 50,
     defaultEnabled: true,
     hint: 'Nerf de la performance : ~30 g/h sur les sorties courtes ou faciles, 60 g/h en endurance soutenue, jusqu\u2019à 90 g/h (mélange glucose-fructose) sur marathon et ultra.',
@@ -126,7 +144,12 @@ export const NUTRIENT_GOALS: readonly NutrientGoalMeta[] = [
     key: 'proteins',
     label: 'Protéines',
     unit: 'g',
+    mode: 'hourly',
     step: 1,
+    max: 40,
+    tickStep: 10,
+    recommendedMin: 5,
+    recommendedMax: 10,
     defaultHourly: 10,
     defaultEnabled: true,
     hint: 'Surtout utile sur les efforts très longs (> 4 h) : ~5 à 10 g/h pour limiter la dégradation musculaire. Inutile sur les formats courts.',
@@ -135,7 +158,12 @@ export const NUTRIENT_GOALS: readonly NutrientGoalMeta[] = [
     key: 'sodium',
     label: 'Sodium',
     unit: 'mg',
+    mode: 'hourly',
     step: 50,
+    max: 1600,
+    tickStep: 200,
+    recommendedMin: 300,
+    recommendedMax: 1000,
     defaultHourly: 500,
     defaultEnabled: true,
     hint: '300 à 600 mg/h en conditions tempérées ; 700 à 1000+ mg/h par forte chaleur ou si vous transpirez beaucoup (sueur salée, traces blanches sur la peau).',
@@ -144,7 +172,10 @@ export const NUTRIENT_GOALS: readonly NutrientGoalMeta[] = [
     key: 'energy',
     label: 'Énergie',
     unit: 'kcal',
+    mode: 'hourly',
     step: 10,
+    max: 1200,
+    tickStep: 200,
     defaultHourly: 200,
     defaultEnabled: false,
     hint: "Pas d'objectif fixe : l'apport énergétique découle des glucides, lipides et protéines consommés. Inutile de viser un chiffre précis — se focaliser sur les calories peut favoriser les troubles du comportement alimentaire.",
@@ -153,10 +184,25 @@ export const NUTRIENT_GOALS: readonly NutrientGoalMeta[] = [
     key: 'fats',
     label: 'Lipides',
     unit: 'g',
+    mode: 'hourly',
     step: 1,
+    max: 50,
+    tickStep: 10,
     defaultHourly: 15,
     defaultEnabled: false,
     hint: "Pas d'objectif fixe : peu mobilisés à l'effort et lents à digérer. Ne cherchez pas un chiffre précis — surveiller les graisses peut favoriser les troubles du comportement alimentaire.",
+  },
+  {
+    key: 'weight',
+    label: 'Poids',
+    unit: 'g',
+    mode: 'total',
+    step: 50,
+    max: 4000,
+    tickStep: 500,
+    defaultHourly: 500,
+    defaultEnabled: false,
+    hint: "Poids total de nourriture solide à emporter (l'eau est gérée à part). Visez le minimum couvrant vos besoins pour alléger le sac.",
   },
 ] as const;
 
