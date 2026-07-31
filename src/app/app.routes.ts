@@ -82,7 +82,12 @@ export const routes: Routes = [
     ],
   },
   {
+    path: '404',
+    loadComponent: () => import('./pages/not-found.page').then((m) => m.NotFoundPage),
+    title: 'Page introuvable — Runorama',
+  },
+  {
     path: '**',
-    redirectTo: '',
+    redirectTo: '404',
   },
 ];
