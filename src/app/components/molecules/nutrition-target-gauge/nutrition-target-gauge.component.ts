@@ -3,11 +3,12 @@ import { DecimalPipe } from '@angular/common';
 
 /**
  * Statut d'atteinte de la cible.
- * - `under` : en-dessous de la cible (risque de sous-alimentation).
- * - `ok` : dans la fourchette cible.
- * - `over` : au-dessus de la cible (poids superflu).
+ * - `ok` : dans la fourchette cible (±5%).
+ * - `warn` : proche de la cible (±10%) — peut mieux faire.
+ * - `bad` : trop éloigné de la cible (au-delà de ±10%).
+ * - `none` : aucune cible définie.
  */
-export type GaugeStatus = 'under' | 'ok' | 'over' | 'none';
+export type GaugeStatus = 'ok' | 'warn' | 'bad' | 'none';
 
 /**
  * Molecule : jauge visuelle comparant une quantité emportée à une cible.
@@ -39,15 +40,41 @@ export type GaugeStatus = 'under' | 'ok' | 'over' | 'none';
         </span>
       </div>
 
-      <div class="mt-2 h-2.5 overflow-hidden rounded-full bg-slate-100">
-        <div
-          class="h-full rounded-full transition-[width] duration-300"
-          [class]="barClass()"
-          [style.width.%]="barWidth()"
-        ></div>
+      <div class="relative mt-6 h-2.5">
+        <!-- Piste avec remplissage (arrondie et rognée). -->
+        <div class="absolute inset-0 overflow-hidden rounded-full bg-slate-100">
+          <div
+            class="h-full rounded-full transition-[width] duration-300"
+            [class]="barClass()"
+            [style.width.%]="barWidth()"
+          ></div>
+
+          @if (target() !== null) {
+            <!-- Zone de tolérance (±10%), estompée en dégradé sur les côtés. -->
+            <div
+              class="absolute inset-y-0 bg-linear-to-r from-transparent via-slate-300/20 to-transparent"
+              [style.left.%]="lowerWarnPosition()"
+              [style.width.%]="toleranceWidth()"
+            ></div>
+          }
+        </div>
+
+        @if (target() !== null) {
+
+          <!-- Repère objectif (100%). -->
+          <div
+            class="absolute -inset-y-4.5 border-l-2 border-dashed border-slate-300"
+            [style.left.%]="targetPosition()"
+          ></div>
+          <span
+            class="absolute -top-10 -translate-x-2/5 text-[10px] font-semibold text-slate-300"
+            [style.left.%]="targetPosition()"
+            >100%</span
+          >
+        }
       </div>
 
-      <p class="mt-1.5 text-xs" [class]="textClass()">{{ statusLabel() }}</p>
+      <p class="mt-2.5 text-xs" [class]="textClass()">{{ statusLabel() }}</p>
     </div>
   `,
   imports: [DecimalPipe],
@@ -62,6 +89,15 @@ export class NutritionTargetGaugeComponent {
   /** Unité affichée (ex : « kcal », « g »). */
   readonly unit = input('');
 
+  /** Tolérance autour de la cible pour le statut « ok » (±5%). */
+  private readonly tolerance = 0.10;
+
+  /** Tolérance d'alerte : au-delà, le statut passe « peut mieux faire » (±10%). */
+  private readonly warnTolerance = 0.15;
+
+  /** Échelle maximale de la barre : la cible (100%) est placée avant la fin. */
+  private readonly maxScale = 1.25;
+
   /** Ratio emporté / cible (0 si pas de cible). */
   private readonly ratio = computed(() => {
     const target = this.target();
@@ -71,24 +107,51 @@ export class NutritionTargetGaugeComponent {
 
   protected readonly percent = computed(() => Math.round(this.ratio() * 100));
 
-  protected readonly barWidth = computed(() => Math.min(100, Math.max(0, this.percent())));
+  protected readonly barWidth = computed(() =>
+    Math.min(100, Math.max(0, (this.ratio() / this.maxScale) * 100)),
+  );
+
+  /** Position (%) d'un ratio donné sur la barre selon l'échelle max. */
+  private position(ratio: number): number {
+    return Math.min(100, Math.max(0, (ratio / this.maxScale) * 100));
+  }
+
+  /** Position du repère objectif (100%). */
+  protected readonly targetPosition = computed(() => this.position(1));
+
+  /** Position de la graduation basse (-5%). */
+  protected readonly lowerBoundPosition = computed(() => this.position(1 - this.tolerance));
+
+  /** Position de la graduation haute (+5%). */
+  protected readonly upperBoundPosition = computed(() => this.position(1 + this.tolerance));
+
+  /** Position de la graduation d'alerte basse (-10%). */
+  protected readonly lowerWarnPosition = computed(() => this.position(1 - this.warnTolerance));
+
+  /** Position de la graduation d'alerte haute (+10%). */
+  protected readonly upperWarnPosition = computed(() => this.position(1 + this.warnTolerance));
+
+  /** Largeur de la zone de tolérance entre les deux graduations d'alerte (±10%). */
+  protected readonly toleranceWidth = computed(
+    () => this.upperWarnPosition() - this.lowerWarnPosition(),
+  );
 
   protected readonly status = computed<GaugeStatus>(() => {
     if (this.target() === null) return 'none';
-    const ratio = this.ratio();
-    if (ratio < 0.9) return 'under';
-    if (ratio > 1.1) return 'over';
-    return 'ok';
+    const deviation = Math.abs(this.ratio() - 1);
+    if (deviation <= this.tolerance) return 'ok';
+    if (deviation <= this.warnTolerance) return 'warn';
+    return 'bad';
   });
 
   protected readonly barClass = computed(() => {
     switch (this.status()) {
-      case 'under':
-        return 'bg-rose-500';
-      case 'over':
-        return 'bg-amber-500';
       case 'ok':
         return 'bg-emerald-500';
+      case 'warn':
+        return 'bg-amber-500';
+      case 'bad':
+        return 'bg-rose-500';
       default:
         return 'bg-slate-300';
     }
@@ -96,27 +159,25 @@ export class NutritionTargetGaugeComponent {
 
   protected readonly textClass = computed(() => {
     switch (this.status()) {
-      case 'under':
-        return 'text-rose-600';
-      case 'over':
-        return 'text-amber-600';
       case 'ok':
         return 'text-emerald-600';
+      case 'warn':
+        return 'text-amber-600';
+      case 'bad':
+        return 'text-rose-600';
       default:
         return 'text-slate-400';
     }
   });
 
   protected readonly statusLabel = computed(() => {
-    switch (this.status()) {
-      case 'under':
-        return 'Insuffisant pour la cible';
-      case 'over':
-        return 'Au-dessus de la cible';
-      case 'ok':
-        return 'Dans la cible';
-      default:
-        return 'Définissez un chrono cible';
+    const status = this.status();
+    if (status === 'none') return 'Définissez une cible';
+    if (status === 'ok') return 'Dans la cible';
+    const under = this.ratio() < 1;
+    if (status === 'warn') {
+      return under ? 'Un peu court, peut mieux faire' : 'Un peu au-dessus, peut mieux faire';
     }
+    return under ? 'Insuffisant pour la cible' : 'Au-dessus de la cible';
   });
 }
