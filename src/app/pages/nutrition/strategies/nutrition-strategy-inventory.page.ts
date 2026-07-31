@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { NutritionService } from '../../../features/nutrition/services/nutrition.service';
 import { NutritionExportService } from '../../../features/nutrition/services/nutrition-export.service';
@@ -7,6 +7,9 @@ import { ButtonComponent } from '../../../components/atoms/button/button.compone
 import { IconComponent } from '../../../components/atoms/icon/icon.component';
 import { PageHeaderComponent } from '../../../components/molecules/page-header/page-header.component';
 import { TabsComponent, type TabItem } from '../../../components/molecules/tabs/tabs.component';
+import { SidePanelComponent } from '../../../components/molecules/side-panel/side-panel.component';
+import { ModalComponent } from '../../../components/molecules/modal/modal.component';
+import { NutritionEventFormComponent } from '../../../components/organisms/nutrition-event-form/nutrition-event-form.component';
 import { NutritionStrategyInventoryComponent } from '../../../components/organisms/nutrition-strategy-inventory/nutrition-strategy-inventory.component';
 import { ConsumptionPlanComponent } from '../../../components/organisms/consumption-plan/consumption-plan.component';
 import type {
@@ -16,7 +19,7 @@ import type {
   NutritionProduct,
   PlanSequenceMinutes,
 } from '../../../core/models';
-import { faArrowLeft, faCompress, faExpand, faFilePdf, faStopwatch, faUtensils } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faCompress, faExpand, faFilePdf, faPen, faStopwatch, faTrash, faUtensils, faXmark } from '@fortawesome/free-solid-svg-icons';
 
 /**
  * Sous-page Nutrition : détail d'une stratégie alimentaire (`strategies/:id`).
@@ -33,6 +36,9 @@ import { faArrowLeft, faCompress, faExpand, faFilePdf, faStopwatch, faUtensils }
     IconComponent,
     PageHeaderComponent,
     TabsComponent,
+    SidePanelComponent,
+    ModalComponent,
+    NutritionEventFormComponent,
     NutritionStrategyInventoryComponent,
     ConsumptionPlanComponent,
   ],
@@ -52,14 +58,38 @@ import { faArrowLeft, faCompress, faExpand, faFilePdf, faStopwatch, faUtensils }
 
         <ui-button
           actions
+          color="primary"
+          variant="full"
+          size="sm"
+          [icon]="faPen"
+          [disabled]="!event()"
+          (clicked)="editEvent()"
+        >
+          Éditer
+        </ui-button>
+
+        <ui-button
+          actions
           color="secondary"
-          variant="outlined"
+          variant="full"
           size="sm"
           [icon]="faFilePdf"
           [disabled]="!event()"
           (clicked)="exportPdf()"
         >
-          Exporter votre stratégie
+          Exporter
+        </ui-button>
+
+        <ui-button
+          actions
+          color="danger"
+          variant="full"
+          size="sm"
+          [icon]="faTrash"
+          [disabled]="!event()"
+          (clicked)="requestDelete()"
+        >
+          Supprimer
         </ui-button>
 
         @if (activeTab() === 'plan') {
@@ -121,6 +151,65 @@ import { faArrowLeft, faCompress, faExpand, faFilePdf, faStopwatch, faUtensils }
         <p class="text-slate-400">Chargement de la stratégie…</p>
       }
     </section>
+
+    <!-- Panneau : formulaire évènement -->
+    <ui-side-panel [open]="panelOpen()" ariaLabel="Modifier l'évènement" (close)="closePanel()">
+      @if (panelOpen()) {
+        <div class="flex h-full flex-col">
+          <div class="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
+            <h2 class="font-display text-lg font-bold text-slate-900">Modifier l'évènement</h2>
+            <button
+              type="button"
+              class="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              (click)="closePanel()"
+              aria-label="Fermer"
+            >
+              <ui-icon [icon]="faXmark" size="lg" />
+            </button>
+          </div>
+          <div class="flex-1 overflow-y-auto p-6">
+            <ui-nutrition-event-form
+              [event]="event()"
+              (save)="saveEvent($event)"
+              (cancel)="closePanel()"
+            />
+          </div>
+        </div>
+      }
+    </ui-side-panel>
+
+    <!-- Modale : confirmation de suppression -->
+    <ui-modal [open]="deleteModalOpen()" title="Supprimer la stratégie" (close)="cancelDelete()">
+      @if (event(); as ev) {
+        <p>
+          Cette action est irréversible. Pour confirmer la suppression, saisissez le nom de la
+          stratégie
+          <strong class="font-semibold text-slate-900">« {{ ev.name }} »</strong>.
+        </p>
+        <input
+          type="text"
+          class="mt-4 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+          [value]="deleteConfirmName()"
+          (input)="deleteConfirmName.set($any($event.target).value)"
+          placeholder="Nom de la stratégie"
+          aria-label="Nom de la stratégie à confirmer"
+          autocomplete="off"
+        />
+      }
+      <div modalFooter class="flex items-center justify-end gap-3">
+        <ui-button color="default" variant="ghost" [disabled]="deleting()" (clicked)="cancelDelete()">
+          Annuler
+        </ui-button>
+        <ui-button
+          color="danger"
+          [icon]="faTrash"
+          [disabled]="!deleteNameMatches() || deleting()"
+          (clicked)="confirmDelete()"
+        >
+          Supprimer
+        </ui-button>
+      </div>
+    </ui-modal>
   `,
 })
 export class NutritionStrategyInventoryPage implements OnInit {
@@ -137,6 +226,9 @@ export class NutritionStrategyInventoryPage implements OnInit {
   protected readonly faUtensils = faUtensils;
   protected readonly faExpand = faExpand;
   protected readonly faCompress = faCompress;
+  protected readonly faPen = faPen;
+  protected readonly faXmark = faXmark;
+  protected readonly faTrash = faTrash;
 
   protected readonly tabs: TabItem[] = [
     { id: 'inventory', label: 'Inventaire', icon: faUtensils },
@@ -151,6 +243,20 @@ export class NutritionStrategyInventoryPage implements OnInit {
   protected readonly products = signal<NutritionProduct[]>([]);
   protected readonly categories = signal<NutritionCategory[]>([]);
   protected readonly notFound = signal(false);
+
+  /** État d'ouverture du panneau d'édition de l'évènement. */
+  protected readonly panelOpen = signal(false);
+
+  /** État d'ouverture de la modale de confirmation de suppression. */
+  protected readonly deleteModalOpen = signal(false);
+  /** Nom saisi par l'utilisateur pour confirmer la suppression. */
+  protected readonly deleteConfirmName = signal('');
+  /** Suppression en cours (désactive les actions de la modale). */
+  protected readonly deleting = signal(false);
+  /** Vrai lorsque le nom saisi correspond exactement au nom de la stratégie. */
+  protected readonly deleteNameMatches = computed(
+    () => this.deleteConfirmName().trim() === (this.event()?.name.trim() ?? ''),
+  );
 
   ngOnInit(): void {
     this.loadProducts();
@@ -182,6 +288,63 @@ export class NutritionStrategyInventoryPage implements OnInit {
 
   goBack(): void {
     this.router.navigate(['/nutrition/strategies']);
+  }
+
+  // --- Édition de l'évènement ---
+
+  /** Ouvre le panneau d'édition de la stratégie courante. */
+  editEvent(): void {
+    if (!this.event()) return;
+    this.panelOpen.set(true);
+  }
+
+  closePanel(): void {
+    this.panelOpen.set(false);
+  }
+
+  saveEvent(payload: Partial<NutritionEvent>): void {
+    const current = this.event();
+    if (!current) return;
+    this.service.updateEvent(current.id, payload).subscribe({
+      next: (updated) => {
+        this.event.set(updated);
+        this.closePanel();
+      },
+      error: () => this.toast.error("Impossible d'enregistrer la stratégie. Veuillez réessayer."),
+    });
+  }
+
+  // --- Suppression de l'évènement ---
+
+  /** Ouvre la modale de confirmation de suppression. */
+  requestDelete(): void {
+    if (!this.event()) return;
+    this.deleteConfirmName.set('');
+    this.deleteModalOpen.set(true);
+  }
+
+  cancelDelete(): void {
+    if (this.deleting()) return;
+    this.deleteModalOpen.set(false);
+    this.deleteConfirmName.set('');
+  }
+
+  confirmDelete(): void {
+    const current = this.event();
+    if (!current || !this.deleteNameMatches() || this.deleting()) return;
+    this.deleting.set(true);
+    this.service.removeEvent(current.id).subscribe({
+      next: () => {
+        this.deleting.set(false);
+        this.deleteModalOpen.set(false);
+        this.toast.success('Stratégie supprimée.');
+        this.router.navigate(['/nutrition/strategies']);
+      },
+      error: () => {
+        this.deleting.set(false);
+        this.toast.error('Impossible de supprimer la stratégie.');
+      },
+    });
   }
 
   /** Exporte la stratégie (inventaire + plan) en PDF via l'aperçu d'impression. */
