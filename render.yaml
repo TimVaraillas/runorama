@@ -20,7 +20,7 @@ services:
       # Domaine(s) autorisé(s) pour le header Host (protection SSRF Angular 22).
       # Ajouter ici un domaine custom séparé par des virgules le cas échéant.
       - key: NG_ALLOWED_HOSTS
-        value: runorama.onrender.com
+        value: runorama.app,www.runorama.app,runorama.onrender.com
       # Render est un proxy de confiance qui termine le TLS : on autorise les
       # headers X-Forwarded-* afin qu'Angular détecte le bon protocole/hôte.
       - key: NG_TRUST_PROXY_HEADERS
