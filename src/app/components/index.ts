@@ -24,6 +24,7 @@ export * from './molecules/filter-bar/filter-bar.component';
 export * from './molecules/page-header/page-header.component';
 export * from './molecules/side-panel/side-panel.component';
 export * from './molecules/modal/modal.component';
+export * from './molecules/confirm-delete-modal/confirm-delete-modal.component';
 export * from './molecules/nutrition-product-card/nutrition-product-card.component';
 export * from './molecules/nutrition-target-gauge/nutrition-target-gauge.component';
 export * from './molecules/nutrition-event-card/nutrition-event-card.component';
@@ -42,6 +43,7 @@ export * from './organisms/nutrition-product-form/nutrition-product-form.compone
 export * from './organisms/nutrition-product-grid/nutrition-product-grid.component';
 export * from './organisms/nutrition-product-table/nutrition-product-table.component';
 export * from './organisms/nutrition-event-form/nutrition-event-form.component';
+export * from './organisms/nutrition-event-form-panel/nutrition-event-form-panel.component';
 export * from './organisms/nutrition-event-grid/nutrition-event-grid.component';
 export * from './organisms/nutrition-event-table/nutrition-event-table.component';
 export * from './organisms/nutrition-strategy-inventory/nutrition-strategy-inventory.component';
