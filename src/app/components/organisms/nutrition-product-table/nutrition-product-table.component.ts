@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { BadgeComponent } from '../../atoms/badge/badge.component';
+import { ProductStatusBadgeComponent } from '../../atoms/product-status-badge/product-status-badge.component';
 import type { NutritionCategory, NutritionProduct } from '../../../core/models';
-import { faAppleWhole, faPen, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { productCapabilities, type ProductCapabilities } from '../../../core/utils/product-moderation.util';
+import { faAppleWhole, faBoxArchive, faCheck, faPen, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 
 /** Mode d'affichage du tableau : gestion (édition/suppression) ou sélection. */
 export type ProductTableMode = 'manage' | 'picker';
@@ -20,7 +22,7 @@ export type ProductTableMode = 'manage' | 'picker';
 @Component({
   selector: 'ui-nutrition-product-table',
   standalone: true,
-  imports: [IconComponent, BadgeComponent],
+  imports: [IconComponent, BadgeComponent, ProductStatusBadgeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -32,6 +34,9 @@ export type ProductTableMode = 'manage' | 'picker';
             }
             <th class="px-4 py-3 font-medium">Produit</th>
             <th class="px-4 py-3 font-medium">Catégorie</th>
+            @if (showStatus() && mode() !== 'picker') {
+              <th class="px-4 py-3 font-medium">Statut</th>
+            }
             <th class="px-4 py-3 text-right font-medium">Poids</th>
             <th class="px-4 py-3 text-right font-medium">Énergie</th>
             <th class="px-4 py-3 text-right font-medium">Gluc.</th>
@@ -84,6 +89,14 @@ export type ProductTableMode = 'manage' | 'picker';
               <td class="px-4 py-3">
                 <ui-badge tone="accent">{{ labelFor(product.categoryId) }}</ui-badge>
               </td>
+              @if (showStatus() && mode() !== 'picker') {
+                <td class="px-4 py-3">
+                  <ui-product-status-badge
+                    [status]="product.moderationStatus"
+                    [showApproved]="isAdmin()"
+                  />
+                </td>
+              }
               <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.unitWeight }} g</td>
               <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.energy }} kcal</td>
               <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.carbs }} g</td>
@@ -93,23 +106,61 @@ export type ProductTableMode = 'manage' | 'picker';
                 <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.sodium }} mg</td>
                 @if (!readonly()) {
                   <td class="px-4 py-3">
+                    @let caps = capabilities(product);
                     <div class="flex items-center justify-end gap-1">
-                      <button
-                        type="button"
-                        class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
-                        (click)="edit.emit(product)"
-                        aria-label="Modifier le produit"
-                      >
-                        <ui-icon [icon]="faPen" size="sm" />
-                      </button>
-                      <button
-                        type="button"
-                        class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
-                        (click)="delete.emit(product)"
-                        aria-label="Supprimer le produit"
-                      >
-                        <ui-icon [icon]="faTrash" size="sm" />
-                      </button>
+                      @if (caps.canApprove) {
+                        <button
+                          type="button"
+                          class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
+                          (click)="approve.emit(product)"
+                          aria-label="Valider le produit"
+                          title="Valider"
+                        >
+                          <ui-icon [icon]="faCheck" size="sm" />
+                        </button>
+                      }
+                      @if (caps.canReject) {
+                        <button
+                          type="button"
+                          class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                          (click)="reject.emit(product)"
+                          aria-label="Refuser le produit"
+                          title="Refuser"
+                        >
+                          <ui-icon [icon]="faXmark" size="sm" />
+                        </button>
+                      }
+                      @if (caps.canArchive) {
+                        <button
+                          type="button"
+                          class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-amber-50 hover:text-amber-600"
+                          (click)="archive.emit(product)"
+                          aria-label="Archiver le produit"
+                          title="Archiver"
+                        >
+                          <ui-icon [icon]="faBoxArchive" size="sm" />
+                        </button>
+                      }
+                      @if (caps.canEdit) {
+                        <button
+                          type="button"
+                          class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
+                          (click)="edit.emit(product)"
+                          aria-label="Modifier le produit"
+                        >
+                          <ui-icon [icon]="faPen" size="sm" />
+                        </button>
+                      }
+                      @if (caps.canDelete) {
+                        <button
+                          type="button"
+                          class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                          (click)="delete.emit(product)"
+                          aria-label="Supprimer le produit"
+                        >
+                          <ui-icon [icon]="faTrash" size="sm" />
+                        </button>
+                      }
                     </div>
                   </td>
                 }
@@ -128,22 +179,42 @@ export class NutritionProductTableComponent {
   readonly categories = input<NutritionCategory[]>([]);
   /** Mode d'affichage (`manage` par défaut). */
   readonly mode = input<ProductTableMode>('manage');
-  /** Masque les actions d'édition/suppression (lecture seule). */
+  /** Masque la colonne d'actions (lecture seule). */
   readonly readonly = input(false);
+  /** Affiche la colonne de statut de modération. */
+  readonly showStatus = input(false);
+  /** Identifiant de l'utilisateur courant (droits par ligne). */
+  readonly currentUserId = input<string | null>(null);
+  /** Vrai si l'utilisateur courant est administrateur. */
+  readonly isAdmin = input(false);
   /** Identifiants des produits sélectionnés (mode `picker`). */
   readonly selectedIds = input<Set<string>>(new Set());
 
   readonly edit = output<NutritionProduct>();
   readonly delete = output<NutritionProduct>();
+  /** Validation d'un produit (admin). */
+  readonly approve = output<NutritionProduct>();
+  /** Refus d'un produit (admin). */
+  readonly reject = output<NutritionProduct>();
+  /** Archivage d'un produit (admin). */
+  readonly archive = output<NutritionProduct>();
   /** Bascule de sélection d'un produit (mode `picker`). */
   readonly toggleSelect = output<NutritionProduct>();
 
   protected readonly faAppleWhole = faAppleWhole;
   protected readonly faPen = faPen;
   protected readonly faTrash = faTrash;
+  protected readonly faCheck = faCheck;
+  protected readonly faXmark = faXmark;
+  protected readonly faBoxArchive = faBoxArchive;
 
   protected labelFor(categoryId: string): string {
     return this.categories().find((c) => c.id === categoryId)?.name ?? '—';
+  }
+
+  /** Capacités d'action sur un produit pour l'utilisateur courant. */
+  protected capabilities(product: NutritionProduct): ProductCapabilities {
+    return productCapabilities(product, this.currentUserId(), this.isAdmin());
   }
 
   /** Indique si un produit est sélectionné (mode `picker`). */

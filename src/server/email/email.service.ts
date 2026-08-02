@@ -123,3 +123,159 @@ function buildVerificationEmailHtml(verificationLink: string): string {
   </body>
 </html>`;
 }
+
+// ---------------------------------------------------------------------------
+// Bibliothèque communautaire : modération des produits
+// ---------------------------------------------------------------------------
+
+/** Coquille HTML commune aux e-mails de modération de produits. */
+function buildEmailShell(title: string, bodyHtml: string): string {
+  return `<!doctype html>
+<html lang="fr">
+  <body style="margin:0;background:#f8fafc;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#0f172a;">
+    <div style="max-width:480px;margin:32px auto;padding:32px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;">
+      <h1 style="margin:0 0 16px;font-size:20px;">${title}</h1>
+      ${bodyHtml}
+    </div>
+  </body>
+</html>`;
+}
+
+/** Bouton d'action HTML réutilisable. */
+function buildEmailButton(href: string, label: string): string {
+  return `<a href="${href}" style="display:inline-block;padding:12px 20px;background:#4f46e5;color:#ffffff;font-weight:600;font-size:14px;text-decoration:none;border-radius:10px;">${label}</a>`;
+}
+
+/** Détails d'un produit soumis, pour les e-mails de modération. */
+export interface ProductModerationMailInfo {
+  productName: string;
+  brand: string;
+  /** Nom complet du propriétaire à l'origine de la soumission. */
+  ownerName: string;
+  /** Lien vers la file de modération (côté administrateur). */
+  reviewLink: string;
+  /** URL fabricant/produit fournie par le contributeur (facultative). */
+  sourceUrl?: string;
+}
+
+/**
+ * Notifie les administrateurs qu'un produit a été soumis et attend une revue.
+ *
+ * @param to Adresse(s) administrateur destinataire(s).
+ * @param info Détails du produit soumis et lien de modération.
+ */
+export async function sendProductSubmittedEmail(
+  to: string | string[],
+  info: ProductModerationMailInfo,
+): Promise<void> {
+  const subject = `Nouveau produit à valider : ${info.brand} — ${info.productName}`;
+  const sourceLine = info.sourceUrl
+    ? `<p style="margin:0 0 8px;font-size:14px;color:#475569;">Source indiquée : <a href="${info.sourceUrl}">${info.sourceUrl}</a></p>`
+    : '';
+  const html = buildEmailShell(
+    'Un produit attend votre validation',
+    `<p style="margin:0 0 8px;font-size:14px;color:#475569;">
+       <strong>${info.ownerName}</strong> a proposé le produit
+       <strong>${info.brand} — ${info.productName}</strong> pour la bibliothèque communautaire.
+     </p>
+     ${sourceLine}
+     <p style="margin:0 0 24px;font-size:14px;color:#475569;">
+       Vérifiez les valeurs nutritionnelles puis validez, corrigez ou refusez la proposition.
+     </p>
+     ${buildEmailButton(info.reviewLink, 'Ouvrir la file de modération')}`,
+  );
+  const text = `${info.ownerName} a proposé le produit ${info.brand} — ${info.productName} pour la bibliothèque communautaire.
+${info.sourceUrl ? `Source : ${info.sourceUrl}\n` : ''}Vérifiez et validez ici : ${info.reviewLink}`;
+
+  if (!resend) {
+    console.log(
+      `[email] (mode dev) Produit soumis « ${info.brand} — ${info.productName} » à valider : ${info.reviewLink}`,
+    );
+    return;
+  }
+
+  const { error } = await resend.emails.send({ from, to, subject, html, text });
+  if (error) {
+    console.error(`[email] Échec de l'envoi (soumission produit) :`, error);
+  }
+}
+
+/**
+ * Informe le contributeur que son produit a été validé et publié.
+ *
+ * @param to Adresse du propriétaire.
+ * @param productLabel Libellé du produit (« Marque — Nom »).
+ * @param catalogLink Lien vers le catalogue.
+ */
+export async function sendProductApprovedEmail(
+  to: string,
+  productLabel: string,
+  catalogLink: string,
+): Promise<void> {
+  const subject = `Votre produit « ${productLabel} » est validé`;
+  const html = buildEmailShell(
+    'Votre produit rejoint le catalogue',
+    `<p style="margin:0 0 24px;font-size:14px;color:#475569;">
+       Bonne nouvelle : votre produit <strong>${productLabel}</strong> a été validé par un
+       administrateur. Il est désormais public et disponible pour toute la communauté.
+     </p>
+     ${buildEmailButton(catalogLink, 'Voir le catalogue')}`,
+  );
+  const text = `Votre produit ${productLabel} a été validé et publié dans le catalogue commun.
+${catalogLink}`;
+
+  if (!resend) {
+    console.log(`[email] (mode dev) Produit validé « ${productLabel} » pour ${to}`);
+    return;
+  }
+
+  const { error } = await resend.emails.send({ from, to, subject, html, text });
+  if (error) {
+    console.error(`[email] Échec de l'envoi (validation produit) :`, error);
+  }
+}
+
+/**
+ * Informe le contributeur que son produit a été refusé (il reste utilisable
+ * en privé et peut être corrigé puis resoumis).
+ *
+ * @param to Adresse du propriétaire.
+ * @param productLabel Libellé du produit (« Marque — Nom »).
+ * @param reason Motif du refus.
+ * @param productLink Lien vers ses produits.
+ */
+export async function sendProductRejectedEmail(
+  to: string,
+  productLabel: string,
+  reason: string,
+  productLink: string,
+): Promise<void> {
+  const subject = `Votre produit « ${productLabel} » n'a pas été retenu`;
+  const reasonBlock = reason
+    ? `<p style="margin:0 0 16px;padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;font-size:14px;color:#991b1b;">
+         <strong>Motif :</strong> ${reason}
+       </p>`
+    : '';
+  const html = buildEmailShell(
+    'Votre produit n\u2019a pas été publié',
+    `<p style="margin:0 0 16px;font-size:14px;color:#475569;">
+       Votre produit <strong>${productLabel}</strong> n'a pas été retenu pour le catalogue commun.
+       Il reste disponible dans vos produits en mode privé : vous pouvez le corriger et le
+       soumettre à nouveau.
+     </p>
+     ${reasonBlock}
+     ${buildEmailButton(productLink, 'Voir mes produits')}`,
+  );
+  const text = `Votre produit ${productLabel} n'a pas été retenu pour le catalogue commun.
+${reason ? `Motif : ${reason}\n` : ''}Il reste disponible en privé, corrigez-le et resoumettez-le : ${productLink}`;
+
+  if (!resend) {
+    console.log(`[email] (mode dev) Produit refusé « ${productLabel} » pour ${to} (motif : ${reason})`);
+    return;
+  }
+
+  const { error } = await resend.emails.send({ from, to, subject, html, text });
+  if (error) {
+    console.error(`[email] Échec de l'envoi (refus produit) :`, error);
+  }
+}

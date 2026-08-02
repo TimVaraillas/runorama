@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   effect,
   inject,
   input,
@@ -12,6 +13,7 @@ import { ButtonComponent } from '../../atoms/button/button.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { TextInputComponent } from '../../atoms/text-input/text-input.component';
 import { ToastService } from '../../../core/services/toast.service';
+import { AuthService } from '../../../features/auth/services/auth.service';
 import type { NutritionCategory, NutritionProduct } from '../../../core/models';
 import { faImage, faTrash } from '@fortawesome/free-solid-svg-icons';
 
@@ -56,6 +58,18 @@ const IMAGE_QUALITY = 0.8;
             label="Nom du produit"
             placeholder="Ex : Gel 100"
           />
+        </div>
+
+        <div>
+          <ui-text-input
+            formControlName="sourceUrl"
+            label="URL fabricant / produit (facultative)"
+            placeholder="https://…"
+            type="url"
+          />
+          <p class="mt-1 text-xs text-slate-400">
+            Un lien vers la fiche officielle accélère la vérification des valeurs.
+          </p>
         </div>
 
         <div>
@@ -139,10 +153,17 @@ const IMAGE_QUALITY = 0.8;
         </div>
       </section>
 
+      @if (!isAdmin() && !product()) {
+        <p class="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-xs text-brand-800">
+          Votre produit sera immédiatement disponible dans vos stratégies, en privé. Un
+          administrateur le vérifiera avant de le publier dans le catalogue commun.
+        </p>
+      }
+
       <div class="flex items-center justify-end gap-3">
         <ui-button type="button" color="default" variant="ghost" (clicked)="cancel.emit()">Annuler</ui-button>
         <ui-button type="submit" [disabled]="form.invalid">
-          {{ product() ? 'Enregistrer' : 'Ajouter le produit' }}
+          {{ product() ? 'Enregistrer' : submitLabel() }}
         </ui-button>
       </div>
     </form>
@@ -151,6 +172,14 @@ const IMAGE_QUALITY = 0.8;
 export class NutritionProductFormComponent {
   private readonly fb = inject(FormBuilder);
   private readonly toast = inject(ToastService);
+  private readonly auth = inject(AuthService);
+
+  /** Vrai si l'utilisateur courant est administrateur (publication directe). */
+  protected readonly isAdmin = this.auth.isAdmin;
+  /** Libellé du bouton de soumission selon le rôle. */
+  protected readonly submitLabel = computed(() =>
+    this.isAdmin() ? 'Ajouter le produit' : 'Proposer le produit',
+  );
 
   /** Produit à éditer (mode modification). Absent = création. */
   readonly product = input<NutritionProduct | null>(null);
@@ -174,6 +203,7 @@ export class NutritionProductFormComponent {
     categoryId: ['', Validators.required],
     brand: ['', Validators.required],
     name: ['', Validators.required],
+    sourceUrl: ['', Validators.pattern(/^https?:\/\/.+/i)],
     unitWeight: [null as number | null, [Validators.required, Validators.min(0)]],
     energy: [null as number | null, [Validators.required, Validators.min(0)]],
     carbs: [null as number | null, [Validators.required, Validators.min(0)]],
@@ -191,6 +221,7 @@ export class NutritionProductFormComponent {
           categoryId: product.categoryId,
           brand: product.brand,
           name: product.name,
+          sourceUrl: product.sourceUrl ?? '',
           unitWeight: product.unitWeight,
           energy: product.energy,
           carbs: product.carbs,
@@ -258,6 +289,7 @@ export class NutritionProductFormComponent {
       categoryId: value.categoryId!,
       brand: value.brand!.trim(),
       name: value.name!.trim(),
+      sourceUrl: value.sourceUrl?.trim() || undefined,
       unitWeight: Number(value.unitWeight),
       energy: Number(value.energy),
       carbs: Number(value.carbs),

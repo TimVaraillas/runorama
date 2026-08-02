@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import type { NutritionCategory, NutritionEvent, NutritionProduct } from '../../../core/models';
+import type { ProductModerationStatus } from '../../../core/models/nutrition.model';
 
 /**
  * Service d'accès au volet nutrition (catégories et produits) via l'API REST.
@@ -33,10 +34,15 @@ export class NutritionService {
 
   // --- Produits ---
 
-  /** Liste les produits, éventuellement filtrés par catégorie. */
-  listProducts(categoryId?: string): Observable<NutritionProduct[]> {
+  /**
+   * Liste les produits visibles par l'utilisateur (catalogue public validé +
+   * ses propres produits). Filtrable par catégorie, et par statut de modération
+   * pour les administrateurs (file de modération).
+   */
+  listProducts(options?: { categoryId?: string; status?: ProductModerationStatus }): Observable<NutritionProduct[]> {
     let params = new HttpParams();
-    if (categoryId) params = params.set('categoryId', categoryId);
+    if (options?.categoryId) params = params.set('categoryId', options.categoryId);
+    if (options?.status) params = params.set('status', options.status);
     return this.http.get<NutritionProduct[]>(this.productsUrl, { params });
   }
 
@@ -50,6 +56,21 @@ export class NutritionService {
 
   removeProduct(id: string): Observable<void> {
     return this.http.delete<void>(`${this.productsUrl}/${id}`);
+  }
+
+  /** Valide un produit soumis : il devient public (admin). */
+  approveProduct(id: string): Observable<NutritionProduct> {
+    return this.http.post<NutritionProduct>(`${this.productsUrl}/${id}/approve`, {});
+  }
+
+  /** Refuse un produit soumis, avec un motif communiqué au contributeur (admin). */
+  rejectProduct(id: string, reason: string): Observable<NutritionProduct> {
+    return this.http.post<NutritionProduct>(`${this.productsUrl}/${id}/reject`, { reason });
+  }
+
+  /** Archive un produit public devenu obsolète/doublon (admin). */
+  archiveProduct(id: string): Observable<NutritionProduct> {
+    return this.http.post<NutritionProduct>(`${this.productsUrl}/${id}/archive`, {});
   }
 
   // --- Évènements / stratégies alimentaires ---

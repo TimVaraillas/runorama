@@ -10,6 +10,26 @@ export interface NutritionCategory {
   updatedAt?: string;
 }
 
+/** Visibilité d'un produit : privé (propriétaire seul) ou public (catalogue commun). */
+export type ProductVisibility = 'private' | 'public';
+
+/**
+ * Statut de modération d'un produit communautaire.
+ * - `pending`   : soumis, en attente de revue administrateur ;
+ * - `approved`  : validé, publié dans le catalogue commun ;
+ * - `rejected`  : refusé (reste utilisable en privé par le propriétaire) ;
+ * - `archived`  : retiré du catalogue après avoir été public (obsolète/doublon).
+ */
+export type ProductModerationStatus = 'pending' | 'approved' | 'rejected' | 'archived';
+
+/** Propriétaire d'un produit communautaire (exposé aux administrateurs). */
+export interface ProductOwner {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
 /** Un produit nutritionnel avec sa composition pour une unité. */
 export interface NutritionProduct {
   id: string;
@@ -33,6 +53,23 @@ export interface NutritionProduct {
   sodium: number;
   /** Photo du produit (data URL base64), facultative. */
   image?: string;
+  /** URL fabricant/produit (facultative), utile à la vérification par l'admin. */
+  sourceUrl?: string;
+  /**
+   * Propriétaire du produit. `null`/absent pour les produits « système »
+   * (catalogue historique sans auteur nominatif).
+   */
+  ownerId?: string | null;
+  /** Propriétaire dénormalisé (renseigné uniquement pour les administrateurs). */
+  owner?: ProductOwner;
+  /** Visibilité : privée ou publique (catalogue commun). */
+  visibility?: ProductVisibility;
+  /** Statut de modération du produit. */
+  moderationStatus?: ProductModerationStatus;
+  /** Motif du refus, communiqué au propriétaire (statut `rejected`). */
+  rejectionReason?: string;
+  /** Date de la dernière décision de modération (ISO). */
+  reviewedAt?: string;
   createdAt?: string;
   updatedAt?: string;
 }

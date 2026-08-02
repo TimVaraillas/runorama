@@ -1,9 +1,11 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { BadgeComponent } from '../../atoms/badge/badge.component';
+import { ProductStatusBadgeComponent } from '../../atoms/product-status-badge/product-status-badge.component';
 import { NutrientStatComponent } from '../../atoms/nutrient-stat/nutrient-stat.component';
 import type { NutritionProduct } from '../../../core/models';
-import { faAppleWhole, faPen, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { productCapabilities } from '../../../core/utils/product-moderation.util';
+import { faAppleWhole, faBoxArchive, faCheck, faPen, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 
 /**
  * Molecule : carte d'un produit nutritionnel (affichage en grille).
@@ -15,7 +17,7 @@ import { faAppleWhole, faPen, faTrash } from '@fortawesome/free-solid-svg-icons'
 @Component({
   selector: 'ui-nutrition-product-card',
   standalone: true,
-  imports: [IconComponent, BadgeComponent, NutrientStatComponent],
+  imports: [IconComponent, BadgeComponent, ProductStatusBadgeComponent, NutrientStatComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <article
@@ -34,14 +36,50 @@ import { faAppleWhole, faPen, faTrash } from '@fortawesome/free-solid-svg-icons'
         <div class="min-w-0 flex-1">
           <h3 class="truncate font-semibold text-slate-900">{{ product().name }}</h3>
           <p class="truncate text-sm text-slate-500">{{ product().brand }}</p>
-          @if (categoryLabel()) {
-            <div class="mt-1.5">
+          <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+            @if (categoryLabel()) {
               <ui-badge tone="accent">{{ categoryLabel() }}</ui-badge>
-            </div>
-          }
+            }
+            @if (showStatus()) {
+              <ui-product-status-badge [status]="product().moderationStatus" [showApproved]="isAdmin()" />
+            }
+          </div>
         </div>
-        @if (!readonly()) {
-          <div class="flex shrink-0 items-center gap-1">
+        <div class="flex shrink-0 items-center gap-1">
+          @if (caps().canApprove) {
+            <button
+              type="button"
+              class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
+              (click)="approve.emit(product())"
+              aria-label="Valider le produit"
+              title="Valider"
+            >
+              <ui-icon [icon]="faCheck" size="sm" />
+            </button>
+          }
+          @if (caps().canReject) {
+            <button
+              type="button"
+              class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+              (click)="reject.emit(product())"
+              aria-label="Refuser le produit"
+              title="Refuser"
+            >
+              <ui-icon [icon]="faXmark" size="sm" />
+            </button>
+          }
+          @if (caps().canArchive) {
+            <button
+              type="button"
+              class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-amber-50 hover:text-amber-600"
+              (click)="archive.emit(product())"
+              aria-label="Archiver le produit"
+              title="Archiver"
+            >
+              <ui-icon [icon]="faBoxArchive" size="sm" />
+            </button>
+          }
+          @if (caps().canEdit) {
             <button
               type="button"
               class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
@@ -50,6 +88,8 @@ import { faAppleWhole, faPen, faTrash } from '@fortawesome/free-solid-svg-icons'
             >
               <ui-icon [icon]="faPen" size="sm" />
             </button>
+          }
+          @if (caps().canDelete) {
             <button
               type="button"
               class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
@@ -58,8 +98,8 @@ import { faAppleWhole, faPen, faTrash } from '@fortawesome/free-solid-svg-icons'
             >
               <ui-icon [icon]="faTrash" size="sm" />
             </button>
-          </div>
-        }
+          }
+        </div>
       </div>
 
       <div class="mt-auto grid grid-cols-3 gap-2 border-t border-slate-100 p-4">
@@ -80,11 +120,34 @@ export class NutritionProductCardComponent {
   readonly categoryLabel = input<string>('');
   /** Masque les actions d'édition/suppression (lecture seule). */
   readonly readonly = input(false);
+  /** Affiche le badge de statut de modération. */
+  readonly showStatus = input(false);
+  /** Identifiant de l'utilisateur courant (droits d'action). */
+  readonly currentUserId = input<string | null>(null);
+  /** Vrai si l'utilisateur courant est administrateur. */
+  readonly isAdmin = input(false);
 
   readonly edit = output<NutritionProduct>();
   readonly delete = output<NutritionProduct>();
+  /** Validation d'un produit (admin). */
+  readonly approve = output<NutritionProduct>();
+  /** Refus d'un produit (admin). */
+  readonly reject = output<NutritionProduct>();
+  /** Archivage d'un produit (admin). */
+  readonly archive = output<NutritionProduct>();
 
   protected readonly faAppleWhole = faAppleWhole;
   protected readonly faPen = faPen;
   protected readonly faTrash = faTrash;
+  protected readonly faCheck = faCheck;
+  protected readonly faXmark = faXmark;
+  protected readonly faBoxArchive = faBoxArchive;
+
+  /** Capacités d'action sur le produit courant. */
+  protected readonly caps = computed(() => {
+    if (this.readonly()) {
+      return { canEdit: false, canDelete: false, canApprove: false, canReject: false, canArchive: false };
+    }
+    return productCapabilities(this.product(), this.currentUserId(), this.isAdmin());
+  });
 }

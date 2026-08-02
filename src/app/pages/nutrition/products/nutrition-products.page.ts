@@ -14,6 +14,7 @@ import { NutritionProductFormComponent } from '../../../components/organisms/nut
 import { NutritionProductTableComponent } from '../../../components/organisms/nutrition-product-table/nutrition-product-table.component';
 import { NutritionProductGridComponent } from '../../../components/organisms/nutrition-product-grid/nutrition-product-grid.component';
 import type { NutritionCategory, NutritionProduct } from '../../../core/models';
+import type { ProductModerationStatus } from '../../../core/models/nutrition.model';
 import {
   faPlus,
   faTrash,
@@ -56,11 +57,35 @@ type PendingDelete =
       <div class="flex flex-wrap items-center justify-end gap-2">
         @if (isAdmin()) {
           <ui-button color="secondary" variant="outlined" [icon]="faTags" (clicked)="openCategories()">Catégories</ui-button>
-          <ui-button [icon]="faPlus" [disabled]="categories().length === 0" (clicked)="newProduct()">
-            Nouveau produit
-          </ui-button>
         }
+        <ui-button [icon]="faPlus" [disabled]="categories().length === 0" (clicked)="newProduct()">
+          {{ isAdmin() ? 'Nouveau produit' : 'Proposer un produit' }}
+        </ui-button>
       </div>
+
+      <!-- File de modération (admin) : filtre par statut -->
+      @if (isAdmin()) {
+        <div class="flex flex-wrap gap-2">
+          @for (tab of statusTabs; track tab.value) {
+            <button
+              type="button"
+              class="rounded-full border px-3 py-1.5 text-sm font-medium transition-colors"
+              [class.border-brand-500]="statusFilter() === tab.value"
+              [class.bg-brand-50]="statusFilter() === tab.value"
+              [class.text-brand-700]="statusFilter() === tab.value"
+              [class.border-slate-200]="statusFilter() !== tab.value"
+              [class.text-slate-600]="statusFilter() !== tab.value"
+              [class.hover:bg-slate-50]="statusFilter() !== tab.value"
+              (click)="statusFilter.set(tab.value)"
+            >
+              {{ tab.label }}
+              @if (statusCount(tab.value); as count) {
+                <span class="ml-1 text-xs opacity-70">({{ count }})</span>
+              }
+            </button>
+          }
+        </div>
+      }
 
       <!-- Filtres -->
       <ui-filter-bar>
@@ -93,19 +118,17 @@ type PendingDelete =
             </div>
             @if (list.length === 0) {
               <p class="text-slate-600">Aucun produit pour le moment.</p>
-              @if (isAdmin()) {
-                <ui-button
-                  color="secondary"
-                  variant="outlined"
-                  [icon]="faPlus"
-                  [disabled]="categories().length === 0"
-                  (clicked)="newProduct()"
-                >
-                  Ajouter mon premier produit
-                </ui-button>
-                @if (categories().length === 0) {
-                  <p class="text-xs text-slate-400">Commencez par créer une catégorie.</p>
-                }
+              <ui-button
+                color="secondary"
+                variant="outlined"
+                [icon]="faPlus"
+                [disabled]="categories().length === 0"
+                (clicked)="newProduct()"
+              >
+                {{ isAdmin() ? 'Ajouter mon premier produit' : 'Proposer un produit' }}
+              </ui-button>
+              @if (categories().length === 0 && isAdmin()) {
+                <p class="text-xs text-slate-400">Commencez par créer une catégorie.</p>
               }
             } @else {
               <p class="text-slate-600">Aucun produit ne correspond à votre recherche.</p>
@@ -116,17 +139,29 @@ type PendingDelete =
             <ui-nutrition-product-table
               [products]="filteredProducts()"
               [categories]="categories()"
-              [readonly]="!isAdmin()"
+              [readonly]="false"
+              [showStatus]="true"
+              [currentUserId]="currentUserId()"
+              [isAdmin]="isAdmin()"
               (edit)="editProduct($event)"
               (delete)="requestDeleteProduct($event)"
+              (approve)="approveProduct($event)"
+              (reject)="requestReject($event)"
+              (archive)="archiveProduct($event)"
             />
           } @else {
             <ui-nutrition-product-grid
               [products]="filteredProducts()"
               [categories]="categories()"
-              [readonly]="!isAdmin()"
+              [readonly]="false"
+              [showStatus]="true"
+              [currentUserId]="currentUserId()"
+              [isAdmin]="isAdmin()"
               (edit)="editProduct($event)"
               (delete)="requestDeleteProduct($event)"
+              (approve)="approveProduct($event)"
+              (reject)="requestReject($event)"
+              (archive)="archiveProduct($event)"
             />
           }
         }
@@ -294,6 +329,34 @@ type PendingDelete =
         </ui-button>
       </div>
     </ui-modal>
+
+    <!-- Modale : refus d'un produit (motif communiqué au contributeur) -->
+    <ui-modal [open]="!!rejecting()" title="Refuser le produit" (close)="cancelReject()">
+      @if (rejecting(); as product) {
+        <div class="space-y-3">
+          <p class="text-sm text-slate-600">
+            Le produit
+            <strong class="font-semibold text-slate-900">« {{ product.name }} »</strong> restera
+            disponible en privé pour son auteur, mais ne sera pas publié. Indiquez un motif, il lui
+            sera transmis par e-mail.
+          </p>
+          <textarea
+            [ngModel]="rejectReason()"
+            (ngModelChange)="rejectReason.set($event)"
+            rows="3"
+            [class]="searchClass"
+            placeholder="Ex : valeurs nutritionnelles incohérentes, doublon du produit X…"
+            aria-label="Motif du refus"
+          ></textarea>
+        </div>
+      }
+      <div modalFooter class="flex items-center justify-end gap-3">
+        <ui-button color="default" variant="ghost" [disabled]="moderating()" (clicked)="cancelReject()">Annuler</ui-button>
+        <ui-button color="danger" [icon]="faXmark" [disabled]="moderating()" (clicked)="confirmReject()">
+          Refuser
+        </ui-button>
+      </div>
+    </ui-modal>
   `,
 })
 export class NutritionProductsPage {
@@ -303,6 +366,8 @@ export class NutritionProductsPage {
 
   /** Vrai si l'utilisateur peut éditer la base produits partagée. */
   protected readonly isAdmin = this.auth.isAdmin;
+  /** Identifiant de l'utilisateur courant (droits d'action par produit). */
+  protected readonly currentUserId = computed(() => this.auth.currentUser()?.id ?? null);
 
   readonly faPlus = faPlus;
   readonly faTrash = faTrash;
@@ -326,6 +391,17 @@ export class NutritionProductsPage {
   protected readonly categoryFilter = signal('');
   protected readonly viewMode = signal<ProductViewMode>('table');
 
+  /** Filtre de statut de modération (file admin). '' = tous. */
+  protected readonly statusFilter = signal<ProductModerationStatus | ''>('');
+  /** Onglets de la file de modération administrateur. */
+  protected readonly statusTabs: ReadonlyArray<{ value: ProductModerationStatus | ''; label: string }> = [
+    { value: '', label: 'Tous' },
+    { value: 'pending', label: 'En attente' },
+    { value: 'approved', label: 'Validés' },
+    { value: 'rejected', label: 'Refusés' },
+    { value: 'archived', label: 'Archivés' },
+  ];
+
   protected readonly productPanelOpen = signal(false);
   protected readonly editing = signal<NutritionProduct | null>(null);
 
@@ -338,20 +414,34 @@ export class NutritionProductsPage {
   protected readonly pendingDelete = signal<PendingDelete | null>(null);
   protected readonly deleting = signal(false);
 
-  /** Produits filtrés par catégorie et par recherche texte. */
+  /** Produit en cours de refus (modale de motif) et état de modération en cours. */
+  protected readonly rejecting = signal<NutritionProduct | null>(null);
+  protected readonly rejectReason = signal('');
+  protected readonly moderating = signal(false);
+
+  /** Produits filtrés par catégorie, recherche texte et statut (admin). */
   protected readonly filteredProducts = computed(() => {
     const list = this.products() ?? [];
     const term = this.search().trim().toLowerCase();
     const category = this.categoryFilter();
+    const status = this.statusFilter();
     return list.filter((product) => {
       const matchesCategory = !category || product.categoryId === category;
+      const matchesStatus = !status || product.moderationStatus === status;
       const matchesTerm =
         !term ||
         product.name.toLowerCase().includes(term) ||
         product.brand.toLowerCase().includes(term);
-      return matchesCategory && matchesTerm;
+      return matchesCategory && matchesStatus && matchesTerm;
     });
   });
+
+  /** Nombre de produits par statut (badges des onglets admin). */
+  protected statusCount(status: ProductModerationStatus | ''): number | null {
+    if (!status) return null;
+    const count = (this.products() ?? []).filter((p) => p.moderationStatus === status).length;
+    return count > 0 ? count : null;
+  }
 
   constructor() {
     this.loadCategories();
@@ -412,6 +502,56 @@ export class NutritionProductsPage {
 
   requestDeleteProduct(product: NutritionProduct): void {
     this.pendingDelete.set({ type: 'product', id: product.id, name: product.name });
+  }
+
+  // --- Modération (admin) ---
+
+  approveProduct(product: NutritionProduct): void {
+    this.service.approveProduct(product.id).subscribe({
+      next: () => {
+        this.toast.success(`« ${product.name} » a été validé et publié.`);
+        this.loadProducts();
+      },
+      error: () => this.toast.error('Impossible de valider le produit. Veuillez réessayer.'),
+    });
+  }
+
+  archiveProduct(product: NutritionProduct): void {
+    this.service.archiveProduct(product.id).subscribe({
+      next: () => {
+        this.toast.success(`« ${product.name} » a été archivé.`);
+        this.loadProducts();
+      },
+      error: () => this.toast.error("Impossible d'archiver le produit. Veuillez réessayer."),
+    });
+  }
+
+  requestReject(product: NutritionProduct): void {
+    this.rejectReason.set('');
+    this.rejecting.set(product);
+  }
+
+  cancelReject(): void {
+    this.rejecting.set(null);
+    this.rejectReason.set('');
+  }
+
+  confirmReject(): void {
+    const product = this.rejecting();
+    if (!product) return;
+    this.moderating.set(true);
+    this.service.rejectProduct(product.id, this.rejectReason().trim()).subscribe({
+      next: () => {
+        this.moderating.set(false);
+        this.cancelReject();
+        this.toast.success(`« ${product.name} » a été refusé.`);
+        this.loadProducts();
+      },
+      error: () => {
+        this.moderating.set(false);
+        this.toast.error('Impossible de refuser le produit. Veuillez réessayer.');
+      },
+    });
   }
 
   // --- Catégories ---
