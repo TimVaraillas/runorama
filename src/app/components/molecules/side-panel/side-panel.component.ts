@@ -58,10 +58,10 @@ export class SidePanelComponent {
   readonly close = output<void>();
 
   private readonly widths: Record<SidePanelSize, string> = {
-    xs: 'max-w-md',
-    md: 'max-w-lg',
-    lg: 'max-w-xl',
-    xl: 'max-w-3xl',
+    xs: 'max-w-lg',
+    md: 'max-w-xl',
+    lg: 'max-w-3xl',
+    xl: 'max-w-5xl',
   };
 
   @HostListener('document:keydown.escape')

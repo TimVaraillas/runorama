@@ -19,7 +19,8 @@ import {
   type NutritionProduct,
 } from '../../../core/models';
 import { enabledGoals, resolveGoals } from '../../../core/utils/nutrition-goals.util';
-import { faPlus, faWeightHanging, faXmark, faCheck, faSliders } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faWeightHanging, faXmark, faCheck, faSliders, faStar as faStarSolid } from '@fortawesome/free-solid-svg-icons';
+import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons';
 
 /** Totaux cumulés de l'inventaire. */
 interface InventoryTotals {
@@ -151,7 +152,7 @@ interface InventoryTotals {
     </div>
 
     <!-- Panneau : sélecteur de produits -->
-    <ui-side-panel [open]="pickerOpen()" ariaLabel="Ajouter des produits" (close)="closePicker()">
+    <ui-side-panel [open]="pickerOpen()" ariaLabel="Ajouter des produits" (close)="closePicker()" size="xl">
       @if (pickerOpen()) {
         <div class="flex h-full flex-col">
           <div class="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
@@ -188,6 +189,21 @@ interface InventoryTotals {
                     <option [value]="category.id">{{ category.name }}</option>
                   }
                 </select>
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+                  [class.border-amber-300]="pickerFavoritesOnly()"
+                  [class.bg-amber-50]="pickerFavoritesOnly()"
+                  [class.text-amber-700]="pickerFavoritesOnly()"
+                  [class.border-slate-300]="!pickerFavoritesOnly()"
+                  [class.text-slate-600]="!pickerFavoritesOnly()"
+                  [class.hover:bg-slate-50]="!pickerFavoritesOnly()"
+                  (click)="pickerFavoritesOnly.set(!pickerFavoritesOnly())"
+                  [attr.aria-pressed]="pickerFavoritesOnly()"
+                >
+                  <ui-icon [icon]="pickerFavoritesOnly() ? faStarSolid : faStarRegular" size="sm" />
+                  Favoris
+                </button>
               </ui-filter-bar>
 
               @if (filteredPickerProducts().length === 0) {
@@ -200,7 +216,9 @@ interface InventoryTotals {
                   [products]="filteredPickerProducts()"
                   [categories]="categories()"
                   [selectedIds]="selectedIds()"
+                  [showPersonalActions]="true"
                   (toggleSelect)="onToggleSelect($event.id)"
+                  (toggleFavorite)="onToggleFavorite($event)"
                 />
               }
             }
@@ -235,12 +253,16 @@ export class NutritionStrategyInventoryComponent {
   readonly remove = output<string>();
   /** Demande de mise à jour des objectifs nutritionnels (édition inline). */
   readonly goalsChange = output<NutritionGoals>();
+  /** Bascule un produit du catalogue dans les favoris de l'utilisateur. */
+  readonly toggleFavorite = output<NutritionProduct>();
 
   protected readonly faPlus = faPlus;
   protected readonly faWeightHanging = faWeightHanging;
   protected readonly faXmark = faXmark;
   protected readonly faCheck = faCheck;
   protected readonly faSliders = faSliders;
+  protected readonly faStarSolid = faStarSolid;
+  protected readonly faStarRegular = faStarRegular;
 
   /** Édition inline des objectifs nutritionnels. */
   protected readonly editingGoals = signal(false);
@@ -256,20 +278,24 @@ export class NutritionStrategyInventoryComponent {
   protected readonly pickerSearch = signal('');
   /** Filtre catégorie du sélecteur de produits. */
   protected readonly pickerCategory = signal('');
+  /** Ne montrer que les produits favoris dans le sélecteur. */
+  protected readonly pickerFavoritesOnly = signal(false);
   /** Identifiants des produits sélectionnés dans le panneau. */
   protected readonly selectedIds = signal<Set<string>>(new Set());
 
-  /** Produits filtrés par recherche (titre/marque) et catégorie. */
+  /** Produits filtrés par recherche (titre/marque), catégorie et favoris. */
   protected readonly filteredPickerProducts = computed(() => {
     const term = this.pickerSearch().trim().toLowerCase();
     const categoryId = this.pickerCategory();
+    const favoritesOnly = this.pickerFavoritesOnly();
     return this.products().filter((product) => {
       const matchesCategory = !categoryId || product.categoryId === categoryId;
+      const matchesFavorite = !favoritesOnly || product.favorite === true;
       const matchesTerm =
         !term ||
         product.name.toLowerCase().includes(term) ||
         product.brand.toLowerCase().includes(term);
-      return matchesCategory && matchesTerm;
+      return matchesCategory && matchesFavorite && matchesTerm;
     });
   });
 
@@ -337,6 +363,11 @@ export class NutritionStrategyInventoryComponent {
       next.add(productId);
     }
     this.selectedIds.set(next);
+  }
+
+  /** Relaye l'ajout/retrait d'un produit des favoris vers la page. */
+  onToggleFavorite(product: NutritionProduct): void {
+    this.toggleFavorite.emit(product);
   }
 
   /** Valide la sélection : met à jour l'inventaire puis ferme le panneau. */

@@ -20,11 +20,14 @@ import type { NutritionCategory, NutritionProduct } from '../../../core/models';
           [showStatus]="showStatus()"
           [currentUserId]="currentUserId()"
           [isAdmin]="isAdmin()"
+          [showPersonalActions]="showPersonalActions()"
           (edit)="edit.emit($event)"
           (delete)="delete.emit($event)"
           (approve)="approve.emit($event)"
           (reject)="reject.emit($event)"
           (archive)="archive.emit($event)"
+          (toggleFavorite)="toggleFavorite.emit($event)"
+          (editNote)="editNote.emit($event)"
         />
       }
     </div>
@@ -43,6 +46,8 @@ export class NutritionProductGridComponent {
   readonly currentUserId = input<string | null>(null);
   /** Vrai si l'utilisateur courant est administrateur. */
   readonly isAdmin = input(false);
+  /** Affiche les actions personnelles (favori + note) sur chaque carte. */
+  readonly showPersonalActions = input(false);
 
   readonly edit = output<NutritionProduct>();
   readonly delete = output<NutritionProduct>();
@@ -52,6 +57,10 @@ export class NutritionProductGridComponent {
   readonly reject = output<NutritionProduct>();
   /** Archivage d'un produit (admin). */
   readonly archive = output<NutritionProduct>();
+  /** Bascule le produit dans les favoris de l'utilisateur. */
+  readonly toggleFavorite = output<NutritionProduct>();
+  /** Demande d'édition de la note personnelle. */
+  readonly editNote = output<NutritionProduct>();
 
   protected labelFor(categoryId: string): string {
     return this.categories().find((c) => c.id === categoryId)?.name ?? '';

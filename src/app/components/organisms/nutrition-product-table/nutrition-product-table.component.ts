@@ -5,6 +5,8 @@ import { ProductStatusBadgeComponent } from '../../atoms/product-status-badge/pr
 import type { NutritionCategory, NutritionProduct } from '../../../core/models';
 import { productCapabilities, type ProductCapabilities } from '../../../core/utils/product-moderation.util';
 import { faAppleWhole, faBoxArchive, faCheck, faPen, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faStar as faStarSolid, faNoteSticky as faNoteSolid } from '@fortawesome/free-solid-svg-icons';
+import { faStar as faStarRegular, faNoteSticky as faNoteRegular } from '@fortawesome/free-regular-svg-icons';
 
 /** Mode d'affichage du tableau : gestion (édition/suppression) ou sélection. */
 export type ProductTableMode = 'manage' | 'picker';
@@ -47,6 +49,9 @@ export type ProductTableMode = 'manage' | 'picker';
               @if (!readonly()) {
                 <th class="px-4 py-3"></th>
               }
+            }
+            @if (showPersonalActions() && mode() === 'picker') {
+              <th class="w-12 px-4 py-3 text-center font-medium"></th>
             }
           </tr>
         </thead>
@@ -108,6 +113,32 @@ export type ProductTableMode = 'manage' | 'picker';
                   <td class="px-4 py-3">
                     @let caps = capabilities(product);
                     <div class="flex items-center justify-end gap-1">
+                      @if (showPersonalActions()) {
+                        <button
+                          type="button"
+                          class="grid h-8 w-8 place-items-center rounded-lg transition-colors hover:bg-amber-50"
+                          [class.text-amber-400]="product.favorite"
+                          [class.text-slate-300]="!product.favorite"
+                          [class.hover:text-amber-400]="!product.favorite"
+                          (click)="toggleFavorite.emit(product)"
+                          [attr.aria-pressed]="product.favorite"
+                          [attr.aria-label]="product.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+                          [title]="product.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+                        >
+                          <ui-icon [icon]="product.favorite ? faStarSolid : faStarRegular" size="sm" />
+                        </button>
+                        <button
+                          type="button"
+                          class="grid h-8 w-8 place-items-center rounded-lg transition-colors hover:bg-brand-50 hover:text-brand-600"
+                          [class.text-brand-500]="product.comment"
+                          [class.text-slate-300]="!product.comment"
+                          (click)="editNote.emit(product)"
+                          [attr.aria-label]="product.comment ? 'Modifier ma note' : 'Ajouter une note'"
+                          [title]="product.comment ? 'Modifier ma note' : 'Ajouter une note'"
+                        >
+                          <ui-icon [icon]="product.comment ? faNoteSolid : faNoteRegular" size="sm" />
+                        </button>
+                      }
                       @if (caps.canApprove) {
                         <button
                           type="button"
@@ -165,6 +196,23 @@ export type ProductTableMode = 'manage' | 'picker';
                   </td>
                 }
               }
+              @if (showPersonalActions() && mode() === 'picker') {
+                <td class="px-4 py-3 text-center">
+                  <button
+                    type="button"
+                    class="grid h-8 w-8 place-items-center rounded-lg transition-colors hover:bg-amber-50 mx-auto"
+                    [class.text-amber-400]="product.favorite"
+                    [class.text-slate-300]="!product.favorite"
+                    [class.hover:text-amber-400]="!product.favorite"
+                    (click)="$event.stopPropagation(); toggleFavorite.emit(product)"
+                    [attr.aria-pressed]="product.favorite"
+                    [attr.aria-label]="product.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+                    [title]="product.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+                  >
+                    <ui-icon [icon]="product.favorite ? faStarSolid : faStarRegular" size="sm" />
+                  </button>
+                </td>
+              }
             </tr>
           }
         </tbody>
@@ -189,6 +237,8 @@ export class NutritionProductTableComponent {
   readonly isAdmin = input(false);
   /** Identifiants des produits sélectionnés (mode `picker`). */
   readonly selectedIds = input<Set<string>>(new Set());
+  /** Affiche les actions personnelles (favori + note) par ligne. */
+  readonly showPersonalActions = input(false);
 
   readonly edit = output<NutritionProduct>();
   readonly delete = output<NutritionProduct>();
@@ -200,6 +250,10 @@ export class NutritionProductTableComponent {
   readonly archive = output<NutritionProduct>();
   /** Bascule de sélection d'un produit (mode `picker`). */
   readonly toggleSelect = output<NutritionProduct>();
+  /** Bascule le produit dans les favoris de l'utilisateur. */
+  readonly toggleFavorite = output<NutritionProduct>();
+  /** Demande d'édition de la note personnelle. */
+  readonly editNote = output<NutritionProduct>();
 
   protected readonly faAppleWhole = faAppleWhole;
   protected readonly faPen = faPen;
@@ -207,6 +261,10 @@ export class NutritionProductTableComponent {
   protected readonly faCheck = faCheck;
   protected readonly faXmark = faXmark;
   protected readonly faBoxArchive = faBoxArchive;
+  protected readonly faStarSolid = faStarSolid;
+  protected readonly faStarRegular = faStarRegular;
+  protected readonly faNoteSolid = faNoteSolid;
+  protected readonly faNoteRegular = faNoteRegular;
 
   protected labelFor(categoryId: string): string {
     return this.categories().find((c) => c.id === categoryId)?.name ?? '—';

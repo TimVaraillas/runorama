@@ -123,6 +123,7 @@ import { faArrowLeft, faCompress, faExpand, faFilePdf, faPen, faStopwatch, faTra
             (setQuantity)="setQuantity($event)"
             (remove)="removeProduct($event)"
             (goalsChange)="saveGoals($event)"
+            (toggleFavorite)="toggleFavorite($event)"
           />
         } @else {
           <div class="lg:min-h-0 lg:flex-1">
@@ -230,6 +231,22 @@ export class NutritionStrategyInventoryPage implements OnInit {
     this.service.listProducts().subscribe({
       next: (products) => this.products.set(products),
       error: () => this.toast.error('Impossible de charger les produits.'),
+    });
+  }
+
+  /** Ajoute/retire un produit des favoris (mise à jour optimiste + persistance). */
+  toggleFavorite(product: NutritionProduct): void {
+    const next = !product.favorite;
+    this.products.set(
+      this.products().map((p) => (p.id === product.id ? { ...p, favorite: next } : p)),
+    );
+    this.service.setProductFeedback(product.id, { favorite: next }).subscribe({
+      error: () => {
+        this.products.set(
+          this.products().map((p) => (p.id === product.id ? { ...p, favorite: !next } : p)),
+        );
+        this.toast.error('Impossible de mettre à jour vos favoris. Veuillez réessayer.');
+      },
     });
   }
 

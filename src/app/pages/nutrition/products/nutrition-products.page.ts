@@ -23,7 +23,9 @@ import {
   faAppleWhole,
   faTags,
   faXmark,
+  faStar as faStarSolid,
 } from '@fortawesome/free-solid-svg-icons';
+import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons';
 
 /**
  * Élément en attente de suppression (pour la modale de confirmation).
@@ -104,6 +106,21 @@ type PendingDelete =
             <option [value]="category.id">{{ category.name }}</option>
           }
         </select>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+          [class.border-amber-300]="favoritesOnly()"
+          [class.bg-amber-50]="favoritesOnly()"
+          [class.text-amber-700]="favoritesOnly()"
+          [class.border-slate-300]="!favoritesOnly()"
+          [class.text-slate-600]="!favoritesOnly()"
+          [class.hover:bg-slate-50]="!favoritesOnly()"
+          (click)="favoritesOnly.set(!favoritesOnly())"
+          [attr.aria-pressed]="favoritesOnly()"
+        >
+          <ui-icon [icon]="favoritesOnly() ? faStarSolid : faStarRegular" size="sm" />
+          Favoris
+        </button>
         <ui-view-toggle [mode]="viewMode()" (modeChange)="viewMode.set($event)" />
       </ui-filter-bar>
 
@@ -143,11 +160,14 @@ type PendingDelete =
               [showStatus]="true"
               [currentUserId]="currentUserId()"
               [isAdmin]="isAdmin()"
+              [showPersonalActions]="true"
               (edit)="editProduct($event)"
               (delete)="requestDeleteProduct($event)"
               (approve)="approveProduct($event)"
               (reject)="requestReject($event)"
               (archive)="archiveProduct($event)"
+              (toggleFavorite)="toggleFavorite($event)"
+              (editNote)="openNote($event)"
             />
           } @else {
             <ui-nutrition-product-grid
@@ -157,11 +177,14 @@ type PendingDelete =
               [showStatus]="true"
               [currentUserId]="currentUserId()"
               [isAdmin]="isAdmin()"
+              [showPersonalActions]="true"
               (edit)="editProduct($event)"
               (delete)="requestDeleteProduct($event)"
               (approve)="approveProduct($event)"
               (reject)="requestReject($event)"
               (archive)="archiveProduct($event)"
+              (toggleFavorite)="toggleFavorite($event)"
+              (editNote)="openNote($event)"
             />
           }
         }
@@ -357,6 +380,40 @@ type PendingDelete =
         </ui-button>
       </div>
     </ui-modal>
+
+    <!-- Modale : note personnelle (privée) sur un produit -->
+    <ui-modal [open]="!!noteEditing()" title="Ma note sur ce produit" (close)="cancelNote()">
+      @if (noteEditing(); as product) {
+        <div class="space-y-3">
+          <p class="text-sm text-slate-600">
+            Note privée sur
+            <strong class="font-semibold text-slate-900">« {{ product.name }} »</strong>, visible de
+            vous seul. Idéal pour consigner un ressenti (ex : « testé après 8 h, troubles digestifs »).
+          </p>
+          <textarea
+            [ngModel]="noteDraft()"
+            (ngModelChange)="noteDraft.set($event)"
+            rows="4"
+            [class]="searchClass"
+            placeholder="Votre retour d'expérience sur ce produit…"
+            aria-label="Note personnelle sur le produit"
+          ></textarea>
+        </div>
+      }
+      <div modalFooter class="flex items-center justify-between gap-3">
+        <span>
+          @if (noteEditing()?.comment) {
+            <ui-button color="danger" variant="ghost" [icon]="faTrash" [disabled]="savingNote()" (clicked)="deleteNote()">
+              Supprimer
+            </ui-button>
+          }
+        </span>
+        <span class="flex items-center gap-3">
+          <ui-button color="default" variant="ghost" [disabled]="savingNote()" (clicked)="cancelNote()">Annuler</ui-button>
+          <ui-button [icon]="faCheck" [disabled]="savingNote()" (clicked)="saveNote()">Enregistrer</ui-button>
+        </span>
+      </div>
+    </ui-modal>
   `,
 })
 export class NutritionProductsPage {
@@ -376,6 +433,8 @@ export class NutritionProductsPage {
   readonly faAppleWhole = faAppleWhole;
   readonly faTags = faTags;
   readonly faXmark = faXmark;
+  readonly faStarSolid = faStarSolid;
+  readonly faStarRegular = faStarRegular;
 
   protected readonly searchClass =
     'w-full rounded-lg border border-slate-300 bg-white py-2 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
@@ -390,6 +449,8 @@ export class NutritionProductsPage {
   protected readonly search = signal('');
   protected readonly categoryFilter = signal('');
   protected readonly viewMode = signal<ProductViewMode>('table');
+  /** Ne montrer que les produits favoris de l'utilisateur. */
+  protected readonly favoritesOnly = signal(false);
 
   /** Filtre de statut de modération (file admin). '' = tous. */
   protected readonly statusFilter = signal<ProductModerationStatus | ''>('');
@@ -419,20 +480,27 @@ export class NutritionProductsPage {
   protected readonly rejectReason = signal('');
   protected readonly moderating = signal(false);
 
+  /** Produit dont la note personnelle est en cours d'édition (modale). */
+  protected readonly noteEditing = signal<NutritionProduct | null>(null);
+  protected readonly noteDraft = signal('');
+  protected readonly savingNote = signal(false);
+
   /** Produits filtrés par catégorie, recherche texte et statut (admin). */
   protected readonly filteredProducts = computed(() => {
     const list = this.products() ?? [];
     const term = this.search().trim().toLowerCase();
     const category = this.categoryFilter();
     const status = this.statusFilter();
+    const favoritesOnly = this.favoritesOnly();
     return list.filter((product) => {
       const matchesCategory = !category || product.categoryId === category;
       const matchesStatus = !status || product.moderationStatus === status;
+      const matchesFavorite = !favoritesOnly || product.favorite === true;
       const matchesTerm =
         !term ||
         product.name.toLowerCase().includes(term) ||
         product.brand.toLowerCase().includes(term);
-      return matchesCategory && matchesStatus && matchesTerm;
+      return matchesCategory && matchesStatus && matchesFavorite && matchesTerm;
     });
   });
 
@@ -550,6 +618,78 @@ export class NutritionProductsPage {
       error: () => {
         this.moderating.set(false);
         this.toast.error('Impossible de refuser le produit. Veuillez réessayer.');
+      },
+    });
+  }
+
+  // --- Données personnelles (favori + note privée) ---
+
+  /** Applique des changements personnels à un produit dans l'état local. */
+  private patchProduct(id: string, changes: Partial<NutritionProduct>): void {
+    const list = this.products();
+    if (!list) return;
+    this.products.set(list.map((p) => (p.id === id ? { ...p, ...changes } : p)));
+  }
+
+  /** Ajoute/retire un produit des favoris de l'utilisateur. */
+  toggleFavorite(product: NutritionProduct): void {
+    const next = !product.favorite;
+    // Mise à jour optimiste : on reflète immédiatement l'action.
+    this.patchProduct(product.id, { favorite: next });
+    this.service.setProductFeedback(product.id, { favorite: next }).subscribe({
+      error: () => {
+        this.patchProduct(product.id, { favorite: !next });
+        this.toast.error('Impossible de mettre à jour vos favoris. Veuillez réessayer.');
+      },
+    });
+  }
+
+  /** Ouvre la modale d'édition de la note personnelle. */
+  openNote(product: NutritionProduct): void {
+    this.noteDraft.set(product.comment ?? '');
+    this.noteEditing.set(product);
+  }
+
+  cancelNote(): void {
+    this.noteEditing.set(null);
+    this.noteDraft.set('');
+  }
+
+  /** Enregistre la note personnelle sur le produit courant. */
+  saveNote(): void {
+    const product = this.noteEditing();
+    if (!product) return;
+    const comment = this.noteDraft().trim();
+    this.savingNote.set(true);
+    this.service.setProductFeedback(product.id, { comment }).subscribe({
+      next: (note) => {
+        this.savingNote.set(false);
+        this.patchProduct(product.id, { comment: note.comment, favorite: note.favorite });
+        this.cancelNote();
+        this.toast.success('Note enregistrée.');
+      },
+      error: () => {
+        this.savingNote.set(false);
+        this.toast.error("Impossible d'enregistrer la note. Veuillez réessayer.");
+      },
+    });
+  }
+
+  /** Supprime la note personnelle du produit courant (le favori est conservé). */
+  deleteNote(): void {
+    const product = this.noteEditing();
+    if (!product) return;
+    this.savingNote.set(true);
+    this.service.setProductFeedback(product.id, { comment: '' }).subscribe({
+      next: (note) => {
+        this.savingNote.set(false);
+        this.patchProduct(product.id, { comment: note.comment, favorite: note.favorite });
+        this.cancelNote();
+        this.toast.success('Note supprimée.');
+      },
+      error: () => {
+        this.savingNote.set(false);
+        this.toast.error('Impossible de supprimer la note. Veuillez réessayer.');
       },
     });
   }

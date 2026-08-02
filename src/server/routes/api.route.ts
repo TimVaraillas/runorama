@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { connectToDatabase } from '../db/mongoose';
 import { NutritionCategoryModel } from '../models/nutrition-category.schema';
 import { NutritionProductModel } from '../models/nutrition-product.schema';
+import { NutritionProductFeedbackModel } from '../models/nutrition-product-feedback.schema';
 import { NutritionEventModel } from '../models/nutrition-event.schema';
 import { UserModel } from '../models/user.schema';
 import { requireAdmin, requireAuth } from '../auth/auth.middleware';
@@ -292,7 +293,38 @@ export function createApiRouter(): Router {
       query.populate('ownerId', 'firstName lastName email');
     }
     const products = await query.sort({ brand: 1, name: 1 }).lean();
-    return res.json(serializeMany(products));
+    const serialized = serializeMany(products);
+
+    // Hydrate chaque produit avec les données personnelles (privées) de
+    // l'utilisateur courant : favori et note libre. Une seule requête, indexée
+    // par `{ userId, productId }`.
+    const productIds = serialized
+      .map((p) => p?.['id'])
+      .filter((id): id is string => typeof id === 'string');
+    if (productIds.length > 0) {
+      const feedbacks = await NutritionProductFeedbackModel.find({
+        userId: req.user!.id,
+        productId: { $in: productIds },
+      })
+        .select('productId favorite comment')
+        .lean();
+      const byProduct = new Map<string, { favorite: boolean; comment: string }>();
+      for (const feedback of feedbacks) {
+        byProduct.set(String((feedback as { productId: unknown }).productId), {
+          favorite: Boolean((feedback as { favorite?: boolean }).favorite),
+          comment: (feedback as { comment?: string }).comment ?? '',
+        });
+      }
+      for (const product of serialized) {
+        if (!product) {
+          continue;
+        }
+        const personal = byProduct.get(String(product['id']));
+        product['favorite'] = personal?.favorite ?? false;
+        product['comment'] = personal?.comment ?? '';
+      }
+    }
+    return res.json(serialized);
   });
 
   // Création d'un produit. Ouverte à tout utilisateur authentifié :
@@ -433,6 +465,71 @@ export function createApiRouter(): Router {
     return res.json(product.toJSON());
   });
 
+  // ----------------------------------------------------------------------
+  // Nutrition — Données personnelles sur un produit (favori, note, évaluations)
+  // ----------------------------------------------------------------------
+  // Ces routes gèrent le retour personnel (privé) de l'utilisateur courant à
+  // propos d'un produit qu'il peut voir. Elles n'altèrent jamais le produit
+  // partagé et sont conçues pour accueillir de futures évaluations.
+
+  /**
+   * Vérifie qu'un produit est visible par l'utilisateur courant : catalogue
+   * public validé, ou produit lui appartenant (ou administrateur).
+   */
+  async function findVisibleProduct(req: Request): Promise<{ _id: unknown } | null> {
+    const isAdmin = req.user!.role === 'admin';
+    const filter: Record<string, unknown> = { _id: req.params['id'] };
+    if (!isAdmin) {
+      filter['$or'] = [
+        { visibility: 'public', moderationStatus: 'approved' },
+        { ownerId: req.user!.id },
+      ];
+    }
+    return NutritionProductModel.findOne(filter).select('_id').lean();
+  }
+
+  // Ajoute/met à jour le favori et/ou la note personnelle sur un produit.
+  router.put('/nutrition/products/:id/feedback', async (req: Request, res: Response) => {
+    const product = await findVisibleProduct(req);
+    if (!product) {
+      return res.status(404).json({ message: 'Produit introuvable' });
+    }
+
+    const update: Record<string, unknown> = {};
+    if (typeof req.body?.favorite === 'boolean') {
+      update['favorite'] = req.body.favorite;
+    }
+    if (typeof req.body?.comment === 'string') {
+      update['comment'] = req.body.comment.trim();
+    }
+    if (Object.keys(update).length === 0) {
+      return res.status(400).json({ message: 'Aucune donnée à enregistrer (favorite/comment).' });
+    }
+
+    const feedback = await NutritionProductFeedbackModel.findOneAndUpdate(
+      { userId: req.user!.id, productId: req.params['id'] },
+      { $set: update, $setOnInsert: { userId: req.user!.id, productId: req.params['id'] } },
+      { new: true, upsert: true, setDefaultsOnInsert: true },
+    ).lean();
+
+    return res.json({
+      favorite: Boolean((feedback as { favorite?: boolean }).favorite),
+      comment: (feedback as { comment?: string }).comment ?? '',
+    });
+  });
+
+  // Retire le favori et la note personnelle d'un produit (pour l'utilisateur).
+  router.delete('/nutrition/products/:id/feedback', async (req: Request, res: Response) => {
+    await NutritionProductFeedbackModel.deleteOne({
+      userId: req.user!.id,
+      productId: req.params['id'],
+    });
+    return res.status(204).end();
+  });
+
+  // ----------------------------------------------------------------------
+  // Nutrition — Suppression d'un produit
+  // ----------------------------------------------------------------------
   // Suppression d'un produit. Réservée à l'administrateur ou au propriétaire.
   // Refusée si le produit est référencé par une stratégie (préférer l'archivage).
   router.delete('/nutrition/products/:id', async (req: Request, res: Response) => {
@@ -456,6 +553,8 @@ export function createApiRouter(): Router {
     }
 
     await product.deleteOne();
+    // Nettoyage des données personnelles associées (favoris/notes/évaluations).
+    await NutritionProductFeedbackModel.deleteMany({ productId: product._id });
     return res.status(204).end();
   });
 

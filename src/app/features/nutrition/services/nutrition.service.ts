@@ -73,6 +73,27 @@ export class NutritionService {
     return this.http.post<NutritionProduct>(`${this.productsUrl}/${id}/archive`, {});
   }
 
+  // --- Données personnelles (favori, note, évaluations) ---
+
+  /**
+   * Enregistre le favori et/ou la note personnelle de l'utilisateur courant sur
+   * un produit (upsert). Retourne l'état à jour de ces données privées.
+   */
+  setProductFeedback(
+    id: string,
+    payload: { favorite?: boolean; comment?: string },
+  ): Observable<{ favorite: boolean; comment: string }> {
+    return this.http.put<{ favorite: boolean; comment: string }>(
+      `${this.productsUrl}/${id}/feedback`,
+      payload,
+    );
+  }
+
+  /** Retire le favori et la note personnelle de l'utilisateur sur un produit. */
+  removeProductFeedback(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.productsUrl}/${id}/feedback`);
+  }
+
   // --- Évènements / stratégies alimentaires ---
 
   listEvents(): Observable<NutritionEvent[]> {

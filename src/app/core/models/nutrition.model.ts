@@ -70,6 +70,14 @@ export interface NutritionProduct {
   rejectionReason?: string;
   /** Date de la dernière décision de modération (ISO). */
   reviewedAt?: string;
+  /**
+   * Données personnelles (privées) de l'utilisateur courant sur ce produit,
+   * hydratées par l'API. Indépendantes du produit partagé.
+   */
+  /** Produit épinglé comme favori par l'utilisateur courant. */
+  favorite?: boolean;
+  /** Note personnelle libre de l'utilisateur courant (retour d'expérience). */
+  comment?: string;
   createdAt?: string;
   updatedAt?: string;
 }

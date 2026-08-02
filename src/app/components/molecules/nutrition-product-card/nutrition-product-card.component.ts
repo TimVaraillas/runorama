@@ -6,6 +6,8 @@ import { NutrientStatComponent } from '../../atoms/nutrient-stat/nutrient-stat.c
 import type { NutritionProduct } from '../../../core/models';
 import { productCapabilities } from '../../../core/utils/product-moderation.util';
 import { faAppleWhole, faBoxArchive, faCheck, faPen, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faStar as faStarSolid, faNoteSticky as faNoteSolid } from '@fortawesome/free-solid-svg-icons';
+import { faStar as faStarRegular, faNoteSticky as faNoteRegular } from '@fortawesome/free-regular-svg-icons';
 
 /**
  * Molecule : carte d'un produit nutritionnel (affichage en grille).
@@ -46,6 +48,34 @@ import { faAppleWhole, faBoxArchive, faCheck, faPen, faTrash, faXmark } from '@f
           </div>
         </div>
         <div class="flex shrink-0 items-center gap-1">
+          @if (showPersonalActions()) {
+            <button
+              type="button"
+              class="grid h-8 w-8 place-items-center rounded-lg transition-colors"
+              [class.text-amber-400]="product().favorite"
+              [class.hover:bg-amber-50]="true"
+              [class.text-slate-300]="!product().favorite"
+              [class.hover:text-amber-400]="!product().favorite"
+              (click)="toggleFavorite.emit(product())"
+              [attr.aria-pressed]="product().favorite"
+              [attr.aria-label]="product().favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+              [title]="product().favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+            >
+              <ui-icon [icon]="product().favorite ? faStarSolid : faStarRegular" size="sm" />
+            </button>
+            <button
+              type="button"
+              class="grid h-8 w-8 place-items-center rounded-lg transition-colors hover:bg-brand-50"
+              [class.text-brand-500]="product().comment"
+              [class.text-slate-300]="!product().comment"
+              [class.hover:text-brand-600]="true"
+              (click)="editNote.emit(product())"
+              [attr.aria-label]="product().comment ? 'Modifier ma note' : 'Ajouter une note'"
+              [title]="product().comment ? 'Modifier ma note' : 'Ajouter une note'"
+            >
+              <ui-icon [icon]="product().comment ? faNoteSolid : faNoteRegular" size="sm" />
+            </button>
+          }
           @if (caps().canApprove) {
             <button
               type="button"
@@ -110,6 +140,13 @@ import { faAppleWhole, faBoxArchive, faCheck, faPen, faTrash, faXmark } from '@f
         <ui-nutrient-stat label="Protéines" [value]="product().proteins" unit="g" />
         <ui-nutrient-stat label="Sodium" [value]="product().sodium" unit="mg" />
       </div>
+
+      @if (showPersonalActions() && product().comment) {
+        <div class="flex items-start gap-2 border-t border-slate-100 bg-amber-50/40 px-4 py-3">
+          <ui-icon [icon]="faNoteSolid" size="sm" class="mt-0.5 shrink-0 text-amber-400" />
+          <p class="min-w-0 whitespace-pre-line text-xs leading-relaxed text-slate-600">{{ product().comment }}</p>
+        </div>
+      }
     </article>
   `,
 })
@@ -126,6 +163,8 @@ export class NutritionProductCardComponent {
   readonly currentUserId = input<string | null>(null);
   /** Vrai si l'utilisateur courant est administrateur. */
   readonly isAdmin = input(false);
+  /** Affiche les actions personnelles (favori + note) et l'aperçu de la note. */
+  readonly showPersonalActions = input(false);
 
   readonly edit = output<NutritionProduct>();
   readonly delete = output<NutritionProduct>();
@@ -135,6 +174,10 @@ export class NutritionProductCardComponent {
   readonly reject = output<NutritionProduct>();
   /** Archivage d'un produit (admin). */
   readonly archive = output<NutritionProduct>();
+  /** Bascule le produit dans les favoris de l'utilisateur. */
+  readonly toggleFavorite = output<NutritionProduct>();
+  /** Demande d'édition de la note personnelle. */
+  readonly editNote = output<NutritionProduct>();
 
   protected readonly faAppleWhole = faAppleWhole;
   protected readonly faPen = faPen;
@@ -142,6 +185,10 @@ export class NutritionProductCardComponent {
   protected readonly faCheck = faCheck;
   protected readonly faXmark = faXmark;
   protected readonly faBoxArchive = faBoxArchive;
+  protected readonly faStarSolid = faStarSolid;
+  protected readonly faStarRegular = faStarRegular;
+  protected readonly faNoteSolid = faNoteSolid;
+  protected readonly faNoteRegular = faNoteRegular;
 
   /** Capacités d'action sur le produit courant. */
   protected readonly caps = computed(() => {
