@@ -2,6 +2,7 @@ import type { NutrientGoalKey, NutritionEvent, NutritionProduct } from '../model
 import { enabledGoals, type ResolvedGoal } from './nutrition-goals.util';
 import { resolveIntakeProduct } from './water.util';
 import { formatMinutes } from './plan-layout.util';
+import { buildInventoryLocations } from './inventory-allocation.util';
 
 /** Échappe une chaîne pour une insertion sûre dans du HTML. */
 function escapeHtml(value: string): string {
@@ -163,6 +164,77 @@ function buildPlan(
   return { rows, recap };
 }
 
+/** Une ligne de sac logistique : libellé, sous-titre (marque) et quantité. */
+interface LogisticEntry {
+  label: string;
+  sub: string;
+  quantity: number;
+}
+
+/** Contenu logistique d'un emplacement (départ ou ravitaillement). */
+interface LogisticBag {
+  name: string;
+  minute: number | null;
+  via: string;
+  pickup: LogisticEntry[];
+  drop: LogisticEntry[];
+}
+
+/**
+ * Compose la logistique : le sac de départ (produits à emporter) puis, pour
+ * chaque ravitaillement avec logistique (assistance / drop bag), le contenu à
+ * récupérer et, le cas échéant, à déposer (produits du catalogue + matériel).
+ */
+function buildLogistics(event: NutritionEvent, map: Map<string, NutritionProduct>): LogisticBag[] {
+  const viaLabel = (via?: string): string =>
+    via === 'ASSISTANCE' ? 'Assistance' : via === 'DROP_BAG' ? 'Drop bag' : '';
+
+  const bags: LogisticBag[] = [];
+
+  // Sac de départ : produits effectivement portés dès le départ.
+  const startLocation = buildInventoryLocations(event, map).find((l) => l.kind === 'start');
+  const startPickup: LogisticEntry[] = (startLocation?.items ?? []).map((item) => ({
+    label: item.product.name,
+    sub: item.product.brand,
+    quantity: item.quantity,
+  }));
+  if (startPickup.length > 0) {
+    bags.push({ name: 'Départ', minute: 0, via: '', pickup: startPickup, drop: [] });
+  }
+
+  // Sacs des ravitaillements avec logistique, triés par temps de passage.
+  const stations = (event.aidStations ?? [])
+    .filter((station) => station.logisticVia != null)
+    .slice()
+    .sort((a, b) => a.estimatedDurationFromStart - b.estimatedDurationFromStart);
+
+  const mapLogisticItem = (item: {
+    kind: string;
+    productId?: string;
+    product?: NutritionProduct;
+    label?: string;
+    quantity: number;
+  }): LogisticEntry => {
+    if (item.kind === 'product' && item.productId) {
+      const product = item.product ?? map.get(item.productId);
+      return { label: product?.name ?? 'Produit', sub: product?.brand ?? '', quantity: item.quantity };
+    }
+    return { label: item.label ?? 'Matériel', sub: '', quantity: item.quantity };
+  };
+
+  for (const station of stations) {
+    bags.push({
+      name: station.name,
+      minute: station.estimatedDurationFromStart,
+      via: viaLabel(station.logisticVia),
+      pickup: (station.pickup ?? []).map(mapLogisticItem),
+      drop: (station.drop ?? []).map(mapLogisticItem),
+    });
+  }
+
+  return bags;
+}
+
 /**
  * Construit un document HTML autonome et imprimable (destiné à « Enregistrer
  * en PDF ») récapitulant une stratégie alimentaire : inventaire des produits
@@ -177,6 +249,7 @@ export function buildStrategyPdfHtml(
   const goals = enabledGoals(event);
   const hourlyGoals = goals.filter((g) => g.mode === 'hourly');
   const { rows: planRows, recap } = buildPlan(event, map, hourlyGoals);
+  const logisticBags = buildLogistics(event, map);
   const total = event.targetTimeMinutes ?? 0;
 
   const meta: string[] = [];
@@ -255,6 +328,61 @@ export function buildStrategyPdfHtml(
     })
     .join('');
 
+  const bagEntries = (entries: LogisticEntry[]): string =>
+    entries
+      .map(
+        (e) => `
+        <tr>
+          <td>${escapeHtml(e.label)}${
+            e.sub ? `<span class="muted"> · ${escapeHtml(e.sub)}</span>` : ''
+          }</td>
+          <td class="right">${num(e.quantity)}</td>
+        </tr>`,
+      )
+      .join('');
+
+  const logisticsSection =
+    logisticBags.length > 0
+      ? `
+      <section>
+        <h2>Logistique</h2>
+        ${logisticBags
+          .map((bag) => {
+            const subtitle = [bag.minute != null ? formatMinutes(bag.minute) : '', bag.via]
+              .filter(Boolean)
+              .join(' · ');
+            const pickupTable =
+              bag.pickup.length > 0
+                ? `
+              <h3>${bag.name === 'Départ' ? 'À emporter' : 'À récupérer'}</h3>
+              <table>
+                <thead><tr><th>Élément</th><th class="right">Qté</th></tr></thead>
+                <tbody>${bagEntries(bag.pickup)}</tbody>
+              </table>`
+                : `<p class="muted">Rien à récupérer.</p>`;
+            const dropTable =
+              bag.drop.length > 0
+                ? `
+              <h3>À déposer</h3>
+              <table>
+                <thead><tr><th>Élément</th><th class="right">Qté</th></tr></thead>
+                <tbody>${bagEntries(bag.drop)}</tbody>
+              </table>`
+                : '';
+            return `
+          <div class="bag">
+            <div class="bag-head">
+              <span class="bag-name">${escapeHtml(bag.name)}</span>
+              ${subtitle ? `<span class="muted"> · ${escapeHtml(subtitle)}</span>` : ''}
+            </div>
+            ${pickupTable}
+            ${dropTable}
+          </div>`;
+          })
+          .join('')}
+      </section>`
+      : '';
+
   const planSection =
     total > 0
       ? `
@@ -321,6 +449,9 @@ export function buildStrategyPdfHtml(
     .right { text-align: right; }
     .center { text-align: center; }
     .muted { color: #94a3b8; font-weight: 400; }
+    .bag { break-inside: avoid; margin-top: 14px; padding-top: 4px; }
+    .bag-head { font-size: 13px; margin-bottom: 2px; }
+    .bag-name { font-weight: 600; color: #0f172a; }
     footer { margin-top: 28px; color: #94a3b8; font-size: 10px; }
     @media print {
       body { margin: 12mm; }
@@ -365,7 +496,7 @@ export function buildStrategyPdfHtml(
       </tfoot>
     </table>
   </section>
-
+  ${logisticsSection}
   ${planSection}
 
   <footer>Généré le ${formatDate(new Date().toISOString().slice(0, 10))} · Runorama</footer>

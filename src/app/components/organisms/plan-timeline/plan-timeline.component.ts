@@ -28,7 +28,7 @@ import type {
   imports: [CdkDropList, CdkDrag, PlanTimelineGutterComponent, PlanTimelineBlockComponent, PlanGhostBlockComponent, PlanAidStationMarkerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'block rounded-2xl bg-white p-5 shadow-sm lg:min-h-0 lg:flex-1 lg:overflow-y-auto',
+    class: 'block rounded-2xl border border-slate-200 bg-white p-5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto',
   },
   template: `
     <div class="flex gap-2">

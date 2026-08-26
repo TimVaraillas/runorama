@@ -25,7 +25,7 @@ import type { PaletteEntry, PlanHourlyRecap, PlanSequenceMinutes } from '../../.
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class:
-      'block divide-y divide-slate-100 overflow-hidden rounded-2xl bg-white shadow-sm lg:h-full lg:overflow-y-auto',
+      'block divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white lg:h-full lg:overflow-y-auto',
   },
   template: `
     <!-- Séquence -->
