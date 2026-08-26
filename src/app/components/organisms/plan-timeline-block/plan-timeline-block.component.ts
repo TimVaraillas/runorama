@@ -44,7 +44,7 @@ import { isWaterProduct } from '../../../core/utils/water.util';
     <!-- Corps déplaçable -->
     <div
       cdkDragHandle
-      class="flex h-full cursor-grab flex-col py-2.5 pl-3 pr-1.5 active:cursor-grabbing"
+      class="flex h-full cursor-grab flex-col justify-center py-2.5 pl-3 pr-1.5 active:cursor-grabbing"
     >
       <div class="flex items-center gap-1.5">
         <div [class]="iconWrapClass()">

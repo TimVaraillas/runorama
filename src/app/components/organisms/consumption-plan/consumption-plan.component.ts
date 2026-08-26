@@ -44,7 +44,7 @@ import {
   earliestAvailableMinute,
 } from '../../../core/utils/product-availability.util';
 
-const PX_PER_SEQUENCE = 25;
+const PX_PER_SEQUENCE = 30;
 const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
 
 /**
