@@ -2,7 +2,11 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { UserMenuComponent } from '../user-menu/user-menu.component';
-import { faPersonRunning, faAppleWhole } from '@fortawesome/free-solid-svg-icons';
+import {
+  faPersonRunning,
+  faBookOpen,
+  faAppleWhole,
+} from '@fortawesome/free-solid-svg-icons';
 
 /**
  * Organism : barre de navigation principale.
@@ -47,6 +51,7 @@ export class HeaderComponent {
   readonly logo = faPersonRunning;
 
   readonly links = [
-    { path: '/nutrition', label: 'Nutrition', icon: faAppleWhole, exact: false },
+    { path: '/nutrition/products', label: 'Bibliothèque de produits', icon: faBookOpen, exact: false },
+    { path: '/nutrition/strategies', label: 'Stratégies de nutrition', icon: faAppleWhole, exact: false },
   ];
 }

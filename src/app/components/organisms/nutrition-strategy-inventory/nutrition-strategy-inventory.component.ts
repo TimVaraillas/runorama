@@ -138,7 +138,7 @@ interface InventoryTotals {
       <!-- Produits emportés, répartis par emplacement (départ + ravitos) -->
       <section class="space-y-3">
         <div class="flex items-center justify-between gap-3">
-          <h2 class="text-md font-semibold text-slate-700">Inventaire par emplacement</h2>
+          <h2 class="text-md font-semibold text-slate-700">Inventaire</h2>
         </div>
 
         <ui-inventory-locations

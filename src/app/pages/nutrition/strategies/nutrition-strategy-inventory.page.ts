@@ -70,7 +70,7 @@ import {
     <section
       [class]="
         activeTab() === 'plan'
-          ? 'lg:flex lg:h-[calc(100vh-243px)] lg:flex-col'
+          ? 'lg:flex lg:h-[calc(100vh-186px)] lg:flex-col'
           : ''
       "
     >
