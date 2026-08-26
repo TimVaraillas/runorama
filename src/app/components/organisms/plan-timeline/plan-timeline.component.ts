@@ -53,6 +53,14 @@ import type {
           ></div>
         }
 
+        <!-- Zone non disponible pour le produit en cours de glissement -->
+        @if (lockedZoneHeight() > 0) {
+          <div
+            class="pointer-events-none absolute inset-x-0 top-0 z-10 bg-[repeating-linear-gradient(135deg,var(--color-slate-200)_0_8px,var(--color-slate-100)_8px_16px)] opacity-70"
+            [style.height.px]="lockedZoneHeight()"
+          ></div>
+        }
+
         <!-- Blocs de prises -->
         @for (intake of intakes(); track intake.id) {
           <!--
@@ -119,6 +127,11 @@ export class PlanTimelineComponent {
   readonly laneCount = input.required<number>();
   /** Vrai pendant qu'un élément est glissé (indice visuel d'empilement). */
   readonly dragging = input(false);
+  /**
+   * Hauteur (px) de la zone non disponible pour le produit en cours de
+   * glissement (0 = aucune restriction à afficher).
+   */
+  readonly lockedZoneHeight = input(0);
   /** Fonction contraignant la position d'un bloc glissé sur la grille. */
   readonly constrainPosition = input.required<PlanConstrainPosition>();
 

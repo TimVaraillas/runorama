@@ -3,6 +3,7 @@ import {
   Component,
   OnDestroy,
   computed,
+  inject,
   input,
   model,
   output,
@@ -12,6 +13,7 @@ import {
 import { CdkDragDrop, CdkDragMove, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { PlanPaletteComponent } from '../plan-palette/plan-palette.component';
 import { PlanTimelineComponent } from '../plan-timeline/plan-timeline.component';
+import { ToastService } from '../../../core/services/toast.service';
 import type {
   DragPayload,
   GhostBlock,
@@ -36,6 +38,11 @@ import {
 import type { DragOverState, ResizePreviewState } from '../../../core/utils/plan-layout.util';
 import { enabledHourlyGoals } from '../../../core/utils/nutrition-goals.util';
 import { WATER_PRODUCT, WATER_PRODUCT_ID } from '../../../core/utils/water.util';
+import {
+  availableQuantityAt,
+  buildAvailabilitySchedules,
+  earliestAvailableMinute,
+} from '../../../core/utils/product-availability.util';
 
 const PX_PER_SEQUENCE = 25;
 const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
@@ -102,6 +109,7 @@ const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
             [trackHeight]="trackHeight()"
             [laneCount]="laneCount()"
             [dragging]="dragging()"
+            [lockedZoneHeight]="lockedZoneHeight()"
             [constrainPosition]="constrainToSequence"
             (timelineDrop)="onTimelineDrop($event)"
             (dragStarted)="dragging.set(true)"
@@ -118,6 +126,8 @@ const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
   `,
 })
 export class ConsumptionPlanComponent implements OnDestroy {
+  private readonly toast = inject(ToastService);
+
   /** Évènement dont on planifie la consommation. */
   readonly event = input.required<NutritionEvent>();
   /** Catalogue des produits (pour résoudre les identifiants). */
@@ -154,6 +164,8 @@ export class ConsumptionPlanComponent implements OnDestroy {
   private readonly resizePreview = signal<ResizePreviewState | null>(null);
   /** Aperçu du créneau survolé pendant un drag (pour la superposition). */
   private readonly dragOverPreview = signal<DragOverState | null>(null);
+  /** Identifiant du produit actuellement glissé (pour la zone verrouillée de la timeline). */
+  private readonly draggedProductId = signal<string | null>(null);
 
   /** Granularité courante (min) : surcharge locale ou valeur de l'évènement. */
   private readonly sequenceOverride = signal<PlanSequenceMinutes | null>(null);
@@ -163,6 +175,54 @@ export class ConsumptionPlanComponent implements OnDestroy {
 
   /** Durée totale du parcours en minutes. */
   protected readonly totalMinutes = computed(() => this.event().targetTimeMinutes ?? 0);
+
+  /**
+   * Planning de disponibilité par produit : instant depuis lequel chaque
+   * quantité devient consommable, selon les affectations « à récupérer » /
+   * « à déposer » des ravitaillements.
+   */
+  private readonly availabilitySchedules = computed(() =>
+    buildAvailabilitySchedules(this.event().items, this.event().aidStations ?? []),
+  );
+
+  /** Quantité déjà placée sur le plan pour un produit, avant (ou à) un instant donné. */
+  private placedQuantityBefore(productId: string, minute: number, excludeIntakeId?: string): number {
+    return (this.event().intakes ?? [])
+      .filter(
+        (i) =>
+          i.kind !== 'water' &&
+          i.productId === productId &&
+          i.id !== excludeIntakeId &&
+          i.startMinute <= minute,
+      )
+      .reduce((sum, i) => sum + i.quantity, 0);
+  }
+
+  /**
+   * Instant (minutes) à partir duquel la timeline devient une zone valide
+   * pour le produit en cours de glissement, à titre indicatif (approximation
+   * prudente basée sur le nombre d'unités déjà placées). La validation
+   * définitive a lieu au dépôt, dans {@link onTimelineDrop}.
+   */
+  protected readonly lockedZoneMinute = computed<number | null>(() => {
+    const productId = this.draggedProductId();
+    if (!productId || productId === WATER_PRODUCT_ID) return null;
+    const schedule = this.availabilitySchedules().get(productId);
+    if (!schedule) return null;
+    const alreadyPlaced = (this.event().intakes ?? [])
+      .filter((i) => i.kind !== 'water' && i.productId === productId)
+      .reduce((sum, i) => sum + i.quantity, 0);
+    const unlock = earliestAvailableMinute(schedule, alreadyPlaced + 1);
+    return unlock && unlock.minute > 0 ? unlock.minute : null;
+  });
+
+  /** Hauteur (px) de la zone verrouillée affichée sur la timeline pendant le drag. */
+  protected readonly lockedZoneHeight = computed(() => {
+    const minute = this.lockedZoneMinute();
+    const total = this.totalMinutes();
+    if (!minute || total <= 0) return 0;
+    return (minute / total) * this.trackHeight();
+  });
 
   /** Table produit par identifiant (catalogue + produits dénormalisés). */
   private readonly productMap = computed(() => {
@@ -212,12 +272,31 @@ export class ConsumptionPlanComponent implements OnDestroy {
   protected readonly paletteEntries = computed<PaletteEntry[]>(() => {
     const map = this.productMap();
     const placed = this.placedByProduct();
+    const schedules = this.availabilitySchedules();
+    const intakes = this.event().intakes ?? [];
     const inventory = this.event()
-      .items.map((item) => {
+      .items.map((item): PaletteEntry | null => {
         const product = item.product ?? map.get(item.productId);
         if (!product) return null;
         const carried = item.quantity;
-        return { product, carried, remaining: carried - (placed.get(item.productId) ?? 0) };
+        const schedule = schedules.get(item.productId);
+        const remaining = carried - (placed.get(item.productId) ?? 0);
+        const availableFromStart = schedule?.fromStart ?? carried;
+        // Prochain ravito qui fournit ce produit (premier déblocage au-delà du stock initial).
+        const nextUnlock = earliestAvailableMinute(schedule, availableFromStart + 1);
+        // Verrouillé une fois le stock disponible avant ce ravito épuisé par
+        // les prises déjà placées avant son passage.
+        const usedBeforeUnlock = nextUnlock
+          ? intakes
+              .filter(
+                (i) =>
+                  i.kind !== 'water' && i.productId === item.productId && i.startMinute < nextUnlock.minute,
+              )
+              .reduce((sum, i) => sum + i.quantity, 0)
+          : 0;
+        const lockedNow = remaining > 0 && !!nextUnlock && usedBeforeUnlock >= availableFromStart;
+        const unlock = lockedNow ? nextUnlock : null;
+        return { product, carried, remaining, lockedNow, unlock };
       })
       .filter((entry): entry is PaletteEntry => entry !== null);
     // L'eau est toujours disponible, en quantité illimitée, en tête de palette.
@@ -293,6 +372,18 @@ export class ConsumptionPlanComponent implements OnDestroy {
       const duration = seq;
       const start = this.clampStart(minute, duration);
       const isWater = payload.productId === WATER_PRODUCT_ID;
+
+      if (!isWater) {
+        const schedule = this.availabilitySchedules().get(payload.productId);
+        const usedBefore = this.placedQuantityBefore(payload.productId, start);
+        if (availableQuantityAt(schedule, start) - usedBefore < 1) {
+          this.toast.warning(
+            `${entry.product.name} n'est pas encore disponible à cet instant : il doit d'abord être récupéré sur un ravitaillement.`,
+          );
+          return;
+        }
+      }
+
       const intake: NutritionIntake = isWater
         ? {
             id: this.newId(),
@@ -313,13 +404,25 @@ export class ConsumptionPlanComponent implements OnDestroy {
       // On applique la position prévisualisée (WYSIWYG) plutôt que de
       // recalculer depuis le pointeur : ce que l'utilisateur voit tombe.
       const preview = this.dragOverPreview();
-      this.updateIntake(payload.intakeId, (intake) => ({
-        ...intake,
-        startMinute:
-          preview && preview.excludeId === payload.intakeId
-            ? preview.startMinute
-            : this.clampStart(minute, intake.durationMinutes),
-      }));
+      const current = (this.event().intakes ?? []).find((i) => i.id === payload.intakeId);
+      if (!current) return;
+      const start =
+        preview && preview.excludeId === payload.intakeId
+          ? preview.startMinute
+          : this.clampStart(minute, current.durationMinutes);
+
+      if (current.kind !== 'water' && current.productId) {
+        const schedule = this.availabilitySchedules().get(current.productId);
+        const usedBefore = this.placedQuantityBefore(current.productId, start, current.id);
+        if (availableQuantityAt(schedule, start) - usedBefore < current.quantity) {
+          this.toast.warning(
+            `Ce produit n'est pas encore disponible à cet instant : il doit d'abord être récupéré sur un ravitaillement.`,
+          );
+          return;
+        }
+      }
+
+      this.updateIntake(payload.intakeId, (intake) => ({ ...intake, startMinute: start }));
     }
   }
 
@@ -371,7 +474,9 @@ export class ConsumptionPlanComponent implements OnDestroy {
   /** Met à jour l'aperçu du créneau survolé pendant un drag. */
   onDragMoved(event: CdkDragMove): void {
     const { x, y } = event.pointerPosition;
-    this.lastDrag = { x, y, payload: event.source.data as DragPayload };
+    const payload = event.source.data as DragPayload;
+    this.lastDrag = { x, y, payload };
+    this.draggedProductId.set(payload.kind === 'product' ? payload.productId : null);
     this.updateAutoScroll(y);
     this.refreshDragPreview();
   }
@@ -414,6 +519,7 @@ export class ConsumptionPlanComponent implements OnDestroy {
   onDragEnded(): void {
     this.dragging.set(false);
     this.dragOverPreview.set(null);
+    this.draggedProductId.set(null);
     this.stopAutoScroll();
     this.lastDrag = null;
   }

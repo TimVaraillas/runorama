@@ -16,6 +16,10 @@ export interface PaletteEntry {
   remaining: number;
   /** Vrai pour un élément toujours disponible en quantité illimitée (eau). */
   unlimited?: boolean;
+  /** Vrai si aucune unité n'est disponible dès le départ (attend un ravitaillement). */
+  lockedNow?: boolean;
+  /** Premier instant (minutes) et ravito à partir desquels une unité se débloque. */
+  unlock?: { minute: number; stationName: string } | null;
 }
 
 /** Prise résolue (produit inclus) et positionnée sur la timeline. */

@@ -63,6 +63,8 @@ import type { PaletteEntry, PlanHourlyRecap, PlanSequenceMinutes } from '../../.
             [carried]="entry.carried"
             [remaining]="entry.remaining"
             [unlimited]="entry.unlimited ?? false"
+            [lockedNow]="entry.lockedNow ?? false"
+            [unlock]="entry.unlock ?? null"
           />
         }
       </div>

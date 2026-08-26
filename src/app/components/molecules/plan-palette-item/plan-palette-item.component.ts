@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { IconComponent } from '../../atoms/icon/icon.component';
-import { faAppleWhole, faGripVertical, faDroplet } from '@fortawesome/free-solid-svg-icons';
+import { TooltipComponent } from '../../atoms/tooltip/tooltip.component';
+import { faAppleWhole, faGripVertical, faDroplet, faLock } from '@fortawesome/free-solid-svg-icons';
 import type { NutritionProduct } from '../../../core/models';
 import { isWaterProduct } from '../../../core/utils/water.util';
+import { formatMinutes } from '../../../core/utils/plan-layout.util';
 
 /**
  * Molecule : vignette d'un produit dans la palette du plan de consommation.
@@ -13,7 +15,7 @@ import { isWaterProduct } from '../../../core/utils/water.util';
 @Component({
   selector: 'ui-plan-palette-item',
   standalone: true,
-  imports: [IconComponent],
+  imports: [IconComponent, TooltipComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
@@ -35,6 +37,11 @@ import { isWaterProduct } from '../../../core/utils/water.util';
           {{ isWater() ? subtitle() : product().brand }}
         </p>
       </div>
+      @if (lockedNow()) {
+        <ui-tooltip [text]="unlockLabel()" position="top" escapeOverflow>
+          <ui-icon [icon]="faLock" size="sm" class="text-amber-500" />
+        </ui-tooltip>
+      }
       <span [class]="badgeClass()">
         @if (unlimited()) {
           &infin;
@@ -54,10 +61,22 @@ export class PlanPaletteItemComponent {
   readonly remaining = input.required<number>();
   /** Élément toujours disponible en quantité illimitée (eau). */
   readonly unlimited = input(false);
+  /** Vrai si aucune unité n'est disponible dès le départ (attend un ravitaillement). */
+  readonly lockedNow = input(false);
+  /** Premier instant et ravito à partir desquels une unité se débloque. */
+  readonly unlock = input<{ minute: number; stationName: string } | null>(null);
 
   protected readonly faAppleWhole = faAppleWhole;
   protected readonly faGripVertical = faGripVertical;
   protected readonly faDroplet = faDroplet;
+  protected readonly faLock = faLock;
+
+  /** Libellé du déblocage, affiché en tooltip sur le cadenas. */
+  protected readonly unlockLabel = computed(() => {
+    const unlock = this.unlock();
+    if (!unlock) return 'Non affecté à un ravitaillement.';
+    return `Disponible à partir de ${unlock.stationName} (${formatMinutes(unlock.minute)})`;
+  });
 
   /** Vrai si l'élément représente le produit virtuel « Eau ». */
   protected readonly isWater = computed(() => isWaterProduct(this.product()));

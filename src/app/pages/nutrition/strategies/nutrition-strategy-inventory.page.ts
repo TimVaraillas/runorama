@@ -25,6 +25,7 @@ import type {
   PlanSequenceMinutes,
 } from '../../../core/models';
 import { newAidStationId } from '../../../core/utils/aid-station.util';
+import { pruneUnavailableIntakes } from '../../../core/utils/product-availability.util';
 import {
   faArrowLeft,
   faCompress,
@@ -459,10 +460,24 @@ export class NutritionStrategyInventoryPage implements OnInit {
 
   /** Persiste la liste des ravitaillements et met à jour l'état local. */
   private persistAidStations(eventId: string, aidStations: AidStation[], successMessage: string): void {
-    this.service.updateEvent(eventId, { aidStations }).subscribe({
+    const event = this.event();
+    const productMap = new Map(this.products().map((p) => [p.id, p]));
+    const { intakes, removedProductNames } = pruneUnavailableIntakes(
+      event?.intakes ?? [],
+      event?.items ?? [],
+      aidStations,
+      productMap,
+    );
+
+    this.service.updateEvent(eventId, { aidStations, intakes }).subscribe({
       next: (updated) => {
         this.event.set(updated);
         this.toast.success(successMessage);
+        if (removedProductNames.length > 0) {
+          this.toast.warning(
+            `Retirés du plan de consommation (produit non disponible à cet instant) : ${removedProductNames.join(', ')}.`,
+          );
+        }
       },
       error: () =>
         this.toast.error("Impossible d'enregistrer le ravitaillement. Veuillez réessayer."),
