@@ -26,6 +26,7 @@ import type {
 } from '../../../core/models';
 import { newAidStationId } from '../../../core/utils/aid-station.util';
 import { pruneUnavailableIntakes } from '../../../core/utils/product-availability.util';
+import type { AllocationResult } from '../../../core/utils/inventory-allocation.util';
 import {
   faArrowLeft,
   faCompress,
@@ -142,6 +143,7 @@ import {
             (applySelection)="applySelection($event)"
             (setQuantity)="setQuantity($event)"
             (remove)="removeProduct($event)"
+            (allocationChange)="onAllocationChange($event)"
             (goalsChange)="saveGoals($event)"
             (toggleFavorite)="toggleFavorite($event)"
           />
@@ -581,6 +583,37 @@ export class NutritionStrategyInventoryPage implements OnInit {
       next: (updated) => this.event.set(updated),
       error: () => this.toast.error("Impossible de mettre à jour l'inventaire."),
     });
+  }
+
+  /**
+   * Applique une réaffectation de l'inventaire par emplacement (départ ↔
+   * ravitos). Comme les points de récupération changent, on purge du plan les
+   * prises devenues indisponibles et on en informe l'utilisateur.
+   */
+  onAllocationChange(result: AllocationResult): void {
+    const event = this.event();
+    if (!event) return;
+    const productMap = new Map(this.products().map((p) => [p.id, p]));
+    const { intakes, removedProductNames } = pruneUnavailableIntakes(
+      event.intakes ?? [],
+      result.items,
+      result.aidStations,
+      productMap,
+    );
+
+    this.service
+      .updateEvent(event.id, { items: result.items, aidStations: result.aidStations, intakes })
+      .subscribe({
+        next: (updated) => {
+          this.event.set(updated);
+          if (removedProductNames.length > 0) {
+            this.toast.warning(
+              `Retirés du plan de consommation (produit non disponible à cet instant) : ${removedProductNames.join(', ')}.`,
+            );
+          }
+        },
+        error: () => this.toast.error("Impossible de mettre à jour l'inventaire."),
+      });
   }
 
   // --- Plan de consommation ---

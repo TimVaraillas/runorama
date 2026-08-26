@@ -9,7 +9,7 @@ import { SidePanelComponent } from '../../molecules/side-panel/side-panel.compon
 import { NutritionTargetGaugeComponent } from '../../molecules/nutrition-target-gauge/nutrition-target-gauge.component';
 import { NutritionProductTableComponent } from '../nutrition-product-table/nutrition-product-table.component';
 import { DividerComponent } from '../../atoms/divider/divider.component';
-import { InventoryItemListComponent } from '../inventory-item-list/inventory-item-list.component';
+import { InventoryLocationsComponent } from '../inventory-locations/inventory-locations.component';
 import { NutritionGoalsEditorComponent } from '../../molecules/nutrition-goals-editor/nutrition-goals-editor.component';
 import {
   type NutritionCategory,
@@ -19,6 +19,7 @@ import {
   type NutritionProduct,
 } from '../../../core/models';
 import { enabledGoals, resolveGoals } from '../../../core/utils/nutrition-goals.util';
+import type { AllocationResult } from '../../../core/utils/inventory-allocation.util';
 import { faPlus, faWeightHanging, faXmark, faCheck, faSliders, faStar as faStarSolid } from '@fortawesome/free-solid-svg-icons';
 import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons';
 
@@ -53,7 +54,7 @@ interface InventoryTotals {
     NutritionTargetGaugeComponent,
     NutritionProductTableComponent,
     DividerComponent,
-    InventoryItemListComponent,
+    InventoryLocationsComponent,
     NutritionGoalsEditorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -134,19 +135,18 @@ interface InventoryTotals {
 
       <ui-divider class="my-10" variant="solid" />
 
-      <!-- Produits emportés -->
+      <!-- Produits emportés, répartis par emplacement (départ + ravitos) -->
       <section class="space-y-3">
         <div class="flex items-center justify-between gap-3">
-          <h2 class="text-md font-semibold text-slate-700">Inventaire des produits emportés</h2>
-          <ui-button [icon]="faPlus" [disabled]="products().length === 0" (clicked)="openPicker()">
-            Ajouter des produits
-          </ui-button>
+          <h2 class="text-md font-semibold text-slate-700">Inventaire par emplacement</h2>
         </div>
 
-        <ui-inventory-item-list
-          [items]="resolvedItems()"
-          (setQuantity)="onSetQuantity($event.productId, $event.quantity)"
-          (remove)="remove.emit($event)"
+        <ui-inventory-locations
+          [event]="event()"
+          [products]="products()"
+          [canAdd]="products().length > 0"
+          (allocationChange)="allocationChange.emit($event)"
+          (addProduct)="openPicker()"
         />
       </section>
     </div>
@@ -251,6 +251,8 @@ export class NutritionStrategyInventoryComponent {
   readonly setQuantity = output<{ productId: string; quantity: number }>();
   /** Retrait d'un produit. */
   readonly remove = output<string>();
+  /** Nouvel état d'inventaire après réaffectation par emplacement. */
+  readonly allocationChange = output<AllocationResult>();
   /** Demande de mise à jour des objectifs nutritionnels (édition inline). */
   readonly goalsChange = output<NutritionGoals>();
   /** Bascule un produit du catalogue dans les favoris de l'utilisateur. */
