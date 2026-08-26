@@ -1,4 +1,5 @@
 import type { NutrientGoalKey, NutritionIntake, NutritionProduct } from './nutrition.model';
+import type { AidStationType } from './nutrition.model';
 
 /** Bord d'une prise saisi lors du redimensionnement. */
 export type ResizeEdge = 'top' | 'bottom';
@@ -58,6 +59,21 @@ export interface SequenceMark {
   top: number;
   label: string;
   major: boolean;
+}
+
+/** Ravitaillement positionné sur la timeline du plan (repère temporel). */
+export interface PositionedAidStation {
+  id: string;
+  name: string;
+  types: AidStationType[];
+  /** Temps estimé depuis le départ (min) — axe de la timeline. */
+  minute: number;
+  /** Position verticale sur la piste (px). */
+  top: number;
+  /** Distance depuis le départ (km), si renseignée. */
+  distanceFromStart?: number;
+  /** Nombre de consommations prévues sur place. */
+  consumptionCount: number;
 }
 
 /** Évènement émis quand une poignée de redimensionnement est saisie. */

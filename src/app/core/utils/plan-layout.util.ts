@@ -1,9 +1,11 @@
 import type {
+  AidStation,
   GhostBlock,
   NutritionIntake,
   NutritionProduct,
   PlanHourlyRecap,
   PlanSequenceMinutes,
+  PositionedAidStation,
   PositionedIntake,
   SequenceMark,
 } from '../models';
@@ -151,6 +153,37 @@ export function buildSequenceMarks(params: {
     });
   }
   return marks;
+}
+
+/**
+ * Positionne les ravitaillements sur la timeline du plan à partir de leur
+ * temps estimé depuis le départ. Les ravitos hors de la fenêtre de course
+ * (temps négatif ou au-delà du chrono cible) sont ignorés.
+ */
+export function buildAidStationMarks(params: {
+  total: number;
+  trackHeight: number;
+  aidStations: AidStation[];
+}): PositionedAidStation[] {
+  const { total, trackHeight, aidStations } = params;
+  if (total <= 0) return [];
+  return aidStations
+    .filter(
+      (station) =>
+        station.estimatedDurationFromStart >= 0 &&
+        station.estimatedDurationFromStart <= total,
+    )
+    .slice()
+    .sort((a, b) => a.estimatedDurationFromStart - b.estimatedDurationFromStart)
+    .map((station) => ({
+      id: station.id,
+      name: station.name,
+      types: station.types,
+      minute: station.estimatedDurationFromStart,
+      top: (station.estimatedDurationFromStart / total) * trackHeight,
+      distanceFromStart: station.distanceFromStart,
+      consumptionCount: station.consumptions?.length ?? 0,
+    }));
 }
 
 /** Construit le récapitulatif horaire (apports planifiés vs cible) par nutriment. */

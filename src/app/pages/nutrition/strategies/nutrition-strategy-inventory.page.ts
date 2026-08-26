@@ -1,17 +1,22 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { NutritionService } from '../../../features/nutrition/services/nutrition.service';
 import { NutritionExportService } from '../../../features/nutrition/services/nutrition-export.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ButtonComponent } from '../../../components/atoms/button/button.component';
 import { IconComponent } from '../../../components/atoms/icon/icon.component';
+import { DropdownMenuComponent } from '../../../components/molecules/dropdown-menu/dropdown-menu.component';
+import { DropdownMenuItemComponent } from '../../../components/atoms/dropdown-menu-item/dropdown-menu-item.component';
 import { PageHeaderComponent } from '../../../components/molecules/page-header/page-header.component';
 import { TabsComponent, type TabItem } from '../../../components/molecules/tabs/tabs.component';
 import { ConfirmDeleteModalComponent } from '../../../components/molecules/confirm-delete-modal/confirm-delete-modal.component';
 import { NutritionEventFormPanelComponent } from '../../../components/organisms/nutrition-event-form-panel/nutrition-event-form-panel.component';
 import { NutritionStrategyInventoryComponent } from '../../../components/organisms/nutrition-strategy-inventory/nutrition-strategy-inventory.component';
 import { ConsumptionPlanComponent } from '../../../components/organisms/consumption-plan/consumption-plan.component';
+import { AidStationTableComponent } from '../../../components/organisms/aid-station-table/aid-station-table.component';
+import { AidStationFormPanelComponent } from '../../../components/organisms/aid-station-form-panel/aid-station-form-panel.component';
 import type {
+  AidStation,
   NutritionCategory,
   NutritionEvent,
   NutritionGoals,
@@ -19,7 +24,20 @@ import type {
   NutritionProduct,
   PlanSequenceMinutes,
 } from '../../../core/models';
-import { faArrowLeft, faCompress, faExpand, faFilePdf, faPen, faStopwatch, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
+import { newAidStationId } from '../../../core/utils/aid-station.util';
+import {
+  faArrowLeft,
+  faCompress,
+  faEllipsisVertical,
+  faExpand,
+  faFilePdf,
+  faFlagCheckered,
+  faLocationDot,
+  faPen,
+  faStopwatch,
+  faTrash,
+  faUtensils,
+} from '@fortawesome/free-solid-svg-icons';
 
 /**
  * Sous-page Nutrition : détail d'une stratégie alimentaire (`strategies/:id`).
@@ -34,12 +52,16 @@ import { faArrowLeft, faCompress, faExpand, faFilePdf, faPen, faStopwatch, faTra
   imports: [
     ButtonComponent,
     IconComponent,
+    DropdownMenuComponent,
+    DropdownMenuItemComponent,
     PageHeaderComponent,
     TabsComponent,
     ConfirmDeleteModalComponent,
     NutritionEventFormPanelComponent,
     NutritionStrategyInventoryComponent,
     ConsumptionPlanComponent,
+    AidStationTableComponent,
+    AidStationFormPanelComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -67,30 +89,6 @@ import { faArrowLeft, faCompress, faExpand, faFilePdf, faPen, faStopwatch, faTra
           Éditer
         </ui-button>
 
-        <ui-button
-          actions
-          color="secondary"
-          variant="full"
-          size="sm"
-          [icon]="faFilePdf"
-          [disabled]="!event()"
-          (clicked)="exportPdf()"
-        >
-          Exporter
-        </ui-button>
-
-        <ui-button
-          actions
-          color="danger"
-          variant="full"
-          size="sm"
-          [icon]="faTrash"
-          [disabled]="!event()"
-          (clicked)="requestDelete()"
-        >
-          Supprimer
-        </ui-button>
-
         @if (activeTab() === 'plan') {
           <ui-button
             actions
@@ -107,6 +105,27 @@ import { faArrowLeft, faCompress, faExpand, faFilePdf, faPen, faStopwatch, faTra
             }
           </ui-button>
         }
+
+        <ui-dropdown-menu actions>
+          <ui-button
+            trigger
+            color="default"
+            variant="outlined"
+            size="sm"
+            [icon]="faEllipsisVertical"
+            [disabled]="!event()"
+            aria-label="Plus d'actions"
+          />
+          <ui-dropdown-menu-item [icon]="faFilePdf" (selected)="exportPdf()">
+            Exporter
+          </ui-dropdown-menu-item>
+          <ui-dropdown-menu-item [icon]="faFlagCheckered" (selected)="finalizeRace()">
+            {{ event()?.result ? 'Bilan de course' : 'Finaliser' }}
+          </ui-dropdown-menu-item>
+          <ui-dropdown-menu-item [icon]="faTrash" color="danger" (selected)="requestDelete()">
+            Supprimer
+          </ui-dropdown-menu-item>
+        </ui-dropdown-menu>
 
          <ui-button actions color="default" variant="ghost" size="sm" [icon]="faArrowLeft" (clicked)="goBack()" tooltipContent="Retour aux stratégies" />
       </ui-page-header>
@@ -125,6 +144,29 @@ import { faArrowLeft, faCompress, faExpand, faFilePdf, faPen, faStopwatch, faTra
             (goalsChange)="saveGoals($event)"
             (toggleFavorite)="toggleFavorite($event)"
           />
+        } @else if (activeTab() === 'aid-stations') {
+          <div class="space-y-4">
+            <div class="flex items-center justify-between gap-3">
+              <p class="text-sm text-slate-500">
+                Positionnez vos ravitaillements depuis le départ de la course.
+              </p>
+              <ui-button
+                color="primary"
+                variant="full"
+                size="sm"
+                [icon]="faLocationDot"
+                (clicked)="openNewAidStation()"
+              >
+                Ajouter un ravitaillement
+              </ui-button>
+            </div>
+            <ui-aid-station-table
+              [stations]="ev.aidStations ?? []"
+              (select)="editAidStation($event)"
+              (edit)="editAidStation($event)"
+              (delete)="deleteAidStation($event)"
+            />
+          </div>
         } @else {
           <div class="lg:min-h-0 lg:flex-1">
             <ui-consumption-plan
@@ -133,6 +175,7 @@ import { faArrowLeft, faCompress, faExpand, faFilePdf, faPen, faStopwatch, faTra
               [(fullscreen)]="planFullscreen"
               (intakesChange)="onIntakesChange($event)"
               (planSequenceChange)="onPlanSequenceChange($event)"
+              (selectAidStation)="onSelectAidStationFromPlan($event)"
             />
           </div>
         }
@@ -161,6 +204,17 @@ import { faArrowLeft, faCompress, faExpand, faFilePdf, faPen, faStopwatch, faTra
       (close)="closePanel()"
     />
 
+    <!-- Panneau : formulaire ravitaillement -->
+    <ui-aid-station-form-panel
+      [open]="aidStationPanelOpen()"
+      [station]="editingAidStation()"
+      [products]="products()"
+      [inventoryItems]="event()?.items ?? []"
+      [pickupElsewhere]="editingPickupElsewhere()"
+      (save)="saveAidStation($event)"
+      (close)="closeAidStationPanel()"
+    />
+
     <!-- Modale : confirmation de suppression -->
     <ui-confirm-delete-modal
       [open]="deleteModalOpen()"
@@ -185,17 +239,21 @@ export class NutritionStrategyInventoryPage implements OnInit {
 
   protected readonly faArrowLeft = faArrowLeft;
   protected readonly faFilePdf = faFilePdf;
+  protected readonly faFlagCheckered = faFlagCheckered;
   protected readonly faUtensils = faUtensils;
   protected readonly faExpand = faExpand;
   protected readonly faCompress = faCompress;
   protected readonly faPen = faPen;
   protected readonly faTrash = faTrash;
+  protected readonly faEllipsisVertical = faEllipsisVertical;
+  protected readonly faLocationDot = faLocationDot;
 
   protected readonly tabs: TabItem[] = [
     { id: 'inventory', label: 'Inventaire', icon: faUtensils },
+    { id: 'aid-stations', label: 'Ravitaillements', icon: faLocationDot },
     { id: 'plan', label: 'Plan de consommation', icon: faStopwatch },
   ];
-  protected readonly activeTab = signal<'inventory' | 'plan'>('inventory');
+  protected readonly activeTab = signal<'inventory' | 'aid-stations' | 'plan'>('inventory');
 
   /** État plein écran du plan de consommation (piloté depuis l'en-tête). */
   protected readonly planFullscreen = signal(false);
@@ -207,6 +265,30 @@ export class NutritionStrategyInventoryPage implements OnInit {
 
   /** État d'ouverture du panneau d'édition de l'évènement. */
   protected readonly panelOpen = signal(false);
+
+  /** État d'ouverture du panneau d'édition d'un ravitaillement. */
+  protected readonly aidStationPanelOpen = signal(false);
+  /** Ravitaillement en cours d'édition (`null` pour une création). */
+  protected readonly editingAidStation = signal<AidStation | null>(null);
+
+  /**
+   * Quantités de produits déjà réparties en « à récupérer » sur les ravitos
+   * **autres** que celui en cours d'édition. Plafonne ce que l'on peut encore
+   * allouer (le total réparti ne peut pas dépasser la quantité en inventaire).
+   */
+  protected readonly editingPickupElsewhere = computed<Record<string, number>>(() => {
+    const editing = this.editingAidStation();
+    const map: Record<string, number> = {};
+    for (const station of this.event()?.aidStations ?? []) {
+      if (editing && station.id === editing.id) continue;
+      for (const item of station.pickup ?? []) {
+        if (item.kind === 'product' && item.productId) {
+          map[item.productId] = (map[item.productId] ?? 0) + item.quantity;
+        }
+      }
+    }
+    return map;
+  });
 
   /** État d'ouverture de la modale de confirmation de suppression. */
   protected readonly deleteModalOpen = signal(false);
@@ -261,6 +343,12 @@ export class NutritionStrategyInventoryPage implements OnInit {
     this.router.navigate(['/nutrition/strategies']);
   }
 
+  /** Ouvre la page de finalisation / bilan de course. */
+  finalizeRace(): void {
+    if (!this.event()) return;
+    this.router.navigate(['/nutrition/strategies', this.id(), 'finalize']);
+  }
+
   // --- Édition de l'évènement ---
 
   /** Ouvre le panneau d'édition de la stratégie courante. */
@@ -295,6 +383,89 @@ export class NutritionStrategyInventoryPage implements OnInit {
         this.toast.success('Objectifs nutritionnels mis à jour.');
       },
       error: () => this.toast.error("Impossible d'enregistrer les objectifs. Veuillez réessayer."),
+    });
+  }
+
+  // --- Ravitaillements ---
+
+  /** Ouvre le panneau pour créer un nouveau ravitaillement. */
+  openNewAidStation(): void {
+    this.editingAidStation.set(null);
+    this.aidStationPanelOpen.set(true);
+  }
+
+  /** Ouvre le panneau pour modifier un ravitaillement existant. */
+  editAidStation(station: AidStation): void {
+    this.editingAidStation.set(station);
+    this.aidStationPanelOpen.set(true);
+  }
+
+  closeAidStationPanel(): void {
+    this.aidStationPanelOpen.set(false);
+    this.editingAidStation.set(null);
+  }
+
+  /**
+   * Enregistre un ravitaillement (création ou mise à jour). Les listes
+   * logistiques et consommations existantes sont préservées ; seules les
+   * informations de base sont mises à jour par le formulaire.
+   */
+  saveAidStation(payload: Partial<AidStation>): void {
+    const event = this.event();
+    if (!event) return;
+    const editing = this.editingAidStation();
+    const current = event.aidStations ?? [];
+
+    let aidStations: AidStation[];
+    if (editing) {
+      aidStations = current.map((station) =>
+        station.id === editing.id ? { ...station, ...payload, id: editing.id } : station,
+      );
+    } else {
+      const created: AidStation = {
+        id: newAidStationId(),
+        name: payload.name ?? '',
+        note: payload.note,
+        types: payload.types ?? [],
+        distanceFromStart: payload.distanceFromStart,
+        elevationGainFromStart: payload.elevationGainFromStart,
+        estimatedDurationFromStart: payload.estimatedDurationFromStart ?? 0,
+        pickup: payload.pickup ?? [],
+        drop: payload.drop ?? [],
+        logisticVia: payload.logisticVia,
+        todo: payload.todo ?? [],
+        consumptions: payload.consumptions ?? [],
+      };
+      aidStations = [...current, created];
+    }
+
+    this.persistAidStations(event.id, aidStations, editing ? 'Ravitaillement mis à jour.' : 'Ravitaillement ajouté.');
+    this.closeAidStationPanel();
+  }
+
+  /** Ouvre le formulaire d'un ravitaillement depuis un repère de la timeline. */
+  onSelectAidStationFromPlan(id: string): void {
+    const station = (this.event()?.aidStations ?? []).find((s) => s.id === id);
+    if (station) this.editAidStation(station);
+  }
+
+  /** Supprime un ravitaillement. */
+  deleteAidStation(station: AidStation): void {
+    const event = this.event();
+    if (!event) return;
+    const aidStations = (event.aidStations ?? []).filter((s) => s.id !== station.id);
+    this.persistAidStations(event.id, aidStations, 'Ravitaillement supprimé.');
+  }
+
+  /** Persiste la liste des ravitaillements et met à jour l'état local. */
+  private persistAidStations(eventId: string, aidStations: AidStation[], successMessage: string): void {
+    this.service.updateEvent(eventId, { aidStations }).subscribe({
+      next: (updated) => {
+        this.event.set(updated);
+        this.toast.success(successMessage);
+      },
+      error: () =>
+        this.toast.error("Impossible d'enregistrer le ravitaillement. Veuillez réessayer."),
     });
   }
 

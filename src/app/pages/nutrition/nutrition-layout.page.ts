@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { IconComponent } from '../../components/atoms/icon/icon.component';
-import { faAppleWhole, faUtensils } from '@fortawesome/free-solid-svg-icons';
+import { faAppleWhole, faChartLine, faUtensils } from '@fortawesome/free-solid-svg-icons';
 
 /**
  * Page layout du volet Nutrition.
@@ -37,6 +37,15 @@ import { faAppleWhole, faUtensils } from '@fortawesome/free-solid-svg-icons';
             <ui-icon [icon]="faUtensils" size="sm" />
             Stratégies alimentaires
           </a>
+          <a
+            routerLink="insights"
+            routerLinkActive="!bg-brand-50 !text-brand-700"
+            [routerLinkActiveOptions]="{ exact: false }"
+            class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800"
+          >
+            <ui-icon [icon]="faChartLine" size="sm" />
+            Insights
+          </a>
         </div>
       </nav>
 
@@ -47,4 +56,5 @@ import { faAppleWhole, faUtensils } from '@fortawesome/free-solid-svg-icons';
 export class NutritionLayoutPage {
   protected readonly faAppleWhole = faAppleWhole;
   protected readonly faUtensils = faUtensils;
+  protected readonly faChartLine = faChartLine;
 }

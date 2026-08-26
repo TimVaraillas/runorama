@@ -4,7 +4,7 @@ import { BadgeComponent } from '../../atoms/badge/badge.component';
 import { ProductStatusBadgeComponent } from '../../atoms/product-status-badge/product-status-badge.component';
 import type { NutritionCategory, NutritionProduct } from '../../../core/models';
 import { productCapabilities, type ProductCapabilities } from '../../../core/utils/product-moderation.util';
-import { faAppleWhole, faBoxArchive, faCheck, faPen, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faAppleWhole, faBoxArchive, faCheck, faHeartPulse, faPen, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { faStar as faStarSolid, faNoteSticky as faNoteSolid } from '@fortawesome/free-solid-svg-icons';
 import { faStar as faStarRegular, faNoteSticky as faNoteRegular } from '@fortawesome/free-regular-svg-icons';
 
@@ -88,6 +88,31 @@ export type ProductTableMode = 'manage' | 'picker';
                   <div class="min-w-0">
                     <div class="truncate font-medium text-slate-900">{{ product.name }}</div>
                     <div class="truncate text-xs text-slate-500">{{ product.brand }}</div>
+                    @if (mode() !== 'picker' && (product.taste != null || product.tolerance != null)) {
+                      <div class="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
+                        @if (product.taste != null) {
+                          <span
+                            class="flex items-center gap-1"
+                            [title]="'Appréciation gustative moyenne'"
+                          >
+                            <ui-icon [icon]="faStarSolid" size="xs" class="text-amber-400" />
+                            {{ product.taste }}/5
+                          </span>
+                        }
+                        @if (product.tolerance != null) {
+                          <span
+                            class="flex items-center gap-1"
+                            [title]="'Tolérance digestive moyenne'"
+                          >
+                            <ui-icon [icon]="faHeartPulse" size="xs" class="text-emerald-400" />
+                            {{ product.tolerance }}/5
+                          </span>
+                        }
+                        @if (product.eventCount) {
+                          <span [title]="'Nombre de courses'">· {{ product.eventCount }} course(s)</span>
+                        }
+                      </div>
+                    }
                   </div>
                 </div>
               </td>
@@ -261,6 +286,7 @@ export class NutritionProductTableComponent {
   protected readonly faCheck = faCheck;
   protected readonly faXmark = faXmark;
   protected readonly faBoxArchive = faBoxArchive;
+  protected readonly faHeartPulse = faHeartPulse;
   protected readonly faStarSolid = faStarSolid;
   protected readonly faStarRegular = faStarRegular;
   protected readonly faNoteSolid = faNoteSolid;

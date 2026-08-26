@@ -27,6 +27,14 @@ const nutritionProductFeedbackSchema = new Schema(
     favorite: { type: Boolean, default: false },
     /** Note personnelle libre (retour d'expérience), privée. */
     comment: { type: String, trim: true, default: '' },
+    /** Appréciation gustative (0 à 5), dernière évaluation en date. */
+    taste: { type: Number, min: 0, max: 5 },
+    /** Tolérance digestive (0 à 5), dernière évaluation en date. */
+    tolerance: { type: Number, min: 0, max: 5 },
+    /** Nombre total d'unités consommées (cumul sur les courses finalisées). */
+    usageTotal: { type: Number, min: 0, default: 0 },
+    /** Nombre d'évènements finalisés ayant utilisé le produit. */
+    eventCount: { type: Number, min: 0, default: 0 },
   },
   {
     collection: 'nutrition_product_feedback',

@@ -11,6 +11,8 @@ export * from './atoms/nutrient-stat/nutrient-stat.component';
 export * from './atoms/search-input/search-input.component';
 export * from './atoms/date-range-filter/date-range-filter.component';
 export * from './atoms/quantity-stepper/quantity-stepper.component';
+export * from './atoms/rating-input/rating-input.component';
+export * from './atoms/segmented-choice/segmented-choice.component';
 export * from './atoms/divider/divider.component';
 export * from './atoms/plan-resize-handle/plan-resize-handle.component';
 export * from './atoms/plan-ghost-block/plan-ghost-block.component';
@@ -36,6 +38,9 @@ export * from './molecules/plan-sequence-select/plan-sequence-select.component';
 export * from './molecules/plan-hourly-recap-row/plan-hourly-recap-row.component';
 export * from './molecules/plan-hourly-recap/plan-hourly-recap.component';
 export * from './molecules/plan-timeline-gutter/plan-timeline-gutter.component';
+export * from './molecules/plan-aid-station-marker/plan-aid-station-marker.component';
+export * from './molecules/logistic-item-list/logistic-item-list.component';
+export * from './molecules/aid-consumption-list/aid-consumption-list.component';
 
 // Organisms
 export * from './organisms/header/header.component';
@@ -47,12 +52,16 @@ export * from './organisms/nutrition-event-form/nutrition-event-form.component';
 export * from './organisms/nutrition-event-form-panel/nutrition-event-form-panel.component';
 export * from './organisms/nutrition-event-grid/nutrition-event-grid.component';
 export * from './organisms/nutrition-event-table/nutrition-event-table.component';
+export * from './organisms/aid-station-form/aid-station-form.component';
+export * from './organisms/aid-station-form-panel/aid-station-form-panel.component';
+export * from './organisms/aid-station-table/aid-station-table.component';
 export * from './organisms/nutrition-strategy-inventory/nutrition-strategy-inventory.component';
 export * from './organisms/inventory-item-list/inventory-item-list.component';
 export * from './organisms/plan-palette/plan-palette.component';
 export * from './organisms/plan-timeline-block/plan-timeline-block.component';
 export * from './organisms/plan-timeline/plan-timeline.component';
 export * from './organisms/consumption-plan/consumption-plan.component';
+export * from './organisms/race-metrics-summary/race-metrics-summary.component';
 export * from './organisms/toaster/toaster.component';
 
 // Templates

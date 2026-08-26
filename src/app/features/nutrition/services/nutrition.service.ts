@@ -1,7 +1,13 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import type { NutritionCategory, NutritionEvent, NutritionProduct } from '../../../core/models';
+import type {
+  NutritionCategory,
+  NutritionEvent,
+  NutritionEventResult,
+  NutritionInsights,
+  NutritionProduct,
+} from '../../../core/models';
 import type { ProductModerationStatus } from '../../../core/models/nutrition.model';
 
 /**
@@ -114,5 +120,21 @@ export class NutritionService {
 
   removeEvent(id: string): Observable<void> {
     return this.http.delete<void>(`${this.eventsUrl}/${id}`);
+  }
+
+  /**
+   * Finalise une course : enregistre le bilan (`result`). Le serveur propage
+   * les évaluations produits vers les données personnelles et recompte les
+   * usages. Retourne l'évènement à jour (avec `result`).
+   */
+  saveEventResult(id: string, result: NutritionEventResult): Observable<NutritionEvent> {
+    return this.http.put<NutritionEvent>(`${this.eventsUrl}/${id}/result`, result);
+  }
+
+  // --- Insights (agrégats multi-courses) ---
+
+  /** Récupère les insights agrégés sur les courses finalisées de l'utilisateur. */
+  getInsights(): Observable<NutritionInsights> {
+    return this.http.get<NutritionInsights>('/api/nutrition/insights');
   }
 }

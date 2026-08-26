@@ -22,11 +22,13 @@ import type {
   PlanConstrainPosition,
   PlanHourlyRecap,
   PlanSequenceMinutes,
+  PositionedAidStation,
   PositionedIntake,
   ResizeEdge,
   SequenceMark,
 } from '../../../core/models';
 import {
+  buildAidStationMarks,
   buildHourlyRecap,
   buildSequenceMarks,
   computePlanLayout,
@@ -96,6 +98,7 @@ const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
             [marks]="sequenceMarks()"
             [intakes]="positionedIntakes()"
             [ghost]="ghostBlock()"
+            [aidStations]="aidStationMarks()"
             [trackHeight]="trackHeight()"
             [laneCount]="laneCount()"
             [dragging]="dragging()"
@@ -106,6 +109,7 @@ const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
             (dragEnded)="onDragEnded()"
             (removeIntake)="removeIntake($event)"
             (resizeStart)="startResize($event.event, $event.intake, $event.edge)"
+            (selectAidStation)="selectAidStation.emit($event)"
           />
         </div>
         </div>
@@ -123,6 +127,8 @@ export class ConsumptionPlanComponent implements OnDestroy {
   readonly intakesChange = output<NutritionIntake[]>();
   /** Émis quand la granularité des séquences change. */
   readonly planSequenceChange = output<PlanSequenceMinutes>();
+  /** Émis au clic sur un repère de ravitaillement (identifiant). */
+  readonly selectAidStation = output<string>();
 
   private readonly timeline = viewChild(PlanTimelineComponent);
 
@@ -243,6 +249,15 @@ export class ConsumptionPlanComponent implements OnDestroy {
       total: this.totalMinutes(),
       seq: this.sequenceMinutes(),
       trackHeight: this.trackHeight(),
+    }),
+  );
+
+  /** Ravitaillements positionnés sur la timeline (repères temporels). */
+  protected readonly aidStationMarks = computed<PositionedAidStation[]>(() =>
+    buildAidStationMarks({
+      total: this.totalMinutes(),
+      trackHeight: this.trackHeight(),
+      aidStations: this.event().aidStations ?? [],
     }),
   );
 

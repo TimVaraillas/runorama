@@ -1,12 +1,14 @@
 import { ChangeDetectionStrategy, Component, ElementRef, input, output, viewChild } from '@angular/core';
 import { CdkDrag, CdkDragDrop, CdkDragMove, CdkDropList } from '@angular/cdk/drag-drop';
 import { PlanTimelineGutterComponent } from '../../molecules/plan-timeline-gutter/plan-timeline-gutter.component';
+import { PlanAidStationMarkerComponent } from '../../molecules/plan-aid-station-marker/plan-aid-station-marker.component';
 import { PlanTimelineBlockComponent } from '../plan-timeline-block/plan-timeline-block.component';
 import { PlanGhostBlockComponent } from '../../atoms/plan-ghost-block/plan-ghost-block.component';
 import type {
   GhostBlock,
   IntakeResizeStartEvent,
   PlanConstrainPosition,
+  PositionedAidStation,
   PositionedIntake,
   SequenceMark,
 } from '../../../core/models';
@@ -23,7 +25,7 @@ import type {
 @Component({
   selector: 'ui-plan-timeline',
   standalone: true,
-  imports: [CdkDropList, CdkDrag, PlanTimelineGutterComponent, PlanTimelineBlockComponent, PlanGhostBlockComponent],
+  imports: [CdkDropList, CdkDrag, PlanTimelineGutterComponent, PlanTimelineBlockComponent, PlanGhostBlockComponent, PlanAidStationMarkerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'block rounded-2xl bg-white p-5 shadow-sm lg:min-h-0 lg:flex-1 lg:overflow-y-auto',
@@ -90,6 +92,14 @@ import type {
             [width]="laneWidth()"
           />
         }
+
+        <!-- Repères de ravitaillement -->
+        @for (station of aidStations(); track station.id) {
+          <ui-plan-aid-station-marker
+            [marker]="station"
+            (select)="selectAidStation.emit($event)"
+          />
+        }
       </div>
     </div>
   `,
@@ -101,6 +111,8 @@ export class PlanTimelineComponent {
   readonly intakes = input.required<PositionedIntake[]>();
   /** Emplacement fantôme prévisualisé (drag depuis la palette). */
   readonly ghost = input<GhostBlock | null>(null);
+  /** Ravitaillements positionnés à superposer sur la piste. */
+  readonly aidStations = input<PositionedAidStation[]>([]);
   /** Hauteur totale de la piste (px). */
   readonly trackHeight = input.required<number>();
   /** Nombre de couloirs utilisés (pour la largeur des blocs). */
@@ -122,6 +134,8 @@ export class PlanTimelineComponent {
   readonly removeIntake = output<string>();
   /** Émis quand une poignée de redimensionnement est saisie. */
   readonly resizeStart = output<IntakeResizeStartEvent>();
+  /** Émis au clic sur un repère de ravitaillement (identifiant). */
+  readonly selectAidStation = output<string>();
 
   private readonly trackRef = viewChild<ElementRef<HTMLElement>>('track');
 
