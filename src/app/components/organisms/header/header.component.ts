@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { UserMenuComponent } from '../user-menu/user-menu.component';
+import { AuthService } from '../../../features/auth/services/auth.service';
 import {
   faPersonRunning,
   faBookOpen,
@@ -27,19 +28,21 @@ import {
             <span class="font-display text-xl font-bold text-slate-600">Runorama</span>
           </a>
 
-          <nav class="flex items-center gap-1 border-l border-slate-100 ml-6 pl-6">
-            @for (link of links; track link.path) {
-              <a
-                [routerLink]="link.path"
-                routerLinkActive="bg-brand-50 text-brand-700"
-                [routerLinkActiveOptions]="{ exact: link.exact }"
-                class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
-              >
-                <ui-icon [icon]="link.icon" fixedWidth />
-                <span class="hidden sm:inline">{{ link.label }}</span>
-              </a>
-            }
-          </nav>
+          @if (auth.isAuthenticated()) {
+            <nav class="flex items-center gap-1 border-l border-slate-100 ml-6 pl-6">
+              @for (link of links; track link.path) {
+                <a
+                  [routerLink]="link.path"
+                  routerLinkActive="bg-brand-50 text-brand-700"
+                  [routerLinkActiveOptions]="{ exact: link.exact }"
+                  class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+                >
+                  <ui-icon [icon]="link.icon" fixedWidth />
+                  <span class="hidden sm:inline">{{ link.label }}</span>
+                </a>
+              }
+            </nav>
+          }
         </div>
 
         <ui-user-menu />
@@ -48,6 +51,8 @@ import {
   `,
 })
 export class HeaderComponent {
+  protected readonly auth = inject(AuthService);
+
   readonly logo = faPersonRunning;
 
   readonly links = [
