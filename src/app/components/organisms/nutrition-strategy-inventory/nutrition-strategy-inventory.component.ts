@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { ButtonComponent } from '../../atoms/button/button.component';
@@ -9,6 +9,7 @@ import { SidePanelComponent } from '../../molecules/side-panel/side-panel.compon
 import { NutritionTargetGaugeComponent } from '../../molecules/nutrition-target-gauge/nutrition-target-gauge.component';
 import { NutritionProductTableComponent } from '../nutrition-product-table/nutrition-product-table.component';
 import { DividerComponent } from '../../atoms/divider/divider.component';
+import { InfiniteScrollDirective } from '../../../core/directives/infinite-scroll.directive';
 import { InventoryLocationsComponent } from '../inventory-locations/inventory-locations.component';
 import { NutritionGoalsEditorComponent } from '../../molecules/nutrition-goals-editor/nutrition-goals-editor.component';
 import {
@@ -56,6 +57,7 @@ interface InventoryTotals {
     DividerComponent,
     InventoryLocationsComponent,
     NutritionGoalsEditorComponent,
+    InfiniteScrollDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -166,7 +168,7 @@ interface InventoryTotals {
               <ui-icon [icon]="faXmark" size="lg" />
             </button>
           </div>
-          <div class="flex-1 space-y-4 overflow-y-auto p-6">
+          <div #pickerScroll class="flex-1 space-y-4 overflow-y-auto p-6">
             @if (products().length === 0) {
               <p class="rounded-lg bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
                 Aucun produit dans votre base. Créez-en dans l'onglet Produits.
@@ -213,13 +215,22 @@ interface InventoryTotals {
               } @else {
                 <ui-nutrition-product-table
                   mode="picker"
-                  [products]="filteredPickerProducts()"
+                  [products]="visiblePickerProducts()"
                   [categories]="categories()"
                   [selectedIds]="selectedIds()"
                   [showPersonalActions]="true"
                   (toggleSelect)="onToggleSelect($event.id)"
                   (toggleFavorite)="onToggleFavorite($event)"
                 />
+
+                <!-- Sentinelle : affiche davantage de produits au défilement. -->
+                <div
+                  uiInfiniteScroll
+                  [root]="pickerScroll"
+                  [disabled]="!pickerHasMore()"
+                  (loadMore)="loadMorePicker()"
+                  class="h-px"
+                ></div>
               }
             }
           </div>
@@ -300,6 +311,36 @@ export class NutritionStrategyInventoryComponent {
       return matchesCategory && matchesFavorite && matchesTerm;
     });
   });
+
+  /** Taille de fenêtre du défilement infini du sélecteur. */
+  private readonly pickerPageSize = 50;
+  /** Nombre de produits actuellement rendus dans le sélecteur. */
+  protected readonly pickerVisibleCount = signal(this.pickerPageSize);
+  /** Sous-ensemble affiché (fenêtre courante) du catalogue filtré. */
+  protected readonly visiblePickerProducts = computed(() =>
+    this.filteredPickerProducts().slice(0, this.pickerVisibleCount()),
+  );
+  /** Reste-t-il des produits à afficher dans le sélecteur ? */
+  protected readonly pickerHasMore = computed(
+    () => this.pickerVisibleCount() < this.filteredPickerProducts().length,
+  );
+
+  constructor() {
+    // Réinitialise la fenêtre d'affichage à chaque changement de filtre / ouverture.
+    effect(() => {
+      this.pickerSearch();
+      this.pickerCategory();
+      this.pickerFavoritesOnly();
+      this.pickerOpen();
+      this.pickerVisibleCount.set(this.pickerPageSize);
+    });
+  }
+
+  /** Agrandit la fenêtre d'affichage du sélecteur (scroll infini). */
+  loadMorePicker(): void {
+    if (!this.pickerHasMore()) return;
+    this.pickerVisibleCount.update((n) => n + this.pickerPageSize);
+  }
 
   /** Items enrichis du produit résolu (via `item.product` ou le catalogue). */
   protected readonly resolvedItems = computed(() => {

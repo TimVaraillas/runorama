@@ -31,6 +31,8 @@ export class InfiniteScrollDirective implements AfterViewInit, OnDestroy {
   readonly rootMargin = input(200);
   /** Désactive l'observation (ex. pas d'autres pages, chargement en cours). */
   readonly disabled = input(false, { transform: booleanAttribute });
+  /** Conteneur de défilement à observer (`null` = viewport). */
+  readonly root = input<HTMLElement | null>(null);
 
   readonly loadMore = output<void>();
 
@@ -44,7 +46,7 @@ export class InfiniteScrollDirective implements AfterViewInit, OnDestroy {
           this.loadMore.emit();
         }
       },
-      { rootMargin: `0px 0px ${this.rootMargin()}px 0px` },
+      { root: this.root(), rootMargin: `0px 0px ${this.rootMargin()}px 0px` },
     );
     this.observer.observe(this.host.nativeElement);
   }

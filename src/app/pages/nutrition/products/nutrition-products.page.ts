@@ -576,7 +576,7 @@ export class NutritionProductsPage {
   protected readonly products = signal<NutritionProduct[] | undefined>(undefined);
 
   /** Taille de page du défilement infini. */
-  private readonly pageSize = 25;
+  private readonly pageSize = 50;
   /** Décalage de la prochaine page à charger. */
   private offset = 0;
   /** Chargement de la première page (changement de filtre). */
