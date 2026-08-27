@@ -121,6 +121,8 @@ const aidStationSchema = new Schema(
     name: { type: String, required: true, trim: true },
     /** Note libre et personnelle. */
     note: { type: String, trim: true, default: '' },
+    /** Accès : adresse et/ou coordonnées GPS (pour l'assistance). */
+    accessInfo: { type: String, trim: true, default: '' },
     /** Types cumulables (point d'eau, nourriture, assistance…). */
     types: { type: [String], enum: AID_STATION_TYPES, default: [] },
     /** Distance depuis le départ (km). */

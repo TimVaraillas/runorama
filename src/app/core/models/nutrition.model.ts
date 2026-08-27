@@ -354,6 +354,8 @@ export interface AidStation {
   name: string;
   /** Note libre et personnelle. */
   note?: string;
+  /** Accès au ravitaillement : adresse et/ou coordonnées GPS (pour l'assistance). */
+  accessInfo?: string;
   /** Types cumulables. */
   types: AidStationType[];
   /** Distance depuis le départ (km). */

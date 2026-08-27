@@ -429,6 +429,7 @@ export class NutritionStrategyInventoryPage implements OnInit {
         id: newAidStationId(),
         name: payload.name ?? '',
         note: payload.note,
+        accessInfo: payload.accessInfo,
         types: payload.types ?? [],
         distanceFromStart: payload.distanceFromStart,
         elevationGainFromStart: payload.elevationGainFromStart,

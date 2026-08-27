@@ -177,6 +177,7 @@ interface LogisticBag {
   minute: number | null;
   via: string;
   note: string;
+  access: string;
   pickup: LogisticEntry[];
   drop: LogisticEntry[];
 }
@@ -200,7 +201,7 @@ function buildLogistics(event: NutritionEvent, map: Map<string, NutritionProduct
     quantity: item.quantity,
   }));
   if (startPickup.length > 0) {
-    bags.push({ name: 'Départ', minute: 0, via: '', note: '', pickup: startPickup, drop: [] });
+    bags.push({ name: 'Départ', minute: 0, via: '', note: '', access: '', pickup: startPickup, drop: [] });
   }
 
   // Sacs des ravitaillements avec logistique, triés par temps de passage.
@@ -229,6 +230,7 @@ function buildLogistics(event: NutritionEvent, map: Map<string, NutritionProduct
       minute: station.estimatedDurationFromStart,
       via: viaLabel(station.logisticVia),
       note: station.note ?? '',
+      access: station.accessInfo ?? '',
       pickup: (station.pickup ?? []).map(mapLogisticItem),
       drop: (station.drop ?? []).map(mapLogisticItem),
     });
@@ -388,6 +390,15 @@ export function buildStrategyPdfHtml(
                 ? `<div class="bag-meta">Passage estimé : ${formatMinutes(bag.minute)}</div>`
                 : ''
             }
+            ${
+              bag.access
+                ? `<div class="bag-access">📍 ${escapeHtml(bag.access)}
+                     <a href="https://www.google.com/maps/search/?api=1&amp;query=${encodeURIComponent(
+                       bag.access,
+                     )}">Ouvrir dans Maps</a>
+                   </div>`
+                : ''
+            }
             ${bag.note ? `<div class="bag-note">${escapeHtml(bag.note)}</div>` : ''}
             <div class="bag-body">
               ${pickupTable}
@@ -507,6 +518,16 @@ export function buildStrategyPdfHtml(
       color: #fff;
     }
     .bag-meta { padding: 6px 14px 0; color: #64748b; font-size: 11px; }
+    .bag-access {
+      margin: 8px 14px 0;
+      padding: 6px 10px;
+      background: #eff6ff;
+      border-left: 3px solid #2563eb;
+      border-radius: 4px;
+      color: #1e40af;
+      font-size: 11px;
+    }
+    .bag-access a { color: #2563eb; margin-left: 6px; }
     .bag-note {
       margin: 8px 14px 0;
       padding: 6px 10px;

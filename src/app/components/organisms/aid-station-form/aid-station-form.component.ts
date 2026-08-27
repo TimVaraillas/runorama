@@ -169,6 +169,19 @@ function durationRequiredValidator(group: AbstractControl): ValidationErrors | n
 
       <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
         <div>
+          <label [class]="labelClass" for="aid-access">Accès — adresse / GPS (facultatif)</label>
+          <input
+            id="aid-access"
+            type="text"
+            formControlName="accessInfo"
+            [class]="inputClass"
+            placeholder="Ex : Place de l'église, Courmayeur — 45.7896, 6.9723"
+          />
+          <p class="mt-1 text-xs text-slate-400">
+            Aide l'assistance et les supporters à rejoindre le ravitaillement.
+          </p>
+        </div>
+        <div>
           <label [class]="labelClass" for="aid-note">Note (facultative)</label>
           <textarea
             id="aid-note"
@@ -441,6 +454,7 @@ export class AidStationFormComponent {
       durationHours: [null as number | null, Validators.min(0)],
       durationMinutes: [null as number | null, [Validators.min(0), Validators.max(59)]],
       note: [''],
+      accessInfo: [''],
     },
     { validators: durationRequiredValidator },
   );
@@ -458,6 +472,7 @@ export class AidStationFormComponent {
           durationHours: total > 0 ? Math.floor(total / 60) : null,
           durationMinutes: total > 0 ? total % 60 : null,
           note: station.note ?? '',
+          accessInfo: station.accessInfo ?? '',
         });
         this.selectedTypes.set(new Set(station.types));
         this.pickup.set([...(station.pickup ?? [])]);
@@ -473,6 +488,7 @@ export class AidStationFormComponent {
           durationHours: null,
           durationMinutes: null,
           note: '',
+          accessInfo: '',
         });
         this.selectedTypes.set(new Set());
         this.pickup.set([]);
@@ -583,6 +599,7 @@ export class AidStationFormComponent {
     const payload: Partial<AidStation> = {
       name: v.name!.trim(),
       note: v.note?.trim() || undefined,
+      accessInfo: v.accessInfo?.trim() || undefined,
       types: orderedTypes,
       distanceFromStart: v.distanceFromStart ?? undefined,
       elevationGainFromStart: v.elevationGainFromStart ?? undefined,
