@@ -9,6 +9,7 @@ import { SearchInputComponent } from '../../../components/atoms/search-input/sea
 import { DateRangeFilterComponent } from '../../../components/atoms/date-range-filter/date-range-filter.component';
 import { ViewToggleComponent, type ProductViewMode } from '../../../components/atoms/view-toggle/view-toggle.component';
 import { FilterBarComponent } from '../../../components/molecules/filter-bar/filter-bar.component';
+import { PageHeaderComponent } from '../../../components/molecules/page-header/page-header.component';
 import { ConfirmDeleteModalComponent } from '../../../components/molecules/confirm-delete-modal/confirm-delete-modal.component';
 import { NutritionEventFormPanelComponent } from '../../../components/organisms/nutrition-event-form-panel/nutrition-event-form-panel.component';
 import { NutritionEventGridComponent } from '../../../components/organisms/nutrition-event-grid/nutrition-event-grid.component';
@@ -33,6 +34,7 @@ import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
     DateRangeFilterComponent,
     ViewToggleComponent,
     FilterBarComponent,
+    PageHeaderComponent,
     ConfirmDeleteModalComponent,
     NutritionEventFormPanelComponent,
     NutritionEventGridComponent,
@@ -41,9 +43,12 @@ import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="space-y-6">
-      <div class="flex flex-wrap items-center justify-end gap-2">
-        <ui-button [icon]="faPlus" (clicked)="newEvent()">Nouvel évènement</ui-button>
-      </div>
+      <ui-page-header
+        title="Stratégies de nutrition"
+        subtitle="Composez et retrouvez vos plans nutritionnels de course."
+      >
+        <ui-button actions [icon]="faPlus" (clicked)="newEvent()">Nouvel évènement</ui-button>
+      </ui-page-header>
 
       <!-- Filtres -->
       @if (events()?.length) {

@@ -33,7 +33,6 @@ import {
   faEllipsisVertical,
   faExpand,
   faFilePdf,
-  faFlagCheckered,
   faLocationDot,
   faPen,
   faStopwatch,
@@ -120,9 +119,6 @@ import {
           />
           <ui-dropdown-menu-item [icon]="faFilePdf" (selected)="exportPdf()">
             Exporter
-          </ui-dropdown-menu-item>
-          <ui-dropdown-menu-item [icon]="faFlagCheckered" (selected)="finalizeRace()">
-            {{ event()?.result ? 'Bilan de course' : 'Finaliser' }}
           </ui-dropdown-menu-item>
           <ui-dropdown-menu-item [icon]="faTrash" color="danger" (selected)="requestDelete()">
             Supprimer
@@ -242,7 +238,6 @@ export class NutritionStrategyInventoryPage implements OnInit {
 
   protected readonly faArrowLeft = faArrowLeft;
   protected readonly faFilePdf = faFilePdf;
-  protected readonly faFlagCheckered = faFlagCheckered;
   protected readonly faUtensils = faUtensils;
   protected readonly faExpand = faExpand;
   protected readonly faCompress = faCompress;
@@ -344,12 +339,6 @@ export class NutritionStrategyInventoryPage implements OnInit {
 
   goBack(): void {
     this.router.navigate(['/nutrition/strategies']);
-  }
-
-  /** Ouvre la page de finalisation / bilan de course. */
-  finalizeRace(): void {
-    if (!this.event()) return;
-    this.router.navigate(['/nutrition/strategies', this.id(), 'finalize']);
   }
 
   // --- Édition de l'évènement ---

@@ -79,22 +79,6 @@ export const routes: Routes = [
           ),
         title: 'Inventaire — Runorama',
       },
-      {
-        path: 'strategies/:id/finalize',
-        loadComponent: () =>
-          import('./pages/nutrition/strategies/nutrition-race-finalize.page').then(
-            (m) => m.NutritionRaceFinalizePage,
-          ),
-        title: 'Finaliser la course — Runorama',
-      },
-      {
-        path: 'insights',
-        loadComponent: () =>
-          import('./pages/nutrition/insights/nutrition-insights.page').then(
-            (m) => m.NutritionInsightsPage,
-          ),
-        title: 'Insights nutrition — Runorama',
-      },
     ],
   },
   {

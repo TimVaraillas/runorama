@@ -61,7 +61,6 @@ export * from './organisms/plan-palette/plan-palette.component';
 export * from './organisms/plan-timeline-block/plan-timeline-block.component';
 export * from './organisms/plan-timeline/plan-timeline.component';
 export * from './organisms/consumption-plan/consumption-plan.component';
-export * from './organisms/race-metrics-summary/race-metrics-summary.component';
 export * from './organisms/toaster/toaster.component';
 
 // Templates
