@@ -30,6 +30,8 @@ interface DocBlock {
   text?: string;
   items?: string[];
   tip?: string;
+  /** Capture illustrant spécifiquement ce bloc (déposée dans `public/guide/`). */
+  image?: string;
 }
 
 /** Une section de documentation (une fonctionnalité). */
@@ -135,6 +137,20 @@ interface DocSection {
                     <p class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
                       <span class="font-semibold">Bon à savoir&nbsp;:</span> {{ block.tip }}
                     </p>
+                  }
+                  @if (block.image; as blockImage) {
+                    @if (!failedImages().has(blockImage)) {
+                      <div
+                        class="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                      >
+                        <img
+                          [src]="blockImage"
+                          [alt]="block.heading || section.title"
+                          (error)="onImageError(blockImage)"
+                          class="w-full"
+                        />
+                      </div>
+                    }
                   }
                 </div>
               }
@@ -268,7 +284,7 @@ export class GuidePage {
           text: 'Retrouve tes informations personnelles et déconnecte-toi depuis le menu utilisateur, en haut à droite.',
         },
       ],
-      image: 'guide/01-compte.png',
+      image: 'guide/01-connexion.png',
     },
     {
       id: 'produits',
@@ -311,6 +327,7 @@ export class GuidePage {
             'Renseigne la marque, le nom, la catégorie, les valeurs nutritionnelles (énergie, glucides, lipides, protéines, sodium) et le poids unitaire.',
             'Ajoute éventuellement une photo et le lien de la fiche fabricant pour faciliter la vérification.',
           ],
+          image: 'guide/03-ajout-produit.png',
         },
         {
           heading: 'Modération et statuts',
@@ -323,7 +340,7 @@ export class GuidePage {
           tip: 'Un produit que tu proposes reste immédiatement utilisable dans tes propres stratégies, même tant qu’il est en attente de validation.',
         },
       ],
-      image: 'guide/02-produits.png',
+      image: 'guide/02-bibliotheque-produits.png',
     },
     {
       id: 'strategies',
@@ -355,7 +372,7 @@ export class GuidePage {
           ],
         },
       ],
-      image: 'guide/03-strategie.png',
+      image: 'guide/04-strategies-liste.png',
     },
     {
       id: 'inventaire',
@@ -393,7 +410,7 @@ export class GuidePage {
           tip: 'La répartition alimente automatiquement la logistique des ravitos et le contenu de tes sacs.',
         },
       ],
-      image: 'guide/04-inventaire.png',
+      image: 'guide/05-strategies-inventaire.png',
     },
     {
       id: 'plan',
@@ -422,7 +439,7 @@ export class GuidePage {
           text: 'Passe la timeline en plein écran pour éditer confortablement les plans des longues courses.',
         },
       ],
-      image: 'guide/05-plan.png',
+      image: 'guide/07-strategies-plan.png',
     },
     {
       id: 'ravitos',
@@ -455,7 +472,7 @@ export class GuidePage {
           ],
         },
       ],
-      image: 'guide/06-ravitos.png',
+      image: 'guide/06-strategies-ravitaillements.png',
     },
     {
       id: 'export',
@@ -478,7 +495,7 @@ export class GuidePage {
           tip: 'Autorise les fenêtres pop-up de ton navigateur pour lancer l’aperçu d’impression.',
         },
       ],
-      image: 'guide/07-export.png',
+      image: 'guide/08-strategies-export.png',
     },
   ];
 }
