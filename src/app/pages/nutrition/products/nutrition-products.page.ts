@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, PLATFORM_ID, computed, inject, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NutritionService } from '../../../features/nutrition/services/nutrition.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -11,8 +12,10 @@ import { SidePanelComponent } from '../../../components/molecules/side-panel/sid
 import { FilterBarComponent } from '../../../components/molecules/filter-bar/filter-bar.component';
 import { PageHeaderComponent } from '../../../components/molecules/page-header/page-header.component';
 import { ModalComponent } from '../../../components/molecules/modal/modal.component';
+import { DropdownMenuComponent } from '../../../components/molecules/dropdown-menu/dropdown-menu.component';
 import { NutritionProductFormComponent } from '../../../components/organisms/nutrition-product-form/nutrition-product-form.component';
 import { NutritionProductTableComponent } from '../../../components/organisms/nutrition-product-table/nutrition-product-table.component';
+import type { ProductColumnKey } from '../../../components/organisms/nutrition-product-table/nutrition-product-table.component';
 import { NutritionProductGridComponent } from '../../../components/organisms/nutrition-product-grid/nutrition-product-grid.component';
 import type { NutritionCategory, NutritionProduct } from '../../../core/models';
 import type { ProductModerationStatus } from '../../../core/models/nutrition.model';
@@ -24,6 +27,7 @@ import {
   faAppleWhole,
   faBookOpen,
   faTags,
+  faTableColumns,
   faXmark,
   faStar as faStarSolid,
 } from '@fortawesome/free-solid-svg-icons';
@@ -52,6 +56,7 @@ type PendingDelete =
     FilterBarComponent,
     PageHeaderComponent,
     ModalComponent,
+    DropdownMenuComponent,
     NutritionProductFormComponent,
     NutritionProductTableComponent,
     NutritionProductGridComponent,
@@ -128,6 +133,33 @@ type PendingDelete =
           <ui-icon [icon]="favoritesOnly() ? faStarSolid : faStarRegular" size="sm" />
           Favoris
         </button>
+        @if (viewMode() === 'table') {
+          <ui-dropdown-menu>
+            <button
+              trigger
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+            >
+              <ui-icon [icon]="faTableColumns" size="sm" />
+              Colonnes
+            </button>
+            <div class="p-1" (click)="$event.stopPropagation()">
+              @for (col of columnOptions; track col.key) {
+                <label
+                  class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  <input
+                    type="checkbox"
+                    [checked]="isColumnVisible(col.key)"
+                    (change)="toggleColumn(col.key)"
+                    class="h-4 w-4 rounded border-slate-300 text-brand-600"
+                  />
+                  {{ col.label }}
+                </label>
+              }
+            </div>
+          </ui-dropdown-menu>
+        }
         <ui-view-toggle [mode]="viewMode()" (modeChange)="viewMode.set($event)" />
       </ui-filter-bar>
 
@@ -165,6 +197,7 @@ type PendingDelete =
               [categories]="categories()"
               [readonly]="false"
               [showStatus]="true"
+              [visibleColumns]="visibleColumnKeys()"
               [currentUserId]="currentUserId()"
               [isAdmin]="isAdmin()"
               [showPersonalActions]="true"
@@ -427,11 +460,50 @@ export class NutritionProductsPage {
   private readonly service = inject(NutritionService);
   private readonly toast = inject(ToastService);
   private readonly auth = inject(AuthService);
+  private readonly platformId = inject(PLATFORM_ID);
 
   /** Vrai si l'utilisateur peut éditer la base produits partagée. */
   protected readonly isAdmin = this.auth.isAdmin;
   /** Identifiant de l'utilisateur courant (droits d'action par produit). */
   protected readonly currentUserId = computed(() => this.auth.currentUser()?.id ?? null);
+
+  /** Charge les colonnes visibles depuis le stockage local (défaut sans les nutriments secondaires). */
+  private loadVisibleColumns(): ProductColumnKey[] {
+    const all = this.columnOptions.map((c) => c.key);
+    const defaults = all.filter((k) => k !== 'fats' && k !== 'proteins' && k !== 'sodium');
+    if (!isPlatformBrowser(this.platformId)) return defaults;
+    try {
+      const raw = localStorage.getItem(this.columnsStorageKey);
+      if (!raw) return defaults;
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return defaults;
+      return parsed.filter((k): k is ProductColumnKey =>
+        all.includes(k as ProductColumnKey),
+      );
+    } catch {
+      return defaults;
+    }
+  }
+
+  /** Indique si une colonne optionnelle est visible. */
+  protected isColumnVisible(key: ProductColumnKey): boolean {
+    return this.visibleColumnKeys().includes(key);
+  }
+
+  /** Bascule l'affichage d'une colonne et persiste la préférence. */
+  protected toggleColumn(key: ProductColumnKey): void {
+    const next = this.isColumnVisible(key)
+      ? this.visibleColumnKeys().filter((k) => k !== key)
+      : [...this.visibleColumnKeys(), key];
+    this.visibleColumnKeys.set(next);
+    if (isPlatformBrowser(this.platformId)) {
+      try {
+        localStorage.setItem(this.columnsStorageKey, JSON.stringify(next));
+      } catch {
+        // Persistance best-effort : on ignore les erreurs de stockage.
+      }
+    }
+  }
 
   readonly faPlus = faPlus;
   readonly faTrash = faTrash;
@@ -440,9 +512,25 @@ export class NutritionProductsPage {
   readonly faAppleWhole = faAppleWhole;
   readonly faBookOpen = faBookOpen;
   readonly faTags = faTags;
+  readonly faTableColumns = faTableColumns;
   readonly faXmark = faXmark;
   readonly faStarSolid = faStarSolid;
   readonly faStarRegular = faStarRegular;
+
+  /** Clé de persistance des colonnes visibles du tableau. */
+  private readonly columnsStorageKey = 'runorama.products.visibleColumns';
+  /** Colonnes optionnelles proposees au filtrage (ordre d'affichage). */
+  protected readonly columnOptions: ReadonlyArray<{ key: ProductColumnKey; label: string }> = [
+    { key: 'category', label: 'Catégorie' },
+    { key: 'weight', label: 'Poids' },
+    { key: 'energy', label: 'Énergie' },
+    { key: 'carbs', label: 'Glucides' },
+    { key: 'fats', label: 'Lipides' },
+    { key: 'proteins', label: 'Protéines' },
+    { key: 'sodium', label: 'Sodium' },
+  ];
+  /** Colonnes optionnelles actuellement visibles (persistées en localStorage). */
+  protected readonly visibleColumnKeys = signal<ProductColumnKey[]>(this.loadVisibleColumns());
 
   protected readonly searchClass =
     'w-full rounded-lg border border-slate-300 bg-white py-2 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';

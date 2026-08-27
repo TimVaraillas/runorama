@@ -11,6 +11,16 @@ import { faStar as faStarRegular, faNoteSticky as faNoteRegular } from '@fortawe
 /** Mode d'affichage du tableau : gestion (édition/suppression) ou sélection. */
 export type ProductTableMode = 'manage' | 'picker';
 
+/** Colonnes optionnelles dont l'affichage peut être basculé par l'utilisateur. */
+export type ProductColumnKey =
+  | 'category'
+  | 'weight'
+  | 'energy'
+  | 'carbs'
+  | 'fats'
+  | 'proteins'
+  | 'sodium';
+
 /**
  * Organism : affichage d'une liste de produits sous forme de tableau.
  *
@@ -35,17 +45,31 @@ export type ProductTableMode = 'manage' | 'picker';
               <th class="w-10 px-4 py-3"></th>
             }
             <th class="px-4 py-3 font-medium">Produit</th>
-            <th class="px-4 py-3 font-medium">Catégorie</th>
-            @if (showStatus() && mode() !== 'picker') {
+            @if (mode() === 'picker' || showCol('category')) {
+              <th class="px-4 py-3 font-medium">Catégorie</th>
+            }
+            @if (showStatus() && isAdmin() && mode() !== 'picker') {
               <th class="px-4 py-3 font-medium">Statut</th>
             }
-            <th class="px-4 py-3 text-right font-medium">Poids</th>
-            <th class="px-4 py-3 text-right font-medium">Énergie</th>
-            <th class="px-4 py-3 text-right font-medium">Gluc.</th>
+            @if (mode() === 'picker' || showCol('weight')) {
+              <th class="px-4 py-3 text-right font-medium">Poids</th>
+            }
+            @if (mode() === 'picker' || showCol('energy')) {
+              <th class="px-4 py-3 text-right font-medium">Énergie</th>
+            }
+            @if (mode() === 'picker' || showCol('carbs')) {
+              <th class="px-4 py-3 text-right font-medium">Gluc.</th>
+            }
             @if (mode() !== 'picker') {
-              <th class="px-4 py-3 text-right font-medium">Lip.</th>
-              <th class="px-4 py-3 text-right font-medium">Prot.</th>
-              <th class="px-4 py-3 text-right font-medium">Sodium</th>
+              @if (showCol('fats')) {
+                <th class="px-4 py-3 text-right font-medium">Lip.</th>
+              }
+              @if (showCol('proteins')) {
+                <th class="px-4 py-3 text-right font-medium">Prot.</th>
+              }
+              @if (showCol('sodium')) {
+                <th class="px-4 py-3 text-right font-medium">Sodium</th>
+              }
               @if (!readonly()) {
                 <th class="px-4 py-3"></th>
               }
@@ -86,7 +110,12 @@ export type ProductTableMode = 'manage' | 'picker';
                     }
                   </div>
                   <div class="min-w-0">
-                    <div class="truncate font-medium text-slate-900">{{ product.name }}</div>
+                    <div class="flex items-center gap-2">
+                      <span class="truncate font-medium text-slate-900" [title]="product.name">{{ product.name }}</span>
+                      @if (showStatus() && !isAdmin() && mode() !== 'picker') {
+                        <ui-product-status-badge [status]="product.moderationStatus" />
+                      }
+                    </div>
                     <div class="truncate text-xs text-slate-500">{{ product.brand }}</div>
                     @if (mode() !== 'picker' && (product.taste != null || product.tolerance != null)) {
                       <div class="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
@@ -116,10 +145,12 @@ export type ProductTableMode = 'manage' | 'picker';
                   </div>
                 </div>
               </td>
-              <td class="px-4 py-3">
-                <ui-badge tone="accent">{{ labelFor(product.categoryId) }}</ui-badge>
-              </td>
-              @if (showStatus() && mode() !== 'picker') {
+              @if (mode() === 'picker' || showCol('category')) {
+                <td class="px-4 py-3">
+                  <ui-badge tone="accent">{{ labelFor(product.categoryId) }}</ui-badge>
+                </td>
+              }
+              @if (showStatus() && isAdmin() && mode() !== 'picker') {
                 <td class="px-4 py-3">
                   <ui-product-status-badge
                     [status]="product.moderationStatus"
@@ -127,13 +158,25 @@ export type ProductTableMode = 'manage' | 'picker';
                   />
                 </td>
               }
-              <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.unitWeight }} g</td>
-              <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.energy }} kcal</td>
-              <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.carbs }} g</td>
+              @if (mode() === 'picker' || showCol('weight')) {
+                <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.unitWeight }} g</td>
+              }
+              @if (mode() === 'picker' || showCol('energy')) {
+                <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.energy }} kcal</td>
+              }
+              @if (mode() === 'picker' || showCol('carbs')) {
+                <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.carbs }} g</td>
+              }
               @if (mode() !== 'picker') {
-                <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.fats }} g</td>
-                <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.proteins }} g</td>
-                <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.sodium }} mg</td>
+                @if (showCol('fats')) {
+                  <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.fats }} g</td>
+                }
+                @if (showCol('proteins')) {
+                  <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.proteins }} g</td>
+                }
+                @if (showCol('sodium')) {
+                  <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">{{ product.sodium }} mg</td>
+                }
                 @if (!readonly()) {
                   <td class="px-4 py-3">
                     @let caps = capabilities(product);
@@ -256,6 +299,11 @@ export class NutritionProductTableComponent {
   readonly readonly = input(false);
   /** Affiche la colonne de statut de modération. */
   readonly showStatus = input(false);
+  /**
+   * Colonnes optionnelles visibles. `null` (défaut) affiche toutes les colonnes
+   * — la restriction ne s'applique qu'en mode `manage`.
+   */
+  readonly visibleColumns = input<ProductColumnKey[] | null>(null);
   /** Identifiant de l'utilisateur courant (droits par ligne). */
   readonly currentUserId = input<string | null>(null);
   /** Vrai si l'utilisateur courant est administrateur. */
@@ -294,6 +342,12 @@ export class NutritionProductTableComponent {
 
   protected labelFor(categoryId: string): string {
     return this.categories().find((c) => c.id === categoryId)?.name ?? '—';
+  }
+
+  /** Indique si une colonne optionnelle est visible (toutes si non restreint). */
+  protected showCol(key: ProductColumnKey): boolean {
+    const cols = this.visibleColumns();
+    return cols === null || cols.includes(key);
   }
 
   /** Capacités d'action sur un produit pour l'utilisateur courant. */
