@@ -18,7 +18,7 @@ import { ToasterComponent } from '../../organisms/toaster/toaster.component';
       <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
         <router-outlet />
       </main>
-      <footer class="border-t border-slate-200 py-6 text-center text-sm text-slate-400">
+      <footer class="border-t bg-slate-50 border-slate-200 py-6 text-center text-sm text-slate-400">
         Runorama — Planifiez votre nutrition sportive.
       </footer>
     </div>

@@ -20,9 +20,9 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
   template: `
     <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
       <div class="min-w-0">
-        <h1 class="truncate font-display text-2xl font-bold text-slate-900">{{ title() }}</h1>
+        <h1 class="truncate font-display text-4xl font-bold text-slate-600">{{ title() }}</h1>
         @if (subtitle()) {
-          <p class="mt-0.5 text-sm text-slate-500">{{ subtitle() }}</p>
+          <p class="mt-0.5 text-sm text-slate-400 italic">{{ subtitle() }}</p>
         }
       </div>
       <div class="flex flex-wrap items-center justify-end gap-2">

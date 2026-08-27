@@ -47,7 +47,7 @@
 
   /* Typography */
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Barlow', ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Base layer */
@@ -57,6 +57,6 @@ body {
 }
 
 body {
-  @apply bg-slate-50 text-slate-800 antialiased;
+  @apply bg-white text-slate-800 antialiased;
 }
 

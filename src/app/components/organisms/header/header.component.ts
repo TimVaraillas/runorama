@@ -24,7 +24,7 @@ import {
             <span class="grid h-9 w-9 place-items-center rounded-lg bg-brand-600 text-white">
               <ui-icon [icon]="logo" size="lg" />
             </span>
-            <span class="font-display text-lg font-bold text-slate-900">Runorama</span>
+            <span class="font-display text-xl font-bold text-slate-600">Runorama</span>
           </a>
 
           <nav class="flex items-center gap-1 border-l border-slate-100 ml-6 pl-6">

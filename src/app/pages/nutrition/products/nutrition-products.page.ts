@@ -9,6 +9,7 @@ import { ViewToggleComponent, type ProductViewMode } from '../../../components/a
 import { SearchInputComponent } from '../../../components/atoms/search-input/search-input.component';
 import { SidePanelComponent } from '../../../components/molecules/side-panel/side-panel.component';
 import { FilterBarComponent } from '../../../components/molecules/filter-bar/filter-bar.component';
+import { PageHeaderComponent } from '../../../components/molecules/page-header/page-header.component';
 import { ModalComponent } from '../../../components/molecules/modal/modal.component';
 import { NutritionProductFormComponent } from '../../../components/organisms/nutrition-product-form/nutrition-product-form.component';
 import { NutritionProductTableComponent } from '../../../components/organisms/nutrition-product-table/nutrition-product-table.component';
@@ -48,6 +49,7 @@ type PendingDelete =
     SearchInputComponent,
     SidePanelComponent,
     FilterBarComponent,
+    PageHeaderComponent,
     ModalComponent,
     NutritionProductFormComponent,
     NutritionProductTableComponent,
@@ -56,14 +58,17 @@ type PendingDelete =
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="space-y-6">
-      <div class="flex flex-wrap items-center justify-end gap-2">
+      <ui-page-header
+        title="Bibliothèque de produits"
+        subtitle="Gérez les produits nutritionnels et leurs catégories."
+      >
         @if (isAdmin()) {
-          <ui-button color="secondary" variant="outlined" [icon]="faTags" (clicked)="openCategories()">Catégories</ui-button>
+          <ui-button actions color="secondary" variant="outlined" [icon]="faTags" (clicked)="openCategories()">Catégories</ui-button>
         }
-        <ui-button [icon]="faPlus" [disabled]="categories().length === 0" (clicked)="newProduct()">
+        <ui-button actions [icon]="faPlus" [disabled]="categories().length === 0" (clicked)="newProduct()">
           {{ isAdmin() ? 'Nouveau produit' : 'Proposer un produit' }}
         </ui-button>
-      </div>
+      </ui-page-header>
 
       <!-- File de modération (admin) : filtre par statut -->
       @if (isAdmin()) {
