@@ -22,6 +22,7 @@ import {
   faPen,
   faCheck,
   faAppleWhole,
+  faBookOpen,
   faTags,
   faXmark,
   faStar as faStarSolid,
@@ -61,6 +62,7 @@ type PendingDelete =
       <ui-page-header
         title="Bibliothèque de produits"
         subtitle="Gérez les produits nutritionnels et leurs catégories."
+        [icon]="faBookOpen"
       >
         @if (isAdmin()) {
           <ui-button actions color="secondary" variant="outlined" [icon]="faTags" (clicked)="openCategories()">Catégories</ui-button>
@@ -436,6 +438,7 @@ export class NutritionProductsPage {
   readonly faPen = faPen;
   readonly faCheck = faCheck;
   readonly faAppleWhole = faAppleWhole;
+  readonly faBookOpen = faBookOpen;
   readonly faTags = faTags;
   readonly faXmark = faXmark;
   readonly faStarSolid = faStarSolid;

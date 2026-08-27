@@ -33,6 +33,7 @@ import {
   faEllipsisVertical,
   faExpand,
   faFilePdf,
+  faFlag,
   faLocationDot,
   faPen,
   faStopwatch,
@@ -76,6 +77,7 @@ import {
       <ui-page-header
         [title]="event()?.name ?? 'Stratégie alimentaire'"
         subtitle="Quelle est la composition de votre stratégie alimentaire ?"
+        [icon]="faFlag"
       >
 
         <ui-button
@@ -238,6 +240,7 @@ export class NutritionStrategyInventoryPage implements OnInit {
 
   protected readonly faArrowLeft = faArrowLeft;
   protected readonly faFilePdf = faFilePdf;
+  protected readonly faFlag = faFlag;
   protected readonly faUtensils = faUtensils;
   protected readonly faExpand = faExpand;
   protected readonly faCompress = faCompress;

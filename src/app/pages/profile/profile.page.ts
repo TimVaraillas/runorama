@@ -17,7 +17,7 @@ import { AuthService } from '../../features/auth/services/auth.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mx-auto max-w-2xl px-4 py-8">
-      <ui-page-header title="Mon profil" subtitle="Vos informations personnelles" />
+      <ui-page-header title="Mon profil" subtitle="Vos informations personnelles" [icon]="faUser" />
 
       @if (auth.currentUser(); as user) {
         <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">

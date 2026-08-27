@@ -46,6 +46,7 @@ import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
       <ui-page-header
         title="Stratégies de nutrition"
         subtitle="Composez et retrouvez vos plans nutritionnels de course."
+        [icon]="faUtensils"
       >
         <ui-button actions [icon]="faPlus" (clicked)="newEvent()">Nouvel évènement</ui-button>
       </ui-page-header>

@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { faPersonRunning } from '@fortawesome/free-solid-svg-icons';
 import { ButtonComponent } from '../../components/atoms/button/button.component';
+import { IconComponent } from '../../components/atoms/icon/icon.component';
 import { TextInputComponent } from '../../components/atoms/text-input/text-input.component';
 import { ToastService } from '../../core/services/toast.service';
 import { AuthService } from '../../features/auth/services/auth.service';
@@ -12,17 +14,31 @@ import { AuthService } from '../../features/auth/services/auth.service';
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, ButtonComponent, TextInputComponent],
+  imports: [ReactiveFormsModule, RouterLink, ButtonComponent, IconComponent, TextInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4">
-      <div class="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 class="text-2xl font-bold text-slate-900">Connexion</h1>
-        <p class="mt-1 text-sm text-slate-500">
-          Accédez à vos stratégies alimentaires.
-        </p>
+      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div class="relative bg-linear-to-br from-brand-600 to-secondary-500 px-8 py-10 text-white">
+          <div
+            class="pointer-events-none absolute -right-6 -top-8 h-28 w-28 rounded-full bg-white/10"
+          ></div>
+          <div
+            class="pointer-events-none absolute -bottom-10 -left-4 h-24 w-24 rounded-full bg-white/10"
+          ></div>
+          <span
+            class="grid h-12 w-12 place-items-center rounded-xl bg-white/15 text-white ring-1 ring-white/30"
+          >
+            <ui-icon [icon]="faPersonRunning" size="xl" />
+          </span>
+          <h1 class="mt-4 font-display text-2xl font-bold">Content de vous revoir</h1>
+          <p class="mt-1 text-sm text-white/80">
+            Connectez-vous pour retrouver vos stratégies alimentaires.
+          </p>
+        </div>
 
-        <form class="mt-6 grid gap-4" [formGroup]="form" (ngSubmit)="submit()">
+        <div class="p-8">
+        <form class="grid gap-4" [formGroup]="form" (ngSubmit)="submit()">
           <ui-text-input
             formControlName="email"
             label="Adresse e-mail"
@@ -54,6 +70,7 @@ import { AuthService } from '../../features/auth/services/auth.service';
             Créer un compte
           </a>
         </p>
+        </div>
       </div>
     </div>
   `,
@@ -63,6 +80,8 @@ export class LoginPage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+
+  protected readonly faPersonRunning = faPersonRunning;
 
   protected readonly loading = signal(false);
 

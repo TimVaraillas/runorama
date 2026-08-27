@@ -5,7 +5,7 @@ import { UserMenuComponent } from '../user-menu/user-menu.component';
 import {
   faPersonRunning,
   faBookOpen,
-  faAppleWhole,
+  faUtensils,
 } from '@fortawesome/free-solid-svg-icons';
 
 /**
@@ -52,6 +52,6 @@ export class HeaderComponent {
 
   readonly links = [
     { path: '/nutrition/products', label: 'Bibliothèque de produits', icon: faBookOpen, exact: false },
-    { path: '/nutrition/strategies', label: 'Stratégies de nutrition', icon: faAppleWhole, exact: false },
+    { path: '/nutrition/strategies', label: 'Stratégies de nutrition', icon: faUtensils, exact: false },
   ];
 }

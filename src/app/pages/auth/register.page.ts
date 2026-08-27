@@ -2,7 +2,9 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { faPersonRunning } from '@fortawesome/free-solid-svg-icons';
 import { ButtonComponent } from '../../components/atoms/button/button.component';
+import { IconComponent } from '../../components/atoms/icon/icon.component';
 import { TextInputComponent } from '../../components/atoms/text-input/text-input.component';
 import { PasswordStrengthComponent } from '../../components/molecules/password-strength/password-strength.component';
 import { ToastService } from '../../core/services/toast.service';
@@ -19,17 +21,31 @@ import { AuthService } from '../../features/auth/services/auth.service';
 @Component({
   selector: 'app-register-page',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, ButtonComponent, TextInputComponent, PasswordStrengthComponent],
+  imports: [ReactiveFormsModule, RouterLink, ButtonComponent, IconComponent, TextInputComponent, PasswordStrengthComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4">
-      <div class="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 class="text-2xl font-bold text-slate-900">Créer un compte</h1>
-        <p class="mt-1 text-sm text-slate-500">
-          Créez votre espace pour gérer vos propres stratégies alimentaires.
-        </p>
+      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div class="relative bg-linear-to-br from-brand-600 to-secondary-500 px-8 py-10 text-white">
+          <div
+            class="pointer-events-none absolute -right-6 -top-8 h-28 w-28 rounded-full bg-white/10"
+          ></div>
+          <div
+            class="pointer-events-none absolute -bottom-10 -left-4 h-24 w-24 rounded-full bg-white/10"
+          ></div>
+          <span
+            class="grid h-12 w-12 place-items-center rounded-xl bg-white/15 text-white ring-1 ring-white/30"
+          >
+            <ui-icon [icon]="faPersonRunning" size="xl" />
+          </span>
+          <h1 class="mt-4 font-display text-2xl font-bold">Rejoignez Runorama</h1>
+          <p class="mt-1 text-sm text-white/80">
+            Créez votre espace pour gérer vos propres stratégies alimentaires.
+          </p>
+        </div>
 
-        <form class="mt-6 space-y-4" [formGroup]="form" (ngSubmit)="submit()">
+        <div class="p-8">
+        <form class="space-y-4" [formGroup]="form" (ngSubmit)="submit()">
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <ui-text-input formControlName="firstName" label="Prénom" autocomplete="given-name" />
             <ui-text-input
@@ -70,6 +86,7 @@ import { AuthService } from '../../features/auth/services/auth.service';
             Se connecter
           </a>
         </p>
+        </div>
       </div>
     </div>
   `,
@@ -79,6 +96,8 @@ export class RegisterPage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+
+  protected readonly faPersonRunning = faPersonRunning;
 
   protected readonly loading = signal(false);
 

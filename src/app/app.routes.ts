@@ -1,10 +1,13 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { guestGuard } from './core/guards/guest.guard';
 
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'nutrition',
+    loadComponent: () => import('./pages/landing.page').then((m) => m.LandingPage),
+    title: 'Runorama — Planifiez votre nutrition sportive',
+    canActivate: [guestGuard],
     pathMatch: 'full',
   },
   {
