@@ -83,6 +83,8 @@ nutritionProductSchema.index({ categoryId: 1 });
 nutritionProductSchema.index({ moderationStatus: 1 });
 // Listing d'un utilisateur : ses produits + le catalogue public.
 nutritionProductSchema.index({ ownerId: 1, visibility: 1 });
+// Tri par défaut du catalogue (pagination par offset).
+nutritionProductSchema.index({ brand: 1, name: 1 });
 
 export type NutritionProductDocument = InferSchemaType<typeof nutritionProductSchema>;
 

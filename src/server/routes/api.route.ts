@@ -23,6 +23,11 @@ function productLabel(product: { brand?: unknown; name?: unknown }): string {
   return `${String(product.brand ?? '').trim()} — ${String(product.name ?? '').trim()}`;
 }
 
+/** Échappe une chaîne pour une utilisation littérale dans une expression régulière. */
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
  * Notifie (best-effort) tous les administrateurs qu'un produit a été soumis.
  * Les erreurs d'envoi sont journalisées sans interrompre la requête.
@@ -267,32 +272,66 @@ export function createApiRouter(): Router {
   // - utilisateur : le catalogue public validé + ses propres produits (quel
   //   que soit leur statut), jamais les produits privés d'autrui.
   router.get('/nutrition/products', async (req: Request, res: Response) => {
-    const { categoryId, status } = req.query as { categoryId?: string; status?: string };
+    const { categoryId, status, search, favoritesOnly, all } = req.query as {
+      categoryId?: string;
+      status?: string;
+      search?: string;
+      favoritesOnly?: string;
+      all?: string;
+    };
     const isAdmin = req.user!.role === 'admin';
-    const filter: Record<string, unknown> = {};
+    const userId = req.user!.id;
+    const and: Record<string, unknown>[] = [];
+
     if (categoryId && mongoose.isValidObjectId(categoryId)) {
-      filter['categoryId'] = categoryId;
+      and.push({ categoryId });
     }
 
     if (isAdmin) {
       const allowedStatuses = ['pending', 'approved', 'rejected', 'archived'];
       if (status && allowedStatuses.includes(status)) {
-        filter['moderationStatus'] = status;
+        and.push({ moderationStatus: status });
       }
     } else {
       // Catalogue public validé OU produits appartenant à l'utilisateur.
-      filter['$or'] = [
-        { visibility: 'public', moderationStatus: 'approved' },
-        { ownerId: req.user!.id },
-      ];
+      and.push({
+        $or: [{ visibility: 'public', moderationStatus: 'approved' }, { ownerId: userId }],
+      });
     }
+
+    // Recherche texte serveur sur le nom et la marque (insensible à la casse).
+    if (typeof search === 'string' && search.trim()) {
+      const rx = new RegExp(escapeRegex(search.trim()), 'i');
+      and.push({ $or: [{ name: rx }, { brand: rx }] });
+    }
+
+    // Filtre « favoris » : les favoris sont des données personnelles stockées
+    // dans une collection dédiée ; on récupère d'abord les identifiants.
+    if (favoritesOnly === 'true') {
+      const favorites = await NutritionProductFeedbackModel.find({ userId, favorite: true })
+        .select('productId')
+        .lean();
+      const favoriteIds = favorites.map((f) => (f as { productId: unknown }).productId);
+      and.push({ _id: { $in: favoriteIds } });
+    }
+
+    const filter = and.length > 0 ? { $and: and } : {};
+
+    // `all=true` renvoie la liste complète (usage inventaire / plan de conso).
+    const wantAll = all === 'true';
+    const parsedLimit = Math.min(Math.max(Number.parseInt(String(req.query['limit'] ?? ''), 10) || 50, 1), 100);
+    const parsedOffset = Math.max(Number.parseInt(String(req.query['offset'] ?? ''), 10) || 0, 0);
 
     const query = NutritionProductModel.find(filter).populate('categoryId');
     // Le propriétaire n'est exposé qu'aux administrateurs (file de modération).
     if (isAdmin) {
       query.populate('ownerId', 'firstName lastName email');
     }
-    const products = await query.sort({ brand: 1, name: 1 }).lean();
+    query.sort({ brand: 1, name: 1 });
+    if (!wantAll) {
+      query.skip(parsedOffset).limit(parsedLimit);
+    }
+    const products = await query.lean();
     const serialized = serializeMany(products);
 
     // Hydrate chaque produit avec les données personnelles (privées) de
@@ -351,7 +390,46 @@ export function createApiRouter(): Router {
         product['eventCount'] = personal?.eventCount ?? 0;
       }
     }
-    return res.json(serialized);
+
+    if (wantAll) {
+      return res.json(serialized);
+    }
+    const total = await NutritionProductModel.countDocuments(filter);
+    return res.json({
+      items: serialized,
+      total,
+      hasMore: parsedOffset + serialized.length < total,
+    });
+  });
+
+  // Comptage des produits par statut de modération (badges de la file admin).
+  // Respecte les filtres de contexte (catégorie + recherche).
+  router.get('/nutrition/products/counts', requireAdmin, async (req: Request, res: Response) => {
+    const { categoryId, search } = req.query as { categoryId?: string; search?: string };
+    const and: Record<string, unknown>[] = [];
+    if (categoryId && mongoose.isValidObjectId(categoryId)) {
+      and.push({ categoryId });
+    }
+    if (typeof search === 'string' && search.trim()) {
+      const rx = new RegExp(escapeRegex(search.trim()), 'i');
+      and.push({ $or: [{ name: rx }, { brand: rx }] });
+    }
+    const filter = and.length > 0 ? { $and: and } : {};
+
+    const rows = (await NutritionProductModel.aggregate([
+      { $match: filter },
+      { $group: { _id: '$moderationStatus', count: { $sum: 1 } } },
+    ])) as Array<{ _id: string; count: number }>;
+
+    const counts = { all: 0, pending: 0, approved: 0, rejected: 0, archived: 0 };
+    for (const row of rows) {
+      const key = String(row._id);
+      if (key === 'pending' || key === 'approved' || key === 'rejected' || key === 'archived') {
+        counts[key] = row.count;
+      }
+      counts.all += row.count;
+    }
+    return res.json(counts);
   });
 
   // Création d'un produit. Ouverte à tout utilisateur authentifié :

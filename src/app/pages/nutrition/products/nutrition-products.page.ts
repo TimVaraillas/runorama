@@ -1,7 +1,23 @@
 import { ChangeDetectionStrategy, Component, PLATFORM_ID, computed, inject, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  combineLatest,
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  map,
+  of,
+  switchMap,
+  tap,
+} from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { NutritionService } from '../../../features/nutrition/services/nutrition.service';
+import type {
+  ProductPage,
+  ProductStatusCounts,
+} from '../../../features/nutrition/services/nutrition.service';
+import { InfiniteScrollDirective } from '../../../core/directives/infinite-scroll.directive';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../features/auth/services/auth.service';
 import { ButtonComponent } from '../../../components/atoms/button/button.component';
@@ -60,6 +76,7 @@ type PendingDelete =
     NutritionProductFormComponent,
     NutritionProductTableComponent,
     NutritionProductGridComponent,
+    InfiniteScrollDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -165,14 +182,16 @@ type PendingDelete =
 
       <!-- Liste des produits -->
       @if (products(); as list) {
-        @if (filteredProducts().length === 0) {
+        @if (list.length === 0) {
           <div
             class="flex flex-col items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center"
           >
             <div class="grid h-14 w-14 place-items-center rounded-full bg-brand-50 text-brand-600">
               <ui-icon [icon]="faAppleWhole" size="xl" />
             </div>
-            @if (list.length === 0) {
+            @if (hasActiveFilters()) {
+              <p class="text-slate-600">Aucun produit ne correspond à votre recherche.</p>
+            } @else {
               <p class="text-slate-600">Aucun produit pour le moment.</p>
               <ui-button
                 color="secondary"
@@ -186,14 +205,12 @@ type PendingDelete =
               @if (categories().length === 0 && isAdmin()) {
                 <p class="text-xs text-slate-400">Commencez par créer une catégorie.</p>
               }
-            } @else {
-              <p class="text-slate-600">Aucun produit ne correspond à votre recherche.</p>
             }
           </div>
         } @else {
           @if (viewMode() === 'table') {
             <ui-nutrition-product-table
-              [products]="filteredProducts()"
+              [products]="list"
               [categories]="categories()"
               [readonly]="false"
               [showStatus]="true"
@@ -211,7 +228,7 @@ type PendingDelete =
             />
           } @else {
             <ui-nutrition-product-grid
-              [products]="filteredProducts()"
+              [products]="list"
               [categories]="categories()"
               [readonly]="false"
               [showStatus]="true"
@@ -226,6 +243,22 @@ type PendingDelete =
               (toggleFavorite)="toggleFavorite($event)"
               (editNote)="openNote($event)"
             />
+          }
+
+          <!-- Sentinelle : déclenche le chargement de la page suivante. -->
+          <div
+            uiInfiniteScroll
+            [disabled]="!hasMore() || loading() || loadingMore()"
+            (loadMore)="loadMore()"
+            class="h-px"
+          ></div>
+
+          @if (loadingMore()) {
+            <p class="py-4 text-center text-sm text-slate-400">Chargement…</p>
+          } @else if (!hasMore()) {
+            <p class="py-4 text-center text-xs text-slate-400">
+              {{ total() }} produit(s) — fin de la liste.
+            </p>
           }
         }
       } @else {
@@ -542,6 +575,23 @@ export class NutritionProductsPage {
   protected readonly categories = signal<NutritionCategory[]>([]);
   protected readonly products = signal<NutritionProduct[] | undefined>(undefined);
 
+  /** Taille de page du défilement infini. */
+  private readonly pageSize = 25;
+  /** Décalage de la prochaine page à charger. */
+  private offset = 0;
+  /** Chargement de la première page (changement de filtre). */
+  protected readonly loading = signal(true);
+  /** Chargement d'une page supplémentaire (scroll infini). */
+  protected readonly loadingMore = signal(false);
+  /** Nombre total de produits correspondant aux filtres. */
+  protected readonly total = signal(0);
+  /** Reste-t-il des pages à charger ? */
+  protected readonly hasMore = signal(false);
+  /** Compteurs par statut pour les badges admin. */
+  protected readonly counts = signal<ProductStatusCounts | null>(null);
+  /** Compteur d'invalidation : force un rechargement après une mutation. */
+  private readonly reloadTrigger = signal(0);
+
   protected readonly search = signal('');
   protected readonly categoryFilter = signal('');
   protected readonly viewMode = signal<ProductViewMode>('table');
@@ -581,35 +631,84 @@ export class NutritionProductsPage {
   protected readonly noteDraft = signal('');
   protected readonly savingNote = signal(false);
 
-  /** Produits filtrés par catégorie, recherche texte et statut (admin). */
-  protected readonly filteredProducts = computed(() => {
-    const list = this.products() ?? [];
-    const term = this.search().trim().toLowerCase();
-    const category = this.categoryFilter();
-    const status = this.statusFilter();
-    const favoritesOnly = this.favoritesOnly();
-    return list.filter((product) => {
-      const matchesCategory = !category || product.categoryId === category;
-      const matchesStatus = !status || product.moderationStatus === status;
-      const matchesFavorite = !favoritesOnly || product.favorite === true;
-      const matchesTerm =
-        !term ||
-        product.name.toLowerCase().includes(term) ||
-        product.brand.toLowerCase().includes(term);
-      return matchesCategory && matchesStatus && matchesFavorite && matchesTerm;
-    });
-  });
-
-  /** Nombre de produits par statut (badges des onglets admin). */
+  /** Nombre de produits pour un statut (badges des onglets admin). */
   protected statusCount(status: ProductModerationStatus | ''): number | null {
-    if (!status) return null;
-    const count = (this.products() ?? []).filter((p) => p.moderationStatus === status).length;
+    const counts = this.counts();
+    if (!status || !counts) return null;
+    const count = counts[status];
     return count > 0 ? count : null;
   }
 
+  /** Vrai si un filtre est actif (recherche, catégorie, statut ou favoris). */
+  protected readonly hasActiveFilters = computed(
+    () =>
+      this.search().trim().length > 0 ||
+      this.categoryFilter().length > 0 ||
+      this.statusFilter().length > 0 ||
+      this.favoritesOnly(),
+  );
+
   constructor() {
     this.loadCategories();
-    this.loadProducts();
+
+    // Recherche debouncée partagée par la liste et les compteurs.
+    const search$ = toObservable(this.search).pipe(
+      map((s) => s.trim()),
+      debounceTime(300),
+      distinctUntilChanged(),
+    );
+    const category$ = toObservable(this.categoryFilter);
+    const status$ = toObservable(this.statusFilter);
+    const favorites$ = toObservable(this.favoritesOnly);
+    const reload$ = toObservable(this.reloadTrigger);
+
+    // Liste paginée : recharge la première page à chaque changement de filtre.
+    combineLatest([search$, category$, status$, favorites$, reload$])
+      .pipe(
+        tap(() => {
+          this.loading.set(true);
+          this.offset = 0;
+        }),
+        switchMap(([search, categoryId, status, favoritesOnly]) =>
+          this.service
+            .searchProducts({
+              search,
+              categoryId,
+              status,
+              favoritesOnly,
+              limit: this.pageSize,
+              offset: 0,
+            })
+            .pipe(
+              catchError(() => {
+                this.toast.error('Impossible de charger les produits.');
+                return of<ProductPage>({ items: [], total: 0, hasMore: false });
+              }),
+            ),
+        ),
+        takeUntilDestroyed(),
+      )
+      .subscribe((page) => {
+        this.products.set(page.items);
+        this.total.set(page.total);
+        this.hasMore.set(page.hasMore);
+        this.offset = page.items.length;
+        this.loading.set(false);
+      });
+
+    // Compteurs par statut (badges admin), sensibles à la catégorie et à la recherche.
+    combineLatest([search$, category$, reload$])
+      .pipe(
+        switchMap(([search, categoryId]) =>
+          this.isAdmin()
+            ? this.service
+                .countProductsByStatus({ search, categoryId })
+                .pipe(catchError(() => of<ProductStatusCounts | null>(null)))
+            : of<ProductStatusCounts | null>(null),
+        ),
+        takeUntilDestroyed(),
+      )
+      .subscribe((counts) => this.counts.set(counts));
   }
 
   categoryName(id: string): string {
@@ -623,14 +722,37 @@ export class NutritionProductsPage {
     });
   }
 
-  private loadProducts(): void {
-    this.service.listProducts().subscribe({
-      next: (products) => this.products.set(products),
-      error: () => {
-        this.products.set([]);
-        this.toast.error('Impossible de charger les produits.');
-      },
-    });
+  /** Recharge la liste depuis la première page (après une mutation). */
+  private reload(): void {
+    this.reloadTrigger.update((n) => n + 1);
+  }
+
+  /** Charge la page suivante (déclenché par le scroll infini). */
+  loadMore(): void {
+    if (this.loading() || this.loadingMore() || !this.hasMore()) return;
+    this.loadingMore.set(true);
+    this.service
+      .searchProducts({
+        search: this.search().trim(),
+        categoryId: this.categoryFilter(),
+        status: this.statusFilter(),
+        favoritesOnly: this.favoritesOnly(),
+        limit: this.pageSize,
+        offset: this.offset,
+      })
+      .subscribe({
+        next: (page) => {
+          this.products.update((cur) => [...(cur ?? []), ...page.items]);
+          this.total.set(page.total);
+          this.hasMore.set(page.hasMore);
+          this.offset += page.items.length;
+          this.loadingMore.set(false);
+        },
+        error: () => {
+          this.loadingMore.set(false);
+          this.toast.error('Impossible de charger davantage de produits.');
+        },
+      });
   }
 
   // --- Produits ---
@@ -658,7 +780,7 @@ export class NutritionProductsPage {
     request.subscribe({
       next: () => {
         this.closeProductPanel();
-        this.loadProducts();
+        this.reload();
       },
       error: () => this.toast.error("Impossible d'enregistrer le produit. Veuillez réessayer."),
     });
@@ -674,7 +796,7 @@ export class NutritionProductsPage {
     this.service.approveProduct(product.id).subscribe({
       next: () => {
         this.toast.success(`« ${product.name} » a été validé et publié.`);
-        this.loadProducts();
+        this.reload();
       },
       error: () => this.toast.error('Impossible de valider le produit. Veuillez réessayer.'),
     });
@@ -684,7 +806,7 @@ export class NutritionProductsPage {
     this.service.archiveProduct(product.id).subscribe({
       next: () => {
         this.toast.success(`« ${product.name} » a été archivé.`);
-        this.loadProducts();
+        this.reload();
       },
       error: () => this.toast.error("Impossible d'archiver le produit. Veuillez réessayer."),
     });
@@ -709,7 +831,7 @@ export class NutritionProductsPage {
         this.moderating.set(false);
         this.cancelReject();
         this.toast.success(`« ${product.name} » a été refusé.`);
-        this.loadProducts();
+        this.reload();
       },
       error: () => {
         this.moderating.set(false);
@@ -732,10 +854,20 @@ export class NutritionProductsPage {
     const next = !product.favorite;
     // Mise à jour optimiste : on reflète immédiatement l'action.
     this.patchProduct(product.id, { favorite: next });
+    // Si on ne montre que les favoris, un retrait fait disparaître la ligne.
+    const removedFromFavorites = this.favoritesOnly() && !next;
+    if (removedFromFavorites) {
+      this.products.update((cur) => (cur ?? []).filter((p) => p.id !== product.id));
+      this.total.update((t) => Math.max(0, t - 1));
+    }
     this.service.setProductFeedback(product.id, { favorite: next }).subscribe({
       error: () => {
-        this.patchProduct(product.id, { favorite: !next });
         this.toast.error('Impossible de mettre à jour vos favoris. Veuillez réessayer.');
+        if (removedFromFavorites) {
+          this.reload();
+        } else {
+          this.patchProduct(product.id, { favorite: !next });
+        }
       },
     });
   }
@@ -868,7 +1000,7 @@ export class NutritionProductsPage {
         next: () => {
           this.deleting.set(false);
           this.pendingDelete.set(null);
-          this.loadProducts();
+          this.reload();
         },
         error: () => {
           this.deleting.set(false);

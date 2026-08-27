@@ -8,6 +8,22 @@ import type {
 } from '../../../core/models';
 import type { ProductModerationStatus } from '../../../core/models/nutrition.model';
 
+/** Page de produits renvoyée par la recherche paginée. */
+export interface ProductPage {
+  items: NutritionProduct[];
+  total: number;
+  hasMore: boolean;
+}
+
+/** Comptage des produits par statut de modération (badges admin). */
+export interface ProductStatusCounts {
+  all: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  archived: number;
+}
+
 /**
  * Service d'accès au volet nutrition (catégories et produits) via l'API REST.
  */
@@ -39,15 +55,48 @@ export class NutritionService {
   // --- Produits ---
 
   /**
-   * Liste les produits visibles par l'utilisateur (catalogue public validé +
-   * ses propres produits). Filtrable par catégorie, et par statut de modération
-   * pour les administrateurs (file de modération).
+   * Liste **tous** les produits visibles par l'utilisateur (catalogue public
+   * validé + ses propres produits). Utilisé par l'inventaire / le plan de
+   * consommation qui ont besoin de l'ensemble des produits.
    */
   listProducts(options?: { categoryId?: string; status?: ProductModerationStatus }): Observable<NutritionProduct[]> {
-    let params = new HttpParams();
+    let params = new HttpParams().set('all', 'true');
     if (options?.categoryId) params = params.set('categoryId', options.categoryId);
     if (options?.status) params = params.set('status', options.status);
     return this.http.get<NutritionProduct[]>(this.productsUrl, { params });
+  }
+
+  /**
+   * Recherche paginée des produits (filtrage serveur). Le tri est stable
+   * (`marque`, `nom`) pour un défilement infini cohérent.
+   */
+  searchProducts(options: {
+    search?: string;
+    categoryId?: string;
+    status?: ProductModerationStatus | '';
+    favoritesOnly?: boolean;
+    limit: number;
+    offset: number;
+  }): Observable<ProductPage> {
+    let params = new HttpParams()
+      .set('limit', String(options.limit))
+      .set('offset', String(options.offset));
+    if (options.search?.trim()) params = params.set('search', options.search.trim());
+    if (options.categoryId) params = params.set('categoryId', options.categoryId);
+    if (options.status) params = params.set('status', options.status);
+    if (options.favoritesOnly) params = params.set('favoritesOnly', 'true');
+    return this.http.get<ProductPage>(this.productsUrl, { params });
+  }
+
+  /** Compte les produits par statut de modération (badges de la file admin). */
+  countProductsByStatus(options?: {
+    search?: string;
+    categoryId?: string;
+  }): Observable<ProductStatusCounts> {
+    let params = new HttpParams();
+    if (options?.search?.trim()) params = params.set('search', options.search.trim());
+    if (options?.categoryId) params = params.set('categoryId', options.categoryId);
+    return this.http.get<ProductStatusCounts>(`${this.productsUrl}/counts`, { params });
   }
 
   createProduct(payload: Partial<NutritionProduct>): Observable<NutritionProduct> {
