@@ -54,6 +54,13 @@ interface Feature {
           <ui-button color="primary" variant="outlined" size="lg">Se connecter</ui-button>
         </a>
       </div>
+
+      <a
+        routerLink="/guide"
+        class="mt-6 text-sm font-semibold text-brand-600 hover:underline"
+      >
+        Comment ça marche&nbsp;?
+      </a>
     </section>
 
     <section class="mx-auto grid max-w-5xl gap-6 px-4 pb-20 sm:grid-cols-3">

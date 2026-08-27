@@ -28,6 +28,14 @@ import {
             <span class="font-display text-xl font-bold text-slate-600">Runorama</span>
           </a>
 
+          <a
+            routerLink="/guide"
+            routerLinkActive="text-brand-600"
+            class="hidden text-sm font-medium text-slate-600 transition-colors hover:text-brand-600 sm:inline"
+          >
+            Comment ça marche
+          </a>
+
           @if (auth.isAuthenticated()) {
             <nav class="flex items-center gap-1 border-l border-slate-100 ml-6 pl-6">
               @for (link of links; track link.path) {

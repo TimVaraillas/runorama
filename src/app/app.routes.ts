@@ -16,6 +16,12 @@ export const routes: Routes = [
     title: 'Connexion — Runorama',
   },
   {
+    path: 'guide',
+    // Documentation publique des fonctionnalités.
+    loadComponent: () => import('./pages/guide.page').then((m) => m.GuidePage),
+    title: 'Comment ça marche — Runorama',
+  },
+  {
     path: 'register',
     loadComponent: () => import('./pages/auth/register.page').then((m) => m.RegisterPage),
     title: 'Inscription — Runorama',
