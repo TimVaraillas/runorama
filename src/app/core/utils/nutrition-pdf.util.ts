@@ -176,6 +176,7 @@ interface LogisticBag {
   name: string;
   minute: number | null;
   via: string;
+  note: string;
   pickup: LogisticEntry[];
   drop: LogisticEntry[];
 }
@@ -199,7 +200,7 @@ function buildLogistics(event: NutritionEvent, map: Map<string, NutritionProduct
     quantity: item.quantity,
   }));
   if (startPickup.length > 0) {
-    bags.push({ name: 'Départ', minute: 0, via: '', pickup: startPickup, drop: [] });
+    bags.push({ name: 'Départ', minute: 0, via: '', note: '', pickup: startPickup, drop: [] });
   }
 
   // Sacs des ravitaillements avec logistique, triés par temps de passage.
@@ -227,6 +228,7 @@ function buildLogistics(event: NutritionEvent, map: Map<string, NutritionProduct
       name: station.name,
       minute: station.estimatedDurationFromStart,
       via: viaLabel(station.logisticVia),
+      note: station.note ?? '',
       pickup: (station.pickup ?? []).map(mapLogisticItem),
       drop: (station.drop ?? []).map(mapLogisticItem),
     });
@@ -344,17 +346,23 @@ export function buildStrategyPdfHtml(
   const logisticsSection =
     logisticBags.length > 0
       ? `
-      <section>
+      <section class="sec sec-log">
         <h2>Logistique</h2>
+        <p class="sec-intro">Préparez un sac par point ci-dessous.</p>
+        <div class="bags">
         ${logisticBags
           .map((bag) => {
-            const subtitle = [bag.minute != null ? formatMinutes(bag.minute) : '', bag.via]
-              .filter(Boolean)
-              .join(' · ');
+            const isStart = bag.name === 'Départ';
+            const badgeText = isStart ? 'Départ' : bag.via || 'Ravitaillement';
+            const badgeClass = isStart
+              ? 'badge-start'
+              : bag.via === 'Assistance'
+                ? 'badge-assist'
+                : 'badge-drop';
             const pickupTable =
               bag.pickup.length > 0
                 ? `
-              <h3>${bag.name === 'Départ' ? 'À emporter' : 'À récupérer'}</h3>
+              <h3>${isStart ? 'À emporter' : 'À récupérer'}</h3>
               <table>
                 <thead><tr><th>Élément</th><th class="right">Qté</th></tr></thead>
                 <tbody>${bagEntries(bag.pickup)}</tbody>
@@ -370,23 +378,32 @@ export function buildStrategyPdfHtml(
               </table>`
                 : '';
             return `
-          <div class="bag">
+          <div class="bag ${badgeClass}">
             <div class="bag-head">
               <span class="bag-name">${escapeHtml(bag.name)}</span>
-              ${subtitle ? `<span class="muted"> · ${escapeHtml(subtitle)}</span>` : ''}
+              <span class="bag-badge">${escapeHtml(badgeText)}</span>
             </div>
-            ${pickupTable}
-            ${dropTable}
+            ${
+              bag.minute != null && !isStart
+                ? `<div class="bag-meta">Passage estimé : ${formatMinutes(bag.minute)}</div>`
+                : ''
+            }
+            ${bag.note ? `<div class="bag-note">${escapeHtml(bag.note)}</div>` : ''}
+            <div class="bag-body">
+              ${pickupTable}
+              ${dropTable}
+            </div>
           </div>`;
           })
           .join('')}
+        </div>
       </section>`
       : '';
 
   const planSection =
     total > 0
       ? `
-      <section>
+      <section class="sec sec-plan">
         <h2>Plan de consommation</h2>
         <table>
           <thead>
@@ -414,7 +431,7 @@ export function buildStrategyPdfHtml(
         }
       </section>`
       : `
-      <section>
+      <section class="sec sec-plan">
         <h2>Plan de consommation</h2>
         <p class="muted">Définissez un chrono cible sur l'évènement pour construire le plan.</p>
       </section>`;
@@ -432,11 +449,22 @@ export function buildStrategyPdfHtml(
       margin: 32px;
       font-size: 12px;
       line-height: 1.5;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
-    header { border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 20px; }
+    header { border-bottom: 1px dashed #cbd5e1; padding-bottom: 12px; margin-bottom: 20px; }
     h1 { font-size: 22px; margin: 0 0 4px; }
-    h2 { font-size: 15px; margin: 24px 0 10px; color: #0f172a; }
-    h3 { font-size: 13px; margin: 18px 0 8px; color: #334155; }
+    h2 {
+      font-size: 18px;
+      margin: 26px 0px;
+      padding: 8px 0;
+      color: #f3612f;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    h3 { font-size: 12px; margin: 14px 0 6px; color: #334155; text-transform: uppercase; letter-spacing: .05em; }
+    /* Couleurs par section */
+    .sec-intro { color: #64748b; margin: 0 0 8px; }
     .meta { color: #64748b; font-size: 12px; }
     .summary { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; }
     .summary .item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; }
@@ -449,13 +477,61 @@ export function buildStrategyPdfHtml(
     .right { text-align: right; }
     .center { text-align: center; }
     .muted { color: #94a3b8; font-weight: 400; }
-    .bag { break-inside: avoid; margin-top: 14px; padding-top: 4px; }
-    .bag-head { font-size: 13px; margin-bottom: 2px; }
-    .bag-name { font-weight: 600; color: #0f172a; }
+    /* Sacs logistiques : une carte par point à préparer */
+    .bags { display: flex; flex-direction: column; gap: 14px; }
+    .bag {
+      break-inside: avoid;
+      border: 1px solid #e2e8f0;
+      border-left-width: 5px;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .bag-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 9px 14px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .bag-name { font-weight: 700; font-size: 14px; color: #0f172a; }
+    .bag-badge {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      padding: 3px 8px;
+      border-radius: 999px;
+      color: #fff;
+    }
+    .bag-meta { padding: 6px 14px 0; color: #64748b; font-size: 11px; }
+    .bag-note {
+      margin: 8px 14px 0;
+      padding: 6px 10px;
+      background: #fffbeb;
+      border-left: 3px solid #f59e0b;
+      border-radius: 4px;
+      color: #92400e;
+      font-size: 11px;
+      white-space: pre-wrap;
+    }
+    .bag-body { padding: 4px 14px 12px; }
+    .bag-body h3 { margin-top: 10px; }
+    .bag-body table { margin-top: 4px; }
+    /* Accents par type de sac */
+    .badge-start { border-left-color: #2563eb; }
+    .badge-start .bag-badge { background: #2563eb; }
+    .badge-assist { border-left-color: #d97706; }
+    .badge-assist .bag-badge { background: #d97706; }
+    .badge-drop { border-left-color: #7c3aed; }
+    .badge-drop .bag-badge { background: #7c3aed; }
     footer { margin-top: 28px; color: #94a3b8; font-size: 10px; }
     @media print {
       body { margin: 12mm; }
       section { break-inside: avoid; }
+      .bag { break-inside: avoid; }
     }
   </style>
 </head>
@@ -471,7 +547,7 @@ export function buildStrategyPdfHtml(
     </div>
   </header>
 
-  <section>
+  <section class="sec sec-inv">
     <h2>Inventaire</h2>
     <table>
       <thead>
