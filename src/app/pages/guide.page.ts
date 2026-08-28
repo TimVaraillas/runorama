@@ -23,6 +23,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { ButtonComponent } from '../components/atoms/button/button.component';
 import { IconComponent } from '../components/atoms/icon/icon.component';
+import { AuthService } from '../features/auth/services/auth.service';
 
 /** Un bloc de contenu d'une section de documentation. */
 interface DocBlock {
@@ -177,23 +178,25 @@ interface DocSection {
             </section>
           }
 
-          <!-- Appel à l'action -->
-          <div class="rounded-2xl bg-slate-50 p-8 text-center">
-            <h2 class="font-display text-2xl font-bold text-slate-900">
-              Prêt à préparer ta prochaine course&nbsp;?
-            </h2>
-            <p class="mt-2 text-slate-600">
-              Crée ton compte et compose ta première stratégie en quelques minutes.
-            </p>
-            <div class="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-              <a routerLink="/register">
-                <ui-button color="primary" size="lg">Créer un compte</ui-button>
-              </a>
-              <a routerLink="/login">
-                <ui-button color="primary" variant="outlined" size="lg">Se connecter</ui-button>
-              </a>
+          <!-- Appel à l'action (visiteurs non connectés uniquement) -->
+          @if (!auth.isAuthenticated()) {
+            <div class="rounded-2xl bg-slate-50 p-8 text-center">
+              <h2 class="font-display text-2xl font-bold text-slate-900">
+                Prêt à préparer ta prochaine course&nbsp;?
+              </h2>
+              <p class="mt-2 text-slate-600">
+                Crée ton compte et compose ta première stratégie en quelques minutes.
+              </p>
+              <div class="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+                <a routerLink="/register">
+                  <ui-button color="primary" size="lg">Créer un compte</ui-button>
+                </a>
+                <a routerLink="/login">
+                  <ui-button color="primary" variant="outlined" size="lg">Se connecter</ui-button>
+                </a>
+              </div>
             </div>
-          </div>
+          }
         </main>
       </div>
     </div>
@@ -202,6 +205,7 @@ interface DocSection {
 export class GuidePage {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly destroyRef = inject(DestroyRef);
+  protected readonly auth = inject(AuthService);
 
   protected readonly faPersonRunning = faPersonRunning;
   protected readonly faCheck = faCheck;

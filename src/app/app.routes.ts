@@ -14,6 +14,7 @@ export const routes: Routes = [
     path: 'login',
     loadComponent: () => import('./pages/auth/login.page').then((m) => m.LoginPage),
     title: 'Connexion — Runorama',
+    canActivate: [guestGuard],
   },
   {
     path: 'guide',
@@ -25,6 +26,7 @@ export const routes: Routes = [
     path: 'register',
     loadComponent: () => import('./pages/auth/register.page').then((m) => m.RegisterPage),
     title: 'Inscription — Runorama',
+    canActivate: [guestGuard],
   },
   {
     path: 'registration-success',
