@@ -7,6 +7,10 @@ import { ButtonComponent } from '../../../components/atoms/button/button.compone
 import { IconComponent } from '../../../components/atoms/icon/icon.component';
 import { SearchInputComponent } from '../../../components/atoms/search-input/search-input.component';
 import { DateRangeFilterComponent } from '../../../components/atoms/date-range-filter/date-range-filter.component';
+import {
+  FilterableSelectComponent,
+  type FilterableSelectOption,
+} from '../../../components/atoms/filterable-select/filterable-select.component';
 import { ViewToggleComponent, type ProductViewMode } from '../../../components/atoms/view-toggle/view-toggle.component';
 import { FilterBarComponent } from '../../../components/molecules/filter-bar/filter-bar.component';
 import { PageHeaderComponent } from '../../../components/molecules/page-header/page-header.component';
@@ -14,7 +18,7 @@ import { ConfirmDeleteModalComponent } from '../../../components/molecules/confi
 import { NutritionEventFormPanelComponent } from '../../../components/organisms/nutrition-event-form-panel/nutrition-event-form-panel.component';
 import { NutritionEventGridComponent } from '../../../components/organisms/nutrition-event-grid/nutrition-event-grid.component';
 import { NutritionEventTableComponent } from '../../../components/organisms/nutrition-event-table/nutrition-event-table.component';
-import type { NutritionEvent } from '../../../core/models';
+import type { NutritionEvent, NutritionEventOwner } from '../../../core/models';
 import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
 
 /**
@@ -32,6 +36,7 @@ import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
     IconComponent,
     SearchInputComponent,
     DateRangeFilterComponent,
+    FilterableSelectComponent,
     ViewToggleComponent,
     FilterBarComponent,
     PageHeaderComponent,
@@ -65,6 +70,15 @@ import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
             fromAriaLabel="Filtrer les stratégies à partir de cette date"
             toAriaLabel="Filtrer les stratégies jusqu'à cette date"
           />
+          @if (isAdmin() && ownerOptions().length) {
+            <ui-filterable-select
+              [options]="ownerOptions()"
+              [(value)]="selectedOwnerId"
+              placeholder="Tous les utilisateurs"
+              ariaLabel="Filtrer les stratégies par utilisateur"
+              clearAriaLabel="Effacer le filtre utilisateur"
+            />
+          }
           <ui-view-toggle [mode]="viewMode()" (modeChange)="viewMode.set($event)" />
         </ui-filter-bar>
       }
@@ -153,7 +167,19 @@ export class NutritionStrategiesPage {
   protected readonly search = signal('');
   protected readonly dateFrom = signal('');
   protected readonly dateTo = signal('');
+  protected readonly selectedOwnerId = signal('');
   protected readonly viewMode = signal<ProductViewMode>('table');
+
+  /** Liste des propriétaires distincts (filtre utilisateur, vue admin). */
+  protected readonly ownerOptions = computed<FilterableSelectOption[]>(() => {
+    const byId = new Map<string, NutritionEventOwner>();
+    for (const event of this.events() ?? []) {
+      if (event.owner) byId.set(event.owner.id, event.owner);
+    }
+    return [...byId.values()]
+      .map((owner) => ({ value: owner.id, label: `${owner.firstName} ${owner.lastName}` }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  });
 
   protected readonly panelOpen = signal(false);
   protected readonly editing = signal<NutritionEvent | null>(null);
@@ -167,11 +193,13 @@ export class NutritionStrategiesPage {
     const term = this.search().trim().toLowerCase();
     const from = this.dateFrom();
     const to = this.dateTo();
+    const ownerId = this.selectedOwnerId();
     return list.filter((event) => {
       const matchesTerm = !term || event.name.toLowerCase().includes(term);
       const matchesFrom = !from || event.date >= from;
       const matchesTo = !to || event.date <= to;
-      return matchesTerm && matchesFrom && matchesTo;
+      const matchesOwner = !ownerId || event.owner?.id === ownerId;
+      return matchesTerm && matchesFrom && matchesTo && matchesOwner;
     });
   });
 

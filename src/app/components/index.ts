@@ -10,6 +10,7 @@ export * from './atoms/view-toggle/view-toggle.component';
 export * from './atoms/nutrient-stat/nutrient-stat.component';
 export * from './atoms/search-input/search-input.component';
 export * from './atoms/date-range-filter/date-range-filter.component';
+export * from './atoms/filterable-select/filterable-select.component';
 export * from './atoms/quantity-stepper/quantity-stepper.component';
 export * from './atoms/rating-input/rating-input.component';
 export * from './atoms/segmented-choice/segmented-choice.component';
