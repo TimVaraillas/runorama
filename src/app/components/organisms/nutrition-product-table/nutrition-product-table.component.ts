@@ -1,15 +1,30 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { BadgeComponent } from '../../atoms/badge/badge.component';
 import { ProductStatusBadgeComponent } from '../../atoms/product-status-badge/product-status-badge.component';
 import type { NutritionCategory, NutritionProduct } from '../../../core/models';
 import { productCapabilities, type ProductCapabilities } from '../../../core/utils/product-moderation.util';
 import { faAppleWhole, faBoxArchive, faCheck, faHeartPulse, faPen, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faSort, faSortUp, faSortDown } from '@fortawesome/free-solid-svg-icons';
 import { faStar as faStarSolid, faNoteSticky as faNoteSolid } from '@fortawesome/free-solid-svg-icons';
 import { faStar as faStarRegular, faNoteSticky as faNoteRegular } from '@fortawesome/free-regular-svg-icons';
 
 /** Mode d'affichage du tableau : gestion (édition/suppression) ou sélection. */
 export type ProductTableMode = 'manage' | 'picker';
+
+/** Colonnes triables du tableau des produits. */
+type SortColumn =
+  | 'name'
+  | 'category'
+  | 'status'
+  | 'weight'
+  | 'energy'
+  | 'carbs'
+  | 'fats'
+  | 'proteins'
+  | 'sodium';
+
+type SortDirection = 'asc' | 'desc';
 
 /** Colonnes optionnelles dont l'affichage peut être basculé par l'utilisateur. */
 export type ProductColumnKey =
@@ -44,31 +59,76 @@ export type ProductColumnKey =
             @if (mode() === 'picker') {
               <th class="w-10 px-4 py-3"></th>
             }
-            <th class="px-4 py-3 font-medium">Produit</th>
+            <th class="px-4 py-3 font-medium" [attr.aria-sort]="ariaSort('name')">
+              <button type="button" class="group flex items-center gap-1.5" (click)="toggleSort('name')">
+                Produit
+                <ui-icon [icon]="sortIcon('name')" size="xs" [class]="sortIconClass('name')" />
+              </button>
+            </th>
             @if (mode() === 'picker' || showCol('category')) {
-              <th class="px-4 py-3 font-medium">Catégorie</th>
+              <th class="px-4 py-3 font-medium" [attr.aria-sort]="ariaSort('category')">
+                <button type="button" class="group flex items-center gap-1.5" (click)="toggleSort('category')">
+                  Catégorie
+                  <ui-icon [icon]="sortIcon('category')" size="xs" [class]="sortIconClass('category')" />
+                </button>
+              </th>
             }
             @if (showStatus() && isAdmin() && mode() !== 'picker') {
-              <th class="px-4 py-3 font-medium">Statut</th>
+              <th class="px-4 py-3 font-medium" [attr.aria-sort]="ariaSort('status')">
+                <button type="button" class="group flex items-center gap-1.5" (click)="toggleSort('status')">
+                  Statut
+                  <ui-icon [icon]="sortIcon('status')" size="xs" [class]="sortIconClass('status')" />
+                </button>
+              </th>
             }
             @if (mode() === 'picker' || showCol('weight')) {
-              <th class="px-4 py-3 text-right font-medium">Poids</th>
+              <th class="px-4 py-3 text-right font-medium" [attr.aria-sort]="ariaSort('weight')">
+                <button type="button" class="group ml-auto flex items-center gap-1.5" (click)="toggleSort('weight')">
+                  Poids
+                  <ui-icon [icon]="sortIcon('weight')" size="xs" [class]="sortIconClass('weight')" />
+                </button>
+              </th>
             }
             @if (mode() === 'picker' || showCol('energy')) {
-              <th class="px-4 py-3 text-right font-medium">Énergie</th>
+              <th class="px-4 py-3 text-right font-medium" [attr.aria-sort]="ariaSort('energy')">
+                <button type="button" class="group ml-auto flex items-center gap-1.5" (click)="toggleSort('energy')">
+                  Énergie
+                  <ui-icon [icon]="sortIcon('energy')" size="xs" [class]="sortIconClass('energy')" />
+                </button>
+              </th>
             }
             @if (mode() === 'picker' || showCol('carbs')) {
-              <th class="px-4 py-3 text-right font-medium">Gluc.</th>
+              <th class="px-4 py-3 text-right font-medium" [attr.aria-sort]="ariaSort('carbs')">
+                <button type="button" class="group ml-auto flex items-center gap-1.5" (click)="toggleSort('carbs')">
+                  Gluc.
+                  <ui-icon [icon]="sortIcon('carbs')" size="xs" [class]="sortIconClass('carbs')" />
+                </button>
+              </th>
             }
             @if (mode() !== 'picker') {
               @if (showCol('fats')) {
-                <th class="px-4 py-3 text-right font-medium">Lip.</th>
+                <th class="px-4 py-3 text-right font-medium" [attr.aria-sort]="ariaSort('fats')">
+                  <button type="button" class="group ml-auto flex items-center gap-1.5" (click)="toggleSort('fats')">
+                    Lip.
+                    <ui-icon [icon]="sortIcon('fats')" size="xs" [class]="sortIconClass('fats')" />
+                  </button>
+                </th>
               }
               @if (showCol('proteins')) {
-                <th class="px-4 py-3 text-right font-medium">Prot.</th>
+                <th class="px-4 py-3 text-right font-medium" [attr.aria-sort]="ariaSort('proteins')">
+                  <button type="button" class="group ml-auto flex items-center gap-1.5" (click)="toggleSort('proteins')">
+                    Prot.
+                    <ui-icon [icon]="sortIcon('proteins')" size="xs" [class]="sortIconClass('proteins')" />
+                  </button>
+                </th>
               }
               @if (showCol('sodium')) {
-                <th class="px-4 py-3 text-right font-medium">Sodium</th>
+                <th class="px-4 py-3 text-right font-medium" [attr.aria-sort]="ariaSort('sodium')">
+                  <button type="button" class="group ml-auto flex items-center gap-1.5" (click)="toggleSort('sodium')">
+                    Sodium
+                    <ui-icon [icon]="sortIcon('sodium')" size="xs" [class]="sortIconClass('sodium')" />
+                  </button>
+                </th>
               }
               @if (!readonly()) {
                 <th class="px-4 py-3"></th>
@@ -80,7 +140,7 @@ export type ProductColumnKey =
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
-          @for (product of products(); track product.id) {
+          @for (product of sortedProducts(); track product.id) {
             <tr
               class="transition-colors hover:bg-slate-50"
               [class.cursor-pointer]="mode() === 'picker'"
@@ -339,6 +399,86 @@ export class NutritionProductTableComponent {
   protected readonly faStarRegular = faStarRegular;
   protected readonly faNoteSolid = faNoteSolid;
   protected readonly faNoteRegular = faNoteRegular;
+
+  /** Colonne de tri active (null = ordre d'origine). */
+  protected readonly sortColumn = signal<SortColumn | null>(null);
+  /** Sens du tri courant. */
+  protected readonly sortDirection = signal<SortDirection>('asc');
+
+  /** Produits triés selon la colonne et le sens actifs. */
+  protected readonly sortedProducts = computed(() => {
+    const column = this.sortColumn();
+    const list = this.products();
+    if (!column) return list;
+    const dir = this.sortDirection() === 'asc' ? 1 : -1;
+    return [...list].sort((a, b) => {
+      const va = this.sortValue(a, column);
+      const vb = this.sortValue(b, column);
+      const aEmpty = va == null || va === '';
+      const bEmpty = vb == null || vb === '';
+      if (aEmpty && bEmpty) return 0;
+      if (aEmpty) return 1;
+      if (bEmpty) return -1;
+      const cmp =
+        typeof va === 'number' && typeof vb === 'number'
+          ? va - vb
+          : String(va).localeCompare(String(vb));
+      return cmp * dir;
+    });
+  });
+
+  /** Bascule le tri : active la colonne ou inverse le sens si déjà active. */
+  protected toggleSort(column: SortColumn): void {
+    if (this.sortColumn() === column) {
+      this.sortDirection.update((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
+
+  /** Icône de tri affichée dans l'en-tête d'une colonne. */
+  protected sortIcon(column: SortColumn) {
+    if (this.sortColumn() !== column) return faSort;
+    return this.sortDirection() === 'asc' ? faSortUp : faSortDown;
+  }
+
+  /** Classe de l'icône : discrète sauf pour la colonne active. */
+  protected sortIconClass(column: SortColumn): string {
+    return this.sortColumn() === column
+      ? 'text-brand-600'
+      : 'text-slate-300 group-hover:text-slate-400';
+  }
+
+  /** Valeur `aria-sort` pour l'accessibilité. */
+  protected ariaSort(column: SortColumn): 'ascending' | 'descending' | 'none' {
+    if (this.sortColumn() !== column) return 'none';
+    return this.sortDirection() === 'asc' ? 'ascending' : 'descending';
+  }
+
+  /** Clé de tri d'un produit pour une colonne donnée. */
+  private sortValue(product: NutritionProduct, column: SortColumn): string | number | undefined {
+    switch (column) {
+      case 'name':
+        return product.name?.toLowerCase();
+      case 'category':
+        return this.labelFor(product.categoryId).toLowerCase();
+      case 'status':
+        return product.moderationStatus;
+      case 'weight':
+        return product.unitWeight;
+      case 'energy':
+        return product.energy;
+      case 'carbs':
+        return product.carbs;
+      case 'fats':
+        return product.fats;
+      case 'proteins':
+        return product.proteins;
+      case 'sodium':
+        return product.sodium;
+    }
+  }
 
   protected labelFor(categoryId: string): string {
     return this.categories().find((c) => c.id === categoryId)?.name ?? '—';
