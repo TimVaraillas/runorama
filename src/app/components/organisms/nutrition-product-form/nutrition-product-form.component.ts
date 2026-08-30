@@ -21,6 +21,11 @@ import { faImage, faTrash } from '@fortawesome/free-solid-svg-icons';
 const MAX_IMAGE_SIZE = 400;
 /** Qualité JPEG de la photo redimensionnée. */
 const IMAGE_QUALITY = 0.8;
+/** Facteur de conversion : 1 g de sel (NaCl) = 400 mg de sodium. */
+const SALT_TO_SODIUM_MG = 400;
+
+/** Unité de saisie de la teneur en sel/sodium. */
+type SodiumUnit = 'sodium' | 'salt';
 
 /**
  * Organism : formulaire d'ajout/modification d'un produit nutritionnel.
@@ -143,13 +148,31 @@ const IMAGE_QUALITY = 0.8;
             min="0"
             step="0.1"
           />
-          <ui-text-input
-            formControlName="sodium"
-            label="Sodium (mg)"
-            type="number"
-            min="0"
-            step="1"
-          />
+          <div>
+            <div class="mb-1 flex items-center justify-between gap-2">
+              <label class="block text-sm font-medium text-slate-700" for="product-sodium">
+                {{ sodiumUnit() === 'salt' ? 'Sel (g)' : 'Sodium (mg)' }}
+              </label>
+              <select
+                class="rounded-md border border-slate-300 bg-white px-2 py-0.5 text-xs text-slate-600 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                [value]="sodiumUnit()"
+                (change)="setSodiumUnit($any($event.target).value)"
+                aria-label="Unité de saisie : sel ou sodium"
+              >
+                <option value="sodium">Sodium (mg)</option>
+                <option value="salt">Sel (g)</option>
+              </select>
+            </div>
+            <input
+              id="product-sodium"
+              type="number"
+              min="0"
+              [attr.step]="sodiumUnit() === 'salt' ? '0.1' : '1'"
+              formControlName="sodium"
+              [class]="inputClass"
+            />
+            <p class="mt-1 text-xs text-slate-400">{{ sodiumHint() }}</p>
+          </div>
         </div>
       </section>
 
@@ -195,6 +218,9 @@ export class NutritionProductFormComponent {
   /** Aperçu de la photo (data URL) ; `null` si aucune. */
   protected readonly imagePreview = signal<string | null>(null);
 
+  /** Unité de saisie du champ sel/sodium (converti en sodium à l'enregistrement). */
+  protected readonly sodiumUnit = signal<SodiumUnit>('salt');
+
   protected readonly labelClass = 'mb-1 block text-xs font-medium text-slate-600';
   protected readonly inputClass =
     'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
@@ -227,8 +253,9 @@ export class NutritionProductFormComponent {
           carbs: product.carbs,
           fats: product.fats,
           proteins: product.proteins,
-          sodium: product.sodium,
+          sodium: this.round2(product.sodium / SALT_TO_SODIUM_MG),
         });
+        this.sodiumUnit.set('salt');
         this.imagePreview.set(product.image ?? null);
       }
     });
@@ -279,12 +306,48 @@ export class NutritionProductFormComponent {
     fileInput.value = '';
   }
 
+  /** Bascule l'unité de saisie sel/sodium en convertissant la valeur courante. */
+  protected setSodiumUnit(unit: SodiumUnit): void {
+    if (unit === this.sodiumUnit()) return;
+    const control = this.form.controls.sodium;
+    const raw = control.value;
+    if (raw != null && String(raw) !== '') {
+      const value = Number(raw);
+      const converted =
+        unit === 'salt' ? value / SALT_TO_SODIUM_MG : value * SALT_TO_SODIUM_MG;
+      control.setValue(unit === 'salt' ? this.round2(converted) : Math.round(converted));
+    }
+    this.sodiumUnit.set(unit);
+  }
+
+  /** Message d'aide sous le champ : équivalence sel ↔ sodium. */
+  protected sodiumHint(): string {
+    const raw = this.form.controls.sodium.value;
+    if (raw == null || String(raw) === '') {
+      return '1 g de sel = 400 mg de sodium. La valeur est enregistrée en sodium.';
+    }
+    const value = Number(raw);
+    if (this.sodiumUnit() === 'salt') {
+      return `≈ ${Math.round(value * SALT_TO_SODIUM_MG)} mg de sodium (valeur enregistrée).`;
+    }
+    return `≈ ${this.round2(value / SALT_TO_SODIUM_MG)} g de sel.`;
+  }
+
+  /** Arrondit à deux décimales. */
+  private round2(value: number): number {
+    return Math.round(value * 100) / 100;
+  }
+
   submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
     const value = this.form.getRawValue();
+    const sodiumMg =
+      this.sodiumUnit() === 'salt'
+        ? Math.round(Number(value.sodium) * SALT_TO_SODIUM_MG)
+        : Number(value.sodium);
     this.save.emit({
       categoryId: value.categoryId!,
       brand: value.brand!.trim(),
@@ -295,7 +358,7 @@ export class NutritionProductFormComponent {
       carbs: Number(value.carbs),
       fats: Number(value.fats),
       proteins: Number(value.proteins),
-      sodium: Number(value.sodium),
+      sodium: sodiumMg,
       // `null` pour permettre de retirer une photo existante lors d'une modification.
       image: this.imagePreview() ?? null,
     } as Partial<NutritionProduct>);
