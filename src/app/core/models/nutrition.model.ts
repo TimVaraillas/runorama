@@ -390,6 +390,36 @@ export interface NutritionEventOwner {
 }
 
 /**
+ * Étiquette d'une stratégie : nature de la sortie/évènement associé.
+ */
+export type NutritionEventCategory =
+  | 'training'
+  | 'long-run'
+  | 'race';
+
+/** Description d'une étiquette de stratégie (libellé + tonalité du badge). */
+export interface NutritionEventCategoryMeta {
+  value: NutritionEventCategory;
+  label: string;
+  /** Tonalité du badge d'affichage (voir `BadgeTone`). */
+  tone: 'neutral' | 'brand' | 'accent' | 'success' | 'warning' | 'danger';
+}
+
+/** Étiquettes disponibles, dans l'ordre d'affichage. */
+export const NUTRITION_EVENT_CATEGORIES: readonly NutritionEventCategoryMeta[] = [
+  { value: 'training', label: 'Entraînement', tone: 'neutral' },
+  { value: 'long-run', label: 'Sortie longue', tone: 'accent' },
+  { value: 'race', label: 'Course', tone: 'danger' },
+];
+
+/** Retrouve les métadonnées d'une étiquette à partir de sa valeur. */
+export function nutritionEventCategoryMeta(
+  value: NutritionEventCategory | undefined,
+): NutritionEventCategoryMeta | undefined {
+  return NUTRITION_EVENT_CATEGORIES.find((category) => category.value === value);
+}
+
+/**
  * Un évènement / stratégie alimentaire : associe un évènement (course, sortie
  * longue) à une liste de produits emportés et à des besoins horaires cibles.
  */
@@ -400,6 +430,8 @@ export interface NutritionEvent {
   /** Date au format ISO `YYYY-MM-DD`. */
   date: string;
   location?: string;
+  /** Étiquette : nature de la sortie/évènement (facultative). */
+  category?: NutritionEventCategory;
   /** Distance en kilomètres. */
   distance?: number;
   /** Dénivelé positif en mètres. */

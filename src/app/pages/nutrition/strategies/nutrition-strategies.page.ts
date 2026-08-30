@@ -18,7 +18,11 @@ import { ConfirmDeleteModalComponent } from '../../../components/molecules/confi
 import { NutritionEventFormPanelComponent } from '../../../components/organisms/nutrition-event-form-panel/nutrition-event-form-panel.component';
 import { NutritionEventGridComponent } from '../../../components/organisms/nutrition-event-grid/nutrition-event-grid.component';
 import { NutritionEventTableComponent } from '../../../components/organisms/nutrition-event-table/nutrition-event-table.component';
-import type { NutritionEvent, NutritionEventOwner } from '../../../core/models';
+import type {
+  NutritionEvent,
+  NutritionEventOwner,
+} from '../../../core/models';
+import { NUTRITION_EVENT_CATEGORIES } from '../../../core/models';
 import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
 
 /**
@@ -69,6 +73,13 @@ import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
             [(to)]="dateTo"
             fromAriaLabel="Filtrer les stratégies à partir de cette date"
             toAriaLabel="Filtrer les stratégies jusqu'à cette date"
+          />
+          <ui-filterable-select
+            [options]="categoryOptions"
+            [(value)]="selectedCategory"
+            placeholder="Toutes les étiquettes"
+            ariaLabel="Filtrer les stratégies par étiquette"
+            clearAriaLabel="Effacer le filtre d'étiquette"
           />
           @if (isAdmin() && ownerOptions().length) {
             <ui-filterable-select
@@ -168,7 +179,13 @@ export class NutritionStrategiesPage {
   protected readonly dateFrom = signal('');
   protected readonly dateTo = signal('');
   protected readonly selectedOwnerId = signal('');
+  protected readonly selectedCategory = signal('');
   protected readonly viewMode = signal<ProductViewMode>('table');
+
+  /** Options du filtre par étiquette. */
+  protected readonly categoryOptions: FilterableSelectOption[] = NUTRITION_EVENT_CATEGORIES.map(
+    (category) => ({ value: category.value, label: category.label }),
+  );
 
   /** Liste des propriétaires distincts (filtre utilisateur, vue admin). */
   protected readonly ownerOptions = computed<FilterableSelectOption[]>(() => {
@@ -194,12 +211,14 @@ export class NutritionStrategiesPage {
     const from = this.dateFrom();
     const to = this.dateTo();
     const ownerId = this.selectedOwnerId();
+    const category = this.selectedCategory();
     return list.filter((event) => {
       const matchesTerm = !term || event.name.toLowerCase().includes(term);
       const matchesFrom = !from || event.date >= from;
       const matchesTo = !to || event.date <= to;
       const matchesOwner = !ownerId || event.owner?.id === ownerId;
-      return matchesTerm && matchesFrom && matchesTo && matchesOwner;
+      const matchesCategory = !category || event.category === category;
+      return matchesTerm && matchesFrom && matchesTo && matchesOwner && matchesCategory;
     });
   });
 

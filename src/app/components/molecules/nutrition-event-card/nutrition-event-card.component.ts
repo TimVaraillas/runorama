@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { IconComponent } from '../../atoms/icon/icon.component';
-import type { NutritionEvent } from '../../../core/models';
+import { BadgeComponent } from '../../atoms/badge/badge.component';
+import { nutritionEventCategoryMeta, type NutritionEvent } from '../../../core/models';
 import {
   faCalendarDay,
   faLocationDot,
@@ -21,7 +22,7 @@ import {
 @Component({
   selector: 'ui-nutrition-event-card',
   standalone: true,
-  imports: [IconComponent],
+  imports: [IconComponent, BadgeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <article
@@ -40,6 +41,9 @@ import {
             <ui-icon [icon]="faCalendarDay" size="sm" />
             {{ formattedDate() }}
           </p>
+          @if (categoryMeta(); as meta) {
+            <ui-badge class="mt-2 inline-flex" [tone]="meta.tone">{{ meta.label }}</ui-badge>
+          }
         </div>
         <div class="flex shrink-0 items-center gap-1">
           <button
@@ -105,6 +109,9 @@ export class NutritionEventCardComponent {
   protected readonly itemCount = computed(() =>
     this.event().items.reduce((sum, item) => sum + item.quantity, 0),
   );
+
+  /** Métadonnées d'affichage de l'étiquette (badge). */
+  protected readonly categoryMeta = computed(() => nutritionEventCategoryMeta(this.event().category));
 
   /** Date formatée `JJ/MM/AAAA` à partir d'une date ISO `YYYY-MM-DD`. */
   protected readonly formattedDate = computed(() => {

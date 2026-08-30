@@ -1,6 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { IconComponent } from '../../atoms/icon/icon.component';
-import type { NutritionEvent } from '../../../core/models';
+import { BadgeComponent } from '../../atoms/badge/badge.component';
+import {
+  NUTRITION_EVENT_CATEGORIES,
+  nutritionEventCategoryMeta,
+  type NutritionEvent,
+} from '../../../core/models';
 import {
   faCalendarDay,
   faLocationDot,
@@ -18,14 +23,12 @@ import {
 /** Colonnes triables du tableau des stratégies. */
 type SortColumn =
   | 'name'
+  | 'category'
   | 'owner'
   | 'date'
-  | 'location'
   | 'distance'
   | 'elevationGain'
-  | 'targetTimeMinutes'
-  | 'items';
-
+  | 'targetTimeMinutes';
 type SortDirection = 'asc' | 'desc';
 
 /**
@@ -35,7 +38,7 @@ type SortDirection = 'asc' | 'desc';
 @Component({
   selector: 'ui-nutrition-event-table',
   standalone: true,
-  imports: [IconComponent],
+  imports: [IconComponent, BadgeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -46,6 +49,12 @@ type SortDirection = 'asc' | 'desc';
               <button type="button" class="group flex items-center gap-1.5" (click)="toggleSort('name')">
                 Stratégie
                 <ui-icon [icon]="sortIcon('name')" size="xs" [class]="sortIconClass('name')" />
+              </button>
+            </th>
+            <th class="px-4 py-3 font-medium" [attr.aria-sort]="ariaSort('category')">
+              <button type="button" class="group flex items-center gap-1.5" (click)="toggleSort('category')">
+                Étiquette
+                <ui-icon [icon]="sortIcon('category')" size="xs" [class]="sortIconClass('category')" />
               </button>
             </th>
             @if (showOwner()) {
@@ -60,12 +69,6 @@ type SortDirection = 'asc' | 'desc';
               <button type="button" class="group flex items-center gap-1.5" (click)="toggleSort('date')">
                 Date
                 <ui-icon [icon]="sortIcon('date')" size="xs" [class]="sortIconClass('date')" />
-              </button>
-            </th>
-            <th class="px-4 py-3 font-medium" [attr.aria-sort]="ariaSort('location')">
-              <button type="button" class="group flex items-center gap-1.5" (click)="toggleSort('location')">
-                Lieu
-                <ui-icon [icon]="sortIcon('location')" size="xs" [class]="sortIconClass('location')" />
               </button>
             </th>
             <th class="px-4 py-3 text-right font-medium" [attr.aria-sort]="ariaSort('distance')">
@@ -86,12 +89,6 @@ type SortDirection = 'asc' | 'desc';
                 <ui-icon [icon]="sortIcon('targetTimeMinutes')" size="xs" [class]="sortIconClass('targetTimeMinutes')" />
               </button>
             </th>
-            <th class="px-4 py-3 text-right font-medium" [attr.aria-sort]="ariaSort('items')">
-              <button type="button" class="group ml-auto flex items-center gap-1.5" (click)="toggleSort('items')">
-                Produits
-                <ui-icon [icon]="sortIcon('items')" size="xs" [class]="sortIconClass('items')" />
-              </button>
-            </th>
             <th class="px-4 py-3"></th>
           </tr>
         </thead>
@@ -103,6 +100,13 @@ type SortDirection = 'asc' | 'desc';
             >
               <td class="min-w-48 max-w-64 px-4 py-3">
                 <div class="truncate font-bold text-slate-900">{{ event.name }}</div>
+              </td>
+              <td class="px-4 py-3">
+                @if (categoryMeta(event); as meta) {
+                  <ui-badge [tone]="meta.tone">{{ meta.label }}</ui-badge>
+                } @else {
+                  <span class="text-slate-300">—</span>
+                }
               </td>
               @if (showOwner()) {
                 <td class="px-4 py-3 text-slate-700">
@@ -117,15 +121,6 @@ type SortDirection = 'asc' | 'desc';
                 <span class="flex items-center gap-1.5">
                   {{ formatDate(event.date) }}
                 </span>
-              </td>
-              <td class="px-4 py-3 text-slate-700">
-                @if (event.location) {
-                  <span class="flex items-center gap-1.5">
-                    {{ event.location }}
-                  </span>
-                } @else {
-                  <span class="text-slate-300">—</span>
-                }
               </td>
               <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">
                 @if (event.distance != null) {
@@ -147,9 +142,6 @@ type SortDirection = 'asc' | 'desc';
                 } @else {
                   <span class="text-slate-300">—</span>
                 }
-              </td>
-              <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">
-                {{ itemCount(event) }}
               </td>
               <td class="px-4 py-3">
                 <div class="flex items-center justify-end gap-1">
@@ -187,7 +179,6 @@ export class NutritionEventTableComponent {
   readonly select = output<NutritionEvent>();
   readonly edit = output<NutritionEvent>();
   readonly delete = output<NutritionEvent>();
-
   protected readonly faCalendarDay = faCalendarDay;
   protected readonly faLocationDot = faLocationDot;
   protected readonly faRoute = faRoute;
@@ -253,31 +244,31 @@ export class NutritionEventTableComponent {
     return this.sortDirection() === 'asc' ? 'ascending' : 'descending';
   }
 
+  /** Métadonnées d'affichage de l'étiquette d'un évènement. */
+  protected categoryMeta(event: NutritionEvent) {
+    return nutritionEventCategoryMeta(event.category);
+  }
+
   /** Clé de tri d'un évènement pour une colonne donnée. */
   private sortValue(event: NutritionEvent, column: SortColumn): string | number | undefined {
     switch (column) {
       case 'name':
         return event.name?.toLowerCase();
+      case 'category':
+        return event.category
+          ? NUTRITION_EVENT_CATEGORIES.findIndex((meta) => meta.value === event.category)
+          : undefined;
       case 'owner':
         return event.owner ? `${event.owner.firstName} ${event.owner.lastName}`.toLowerCase() : undefined;
       case 'date':
         return event.date;
-      case 'location':
-        return event.location?.toLowerCase();
       case 'distance':
         return event.distance;
       case 'elevationGain':
         return event.elevationGain;
       case 'targetTimeMinutes':
         return event.targetTimeMinutes;
-      case 'items':
-        return this.itemCount(event);
     }
-  }
-
-  /** Total d'unités emportées pour un évènement. */
-  protected itemCount(event: NutritionEvent): number {
-    return event.items.reduce((sum, item) => sum + item.quantity, 0);
   }
 
   /** Formate une date ISO `YYYY-MM-DD` en `JJ/MM/AAAA`. */

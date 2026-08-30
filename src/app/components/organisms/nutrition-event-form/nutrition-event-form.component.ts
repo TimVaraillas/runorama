@@ -8,7 +8,12 @@ import {
 } from '@angular/forms';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { NutritionGoalsEditorComponent } from '../../molecules/nutrition-goals-editor/nutrition-goals-editor.component';
-import { type NutritionEvent, type NutritionGoals } from '../../../core/models';
+import {
+  NUTRITION_EVENT_CATEGORIES,
+  type NutritionEvent,
+  type NutritionEventCategory,
+  type NutritionGoals,
+} from '../../../core/models';
 import { createDefaultGoals, resolveGoals } from '../../../core/utils/nutrition-goals.util';
 
 /**
@@ -72,6 +77,16 @@ function chronoRequiredValidator(group: AbstractControl): ValidationErrors | nul
               placeholder="Ex : Millau"
             />
           </div>
+        </div>
+
+        <div>
+          <label [class]="labelClass" for="event-category">Étiquette (facultative)</label>
+          <select id="event-category" formControlName="category" [class]="inputClass">
+            <option [ngValue]="null">Aucune</option>
+            @for (category of categories; track category.value) {
+              <option [ngValue]="category.value">{{ category.label }}</option>
+            }
+          </select>
         </div>
       </section>
 
@@ -165,6 +180,9 @@ export class NutritionEventFormComponent {
   protected readonly inputClass =
     'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
 
+  /** Étiquettes disponibles pour le sélecteur. */
+  protected readonly categories = NUTRITION_EVENT_CATEGORIES;
+
   /** Objectifs nutritionnels édités (pilotés par le composant réutilisable). */
   protected readonly goalsDraft = signal<NutritionGoals>(createDefaultGoals());
 
@@ -174,6 +192,7 @@ export class NutritionEventFormComponent {
       description: [''],
       date: ['', Validators.required],
       location: [''],
+      category: [null as NutritionEventCategory | null],
       distance: [null as number | null, Validators.min(0)],
       elevationGain: [null as number | null, Validators.min(0)],
       elevationLoss: [null as number | null, Validators.min(0)],
@@ -194,6 +213,7 @@ export class NutritionEventFormComponent {
           description: event.description ?? '',
           date: event.date,
           location: event.location ?? '',
+          category: event.category ?? null,
           distance: event.distance ?? null,
           elevationGain: event.elevationGain ?? null,
           elevationLoss: event.elevationLoss ?? null,
@@ -218,6 +238,7 @@ export class NutritionEventFormComponent {
       description: v.description?.trim() || undefined,
       date: v.date!,
       location: v.location?.trim() || undefined,
+      category: v.category ?? undefined,
       distance: v.distance ?? undefined,
       elevationGain: v.elevationGain ?? undefined,
       elevationLoss: v.elevationLoss ?? undefined,

@@ -189,6 +189,11 @@ const nutritionEventSchema = new Schema(
     description: { type: String, trim: true },
     /** Date de l'évènement au format ISO `YYYY-MM-DD`. */
     date: { type: String, required: true },
+    /** Étiquette : nature de la sortie/évènement (facultative). */
+    category: {
+      type: String,
+      enum: ['training', 'long-run', 'race'],
+    },
     /** Lieu de l'évènement (facultatif). */
     location: { type: String, trim: true },
     /** Distance en kilomètres (facultative). */
