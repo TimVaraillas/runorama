@@ -7,6 +7,7 @@ import type {
   PlanSequenceMinutes,
   PositionedAidStation,
   PositionedIntake,
+  RouteWaypoint,
   SequenceMark,
 } from '../models';
 import type { ResolvedGoal } from './nutrition-goals.util';
@@ -164,26 +165,46 @@ export function buildAidStationMarks(params: {
   total: number;
   trackHeight: number;
   aidStations: AidStation[];
+  waypoints?: RouteWaypoint[];
 }): PositionedAidStation[] {
-  const { total, trackHeight, aidStations } = params;
+  const { total, trackHeight, aidStations, waypoints = [] } = params;
   if (total <= 0) return [];
-  return aidStations
+
+  const stationMarks: PositionedAidStation[] = aidStations
     .filter(
       (station) =>
-        station.estimatedDurationFromStart >= 0 &&
-        station.estimatedDurationFromStart <= total,
+        station.estimatedDurationFromStart >= 0 && station.estimatedDurationFromStart <= total,
     )
-    .slice()
-    .sort((a, b) => a.estimatedDurationFromStart - b.estimatedDurationFromStart)
     .map((station) => ({
       id: station.id,
       name: station.name,
+      kind: 'AID_STATION' as const,
       types: station.types,
       minute: station.estimatedDurationFromStart,
       top: (station.estimatedDurationFromStart / total) * trackHeight,
       distanceFromStart: station.distanceFromStart,
       consumptionCount: station.consumptions?.length ?? 0,
     }));
+
+  const waypointMarks: PositionedAidStation[] = waypoints
+    .filter(
+      (wp) =>
+        wp.estimatedDurationFromStart != null &&
+        wp.estimatedDurationFromStart >= 0 &&
+        wp.estimatedDurationFromStart <= total,
+    )
+    .map((wp) => ({
+      id: wp.id,
+      name: wp.name,
+      kind: wp.kind,
+      types: [],
+      minute: wp.estimatedDurationFromStart!,
+      top: (wp.estimatedDurationFromStart! / total) * trackHeight,
+      distanceFromStart: wp.distanceFromStart,
+      consumptionCount: 0,
+    }));
+
+  return [...stationMarks, ...waypointMarks].sort((a, b) => a.minute - b.minute);
 }
 
 /** Construit le récapitulatif horaire (apports planifiés vs cible) par nutriment. */

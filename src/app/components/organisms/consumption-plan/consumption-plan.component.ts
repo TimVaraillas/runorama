@@ -331,12 +331,13 @@ export class ConsumptionPlanComponent implements OnDestroy {
     }),
   );
 
-  /** Ravitaillements positionnés sur la timeline (repères temporels). */
+  /** Ravitaillements et points de passage positionnés sur la timeline. */
   protected readonly aidStationMarks = computed<PositionedAidStation[]>(() =>
     buildAidStationMarks({
       total: this.totalMinutes(),
       trackHeight: this.trackHeight(),
       aidStations: this.event().aidStations ?? [],
+      waypoints: this.event().waypoints ?? [],
     }),
   );
 

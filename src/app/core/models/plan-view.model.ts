@@ -1,5 +1,6 @@
 import type { NutrientGoalKey, NutritionIntake, NutritionProduct } from './nutrition.model';
 import type { AidStationType } from './nutrition.model';
+import type { RoutePointKind } from './gpx.model';
 
 /** Bord d'une prise saisi lors du redimensionnement. */
 export type ResizeEdge = 'top' | 'bottom';
@@ -69,6 +70,8 @@ export interface SequenceMark {
 export interface PositionedAidStation {
   id: string;
   name: string;
+  /** Nature du point (ravitaillement, checkpoint, sommet, perso). */
+  kind: RoutePointKind;
   types: AidStationType[];
   /** Temps estimé depuis le départ (min) — axe de la timeline. */
   minute: number;

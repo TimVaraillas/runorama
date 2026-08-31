@@ -519,10 +519,9 @@ export class NutritionStrategyInventoryPage implements OnInit {
     this.closeAidStationPanel();
   }
 
-  /** Ouvre le formulaire d'un ravitaillement depuis un repère de la timeline. */
+  /** Ouvre l'éditeur d'un point (ravitaillement ou waypoint) depuis la timeline. */
   onSelectAidStationFromPlan(id: string): void {
-    const station = (this.event()?.aidStations ?? []).find((s) => s.id === id);
-    if (station) this.editAidStation(station);
+    this.selectPoint(id);
   }
 
   /** Supprime un ravitaillement. */
