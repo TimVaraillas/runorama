@@ -16,9 +16,12 @@ import { buildRouteMarkers } from '../../../core/utils/route-point.util';
 import {
   faArrowUpFromBracket,
   faLocationDot,
+  faMinus,
   faMountainSun,
+  faPlus,
   faRoute,
   faTrash,
+  faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 
 /** Fichier GPX sélectionné (contenu texte + nom). */
@@ -123,8 +126,41 @@ export interface GpxSelection {
         }
 
         <div class="rounded-2xl border border-slate-200 bg-white p-4">
-          <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">Profil</p>
+          <div class="mb-2 flex items-center justify-between gap-2">
+            <p class="text-xs font-medium uppercase tracking-wide text-slate-400">Profil</p>
+            <div class="flex items-center gap-1">
+              @if (profile.isZoomed()) {
+                <button
+                  type="button"
+                  class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-100"
+                  aria-label="Réinitialiser le zoom"
+                  (click)="profile.resetZoom()"
+                >
+                  <ui-icon [icon]="faXmark" size="sm" />
+                </button>
+              }
+              <button
+                type="button"
+                class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                [disabled]="!profile.isZoomed()"
+                aria-label="Dézoomer"
+                (click)="profile.zoomOut()"
+              >
+                <ui-icon [icon]="faMinus" size="sm" />
+              </button>
+              <button
+                type="button"
+                class="flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                [disabled]="profile.viewSpanFrac() <= profile.minSpanFrac"
+                aria-label="Zoomer"
+                (click)="profile.zoomIn()"
+              >
+                <ui-icon [icon]="faPlus" size="sm" />
+              </button>
+            </div>
+          </div>
           <ui-elevation-profile
+            #profile
             [track]="t"
             [markers]="markers()"
             [addMode]="addMode()"
@@ -246,6 +282,9 @@ export class RouteProfilePanelComponent {
   protected readonly faArrowUpFromBracket = faArrowUpFromBracket;
   protected readonly faLocationDot = faLocationDot;
   protected readonly faTrash = faTrash;
+  protected readonly faPlus = faPlus;
+  protected readonly faMinus = faMinus;
+  protected readonly faXmark = faXmark;
 
   /** Mode ajout de point de passage depuis le profil / le tracé. */
   protected readonly addMode = signal(false);

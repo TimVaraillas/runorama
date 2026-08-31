@@ -3,6 +3,7 @@ import {
   Component,
   ElementRef,
   computed,
+  effect,
   input,
   output,
   signal,
@@ -11,7 +12,11 @@ import {
 import { IconComponent } from '../../atoms/icon/icon.component';
 import type { GpxTrack, RoutePointMarker } from '../../../core/models';
 import { routePointKindColor } from '../../../core/utils/route-point.util';
-import { faFlag, faFlagCheckered, faLocationDot } from '@fortawesome/free-solid-svg-icons';
+import {
+  faFlag,
+  faFlagCheckered,
+  faLocationDot,
+} from '@fortawesome/free-solid-svg-icons';
 
 /** Point interne du tracé, en coordonnées SVG + valeurs de la trace. */
 interface PlotPoint {
@@ -76,6 +81,11 @@ const MARKER_HIT = 14;
  */
 const LABEL_MIN_GAP = 140;
 
+/** Fraction minimale de la trace visible (borne le zoom maximal). */
+const MIN_SPAN_FRAC = 0.05;
+/** Facteur multiplicatif de la fenêtre visible à chaque cran de zoom. */
+const ZOOM_STEP = 0.8;
+
 /**
  * Organism : **profil altimétrique** d'une trace GPX (distance en X, altitude
  * en Y), rendu en SVG maison (aucune dépendance graphique) pour rester cohérent
@@ -96,10 +106,20 @@ const LABEL_MIN_GAP = 140;
       <svg
         #svgEl
         [attr.viewBox]="viewBox"
-        [class]="'h-auto w-full touch-none ' + (addMode() ? 'cursor-crosshair' : '')"
+        [class]="
+          'h-auto w-full touch-none ' +
+          (addMode()
+            ? 'cursor-crosshair'
+            : panning()
+              ? 'cursor-grabbing'
+              : isZoomed()
+                ? 'cursor-grab'
+                : '')
+        "
         preserveAspectRatio="none"
         role="img"
         [attr.aria-label]="ariaLabel()"
+        (wheel)="onWheel($event)"
         (pointerdown)="onPointerDown($event)"
         (pointermove)="onPointerMove($event)"
         (pointerup)="onPointerUp($event)"
@@ -114,6 +134,15 @@ const LABEL_MIN_GAP = 140;
             <stop offset="80%" stop-color="var(--color-secondary-400)" stop-opacity="0.16" />
             <stop offset="100%" stop-color="var(--color-secondary-500)" stop-opacity="0.08" />
           </linearGradient>
+          <!-- Découpe : confine l'aire et la ligne à la zone de tracé (zoom/pan). -->
+          <clipPath id="elevation-plot-clip">
+            <rect
+              [attr.x]="margin.left"
+              y="0"
+              [attr.width]="viewWidth - margin.left - margin.right"
+              [attr.height]="geometry().baselineY"
+            />
+          </clipPath>
         </defs>
 
         <!-- Lignes horizontales de repère + graduations d'altitude -->
@@ -149,7 +178,11 @@ const LABEL_MIN_GAP = 140;
         }
 
         <!-- Aire + ligne du profil -->
-        <path [attr.d]="geometry().areaPath" fill="url(#elevation-area-gradient)" />
+        <path
+          [attr.d]="geometry().areaPath"
+          fill="url(#elevation-area-gradient)"
+          clip-path="url(#elevation-plot-clip)"
+        />
         <path
           [attr.d]="geometry().linePath"
           fill="none"
@@ -157,6 +190,7 @@ const LABEL_MIN_GAP = 140;
           stroke-width="1.75"
           stroke-linejoin="round"
           stroke-linecap="round"
+          clip-path="url(#elevation-plot-clip)"
         />
 
         <!-- Repères verticaux (départ, arrivée, points de passage) -->
@@ -313,12 +347,42 @@ export class ElevationProfileComponent {
   protected readonly viewBox = `0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`;
   /** Écart vertical (unités viewBox) entre deux niveaux de labels échelonnés. */
   protected readonly labelStepUnits = LABEL_STEP_UNITS;
+  /** Fraction minimale visible (borne le zoom maximal), exposée au parent. */
+  readonly minSpanFrac = MIN_SPAN_FRAC;
 
   /** État du curseur de survol. */
   protected readonly hover = signal<HoverState | null>(null);
 
+  /**
+   * Fenêtre visible du profil, exprimée en fractions de la distance totale :
+   * `viewStartFrac` = bord gauche (0 = départ), `viewSpanFrac` = largeur
+   * (1 = trace entière). Le zoom réduit la largeur ; le pan décale le bord.
+   */
+  protected readonly viewStartFrac = signal(0);
+  readonly viewSpanFrac = signal(1);
+  /** Vrai dès que le profil est zoomé (fenêtre < trace entière). */
+  readonly isZoomed = computed(() => this.viewSpanFrac() < 1 - 1e-6);
+
+  /** Pan (déplacement horizontal) en cours. */
+  protected readonly panning = signal(false);
+  private panStartVbX = 0;
+  private panStartFrac = 0;
+
   /** Référence à l'élément SVG (mesures écran → coordonnées viewBox). */
   private readonly svgEl = viewChild.required<ElementRef<SVGSVGElement>>('svgEl');
+
+  constructor() {
+    // Réinitialise le zoom/pan à chaque changement de trace.
+    let previous: GpxTrack | null = null;
+    effect(() => {
+      const track = this.track();
+      if (track !== previous) {
+        previous = track;
+        this.viewStartFrac.set(0);
+        this.viewSpanFrac.set(1);
+      }
+    });
+  }
 
   /** Glisser en cours (dépassement du seuil de déplacement). */
   protected readonly dragging = signal(false);
@@ -346,6 +410,10 @@ export class ElevationProfileComponent {
     const plotW = VIEW_WIDTH - MARGIN.left - MARGIN.right;
 
     const maxDistance = track.distance || points[points.length - 1]?.distance || 1;
+    // Fenêtre visible (zoom/pan) exprimée en km.
+    const viewStart = maxDistance * this.viewStartFrac();
+    const viewSpan = maxDistance * this.viewSpanFrac() || maxDistance;
+    const viewEnd = viewStart + viewSpan;
     // Marge verticale de 5 % autour des altitudes pour aérer le tracé.
     const rawMin = track.minAltitude;
     const rawMax = track.maxAltitude;
@@ -354,10 +422,13 @@ export class ElevationProfileComponent {
     const maxEle = rawMax + pad;
     const eleSpan = maxEle - minEle || 1;
 
-    const xOf = (distance: number) => MARGIN.left + (distance / maxDistance) * plotW;
+    const xOf = (distance: number) => MARGIN.left + ((distance - viewStart) / viewSpan) * plotW;
 
     // Repères + niveaux de label (basés sur X, indépendants de la marge haute).
-    const markers = this.buildPlotMarkers(xOf, maxDistance, track);
+    // On ne conserve que ceux compris dans la fenêtre visible.
+    const markers = this.buildPlotMarkers(xOf, maxDistance, track).filter(
+      (m) => m.distance >= viewStart - 1e-6 && m.distance <= viewEnd + 1e-6,
+    );
     this.assignLabelLevels(markers);
     const maxLevel = markers.reduce((max, m) => Math.max(max, m.labelLevel), 0);
     // Marge haute dynamique : réserve juste la place nécessaire aux labels
@@ -392,7 +463,7 @@ export class ElevationProfileComponent {
         : '';
 
     const yTicks = this.buildYTicks(rawMin, rawMax, yOf);
-    const xTicks = this.buildXTicks(maxDistance, xOf);
+    const xTicks = this.buildXTicks(viewStart, viewEnd, xOf);
 
     return { plot, linePath, areaPath, markers, yTicks, xTicks, baselineY, marginTop };
   }
@@ -508,12 +579,13 @@ export class ElevationProfileComponent {
     return ticks;
   }
 
-  /** Graduations de distance (5 paliers). */
-  private buildXTicks(maxDistance: number, xOf: (d: number) => number): AxisTick[] {
+  /** Graduations de distance (5 paliers) sur la fenêtre visible. */
+  private buildXTicks(viewStart: number, viewEnd: number, xOf: (d: number) => number): AxisTick[] {
     const ticks: AxisTick[] = [];
     const steps = 5;
+    const span = viewEnd - viewStart;
     for (let i = 0; i <= steps; i++) {
-      const distance = (maxDistance * i) / steps;
+      const distance = viewStart + (span * i) / steps;
       ticks.push({ pos: xOf(distance), label: `${this.formatKm(distance)}` });
     }
     return ticks;
@@ -538,6 +610,59 @@ export class ElevationProfileComponent {
     return parts.join(' · ');
   }
 
+  /** Zoom à la molette (⌘ sur Mac / Ctrl sur Windows), centré sous le curseur. */
+  protected onWheel(event: WheelEvent): void {
+    // Sans modificateur, on laisse défiler la page normalement.
+    if (!event.ctrlKey && !event.metaKey) {
+      return;
+    }
+    const vbX = this.clientToVbX(event.clientX);
+    if (vbX == null) {
+      return;
+    }
+    event.preventDefault();
+    const plotW = VIEW_WIDTH - MARGIN.left - MARGIN.right;
+    const focusPlotFrac = Math.min(1, Math.max(0, (vbX - MARGIN.left) / plotW));
+    this.zoomAround(focusPlotFrac, event.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP);
+  }
+
+  /** Zoom avant, centré sur la fenêtre visible. */
+  zoomIn(): void {
+    this.zoomAround(0.5, ZOOM_STEP);
+  }
+
+  /** Zoom arrière, centré sur la fenêtre visible. */
+  zoomOut(): void {
+    this.zoomAround(0.5, 1 / ZOOM_STEP);
+  }
+
+  /** Réinitialise le zoom/pan (trace entière). */
+  resetZoom(): void {
+    this.viewStartFrac.set(0);
+    this.viewSpanFrac.set(1);
+  }
+
+  /**
+   * Modifie la largeur visible par un facteur, en gardant fixe le point de mise
+   * au point (`focusPlotFrac` = position 0..1 dans la zone de tracé).
+   */
+  private zoomAround(focusPlotFrac: number, factor: number): void {
+    const oldSpan = this.viewSpanFrac();
+    const newSpan = Math.min(1, Math.max(MIN_SPAN_FRAC, oldSpan * factor));
+    if (newSpan === oldSpan) {
+      return;
+    }
+    const focusFrac = this.viewStartFrac() + focusPlotFrac * oldSpan;
+    this.viewSpanFrac.set(newSpan);
+    this.setViewStart(focusFrac - focusPlotFrac * newSpan);
+  }
+
+  /** Fixe le bord gauche de la fenêtre visible en le bornant à [0, 1 - largeur]. */
+  private setViewStart(start: number): void {
+    const max = 1 - this.viewSpanFrac();
+    this.viewStartFrac.set(Math.min(max, Math.max(0, start)));
+  }
+
   /** Amorce un déplacement si l'appui est proche d'un point de passage. */
   protected onPointerDown(event: PointerEvent): void {
     if (this.addMode()) {
@@ -559,17 +684,34 @@ export class ElevationProfileComponent {
         target = marker;
       }
     }
-    if (!target) {
+    if (target) {
+      this.draggingId.set(target.id);
+      this.dragStartVbX = vbX;
+      this.dragDistance = target.distance;
+      this.svgEl().nativeElement.setPointerCapture(event.pointerId);
       return;
     }
-    this.draggingId.set(target.id);
-    this.dragStartVbX = vbX;
-    this.dragDistance = target.distance;
-    this.svgEl().nativeElement.setPointerCapture(event.pointerId);
+    // Aucun repère sous le pointeur : si zoomé, on amorce un pan horizontal.
+    if (this.isZoomed()) {
+      this.panning.set(true);
+      this.panStartVbX = vbX;
+      this.panStartFrac = this.viewStartFrac();
+      this.svgEl().nativeElement.setPointerCapture(event.pointerId);
+    }
   }
 
-  /** Met à jour le survol et, le cas échéant, le déplacement en cours. */
+  /** Met à jour le survol et, le cas échéant, le déplacement/pan en cours. */
   protected onPointerMove(event: PointerEvent): void {
+    if (this.panning()) {
+      const vbX = this.clientToVbX(event.clientX);
+      if (vbX != null) {
+        const plotW = VIEW_WIDTH - MARGIN.left - MARGIN.right;
+        const deltaFrac = ((vbX - this.panStartVbX) / plotW) * this.viewSpanFrac();
+        this.setViewStart(this.panStartFrac - deltaFrac);
+        this.suppressClick = true;
+      }
+      return;
+    }
     const nearest = this.nearestPlotPoint(event.clientX);
     if (!nearest) {
       return;
@@ -594,6 +736,11 @@ export class ElevationProfileComponent {
 
   /** Termine un déplacement (émet la nouvelle position) ou une sélection. */
   protected onPointerUp(event: PointerEvent): void {
+    if (this.panning()) {
+      this.panning.set(false);
+      this.svgEl().nativeElement.releasePointerCapture(event.pointerId);
+      return;
+    }
     const id = this.draggingId();
     if (id == null) {
       return;
@@ -626,8 +773,8 @@ export class ElevationProfileComponent {
   }
 
   protected onPointerLeave(): void {
-    // Ne pas interrompre un glisser en cours si le pointeur sort brièvement.
-    if (this.draggingId() != null) {
+    // Ne pas interrompre un glisser/pan en cours si le pointeur sort brièvement.
+    if (this.draggingId() != null || this.panning()) {
       return;
     }
     this.hover.set(null);
