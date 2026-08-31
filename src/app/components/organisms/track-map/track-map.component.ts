@@ -32,7 +32,7 @@ import { routePointKindColor } from '../../../core/utils/route-point.util';
   template: `
     <div
       #mapContainer
-      class="z-0 h-96 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100"
+      class="z-0 h-160 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100"
     ></div>
   `,
 })
