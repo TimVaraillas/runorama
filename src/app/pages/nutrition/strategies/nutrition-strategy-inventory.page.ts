@@ -20,6 +20,7 @@ import {
   type GpxSelection,
 } from '../../../components/organisms/route-profile-panel/route-profile-panel.component';
 import { GpxReconciliationModalComponent } from '../../../components/molecules/gpx-reconciliation-modal/gpx-reconciliation-modal.component';
+import { WaypointFormPanelComponent } from '../../../components/organisms/waypoint-form-panel/waypoint-form-panel.component';
 import type {
   AidStation,
   GpxDiscrepancies,
@@ -30,9 +31,15 @@ import type {
   NutritionIntake,
   NutritionProduct,
   PlanSequenceMinutes,
+  RoutePointKind,
+  RouteWaypoint,
 } from '../../../core/models';
-import { newAidStationId } from '../../../core/utils/aid-station.util';
-import { enrichAidStationFromTrack } from '../../../core/utils/route-point.util';
+import { newAidStationId, newLocalId } from '../../../core/utils/aid-station.util';
+import {
+  enrichAidStationFromTrack,
+  enrichWaypointFromTrack,
+  routePointKindLabel,
+} from '../../../core/utils/route-point.util';
 import { estimatePassageTimeByKmRatio } from '../../../core/utils/passage-time.util';
 import { pruneUnavailableIntakes } from '../../../core/utils/product-availability.util';
 import type { AllocationResult } from '../../../core/utils/inventory-allocation.util';
@@ -76,6 +83,7 @@ import {
     AidStationFormPanelComponent,
     RouteProfilePanelComponent,
     GpxReconciliationModalComponent,
+    WaypointFormPanelComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -184,11 +192,12 @@ import {
           <ui-route-profile-panel
             [track]="gpxTrack()"
             [aidStations]="ev.aidStations ?? []"
+            [waypoints]="ev.waypoints ?? []"
             [uploading]="gpxUploading()"
             (gpxSelected)="onGpxSelected($event)"
             (removeTrack)="removeGpx()"
-            (selectAidStation)="editAidStationById($event)"
-            (addAidStationAt)="addAidStationAtDistance($event)"
+            (selectAidStation)="selectPoint($event)"
+            (addPoint)="addPoint($event)"
             (moveAidStation)="moveAidStationToDistance($event)"
             (fileError)="onFileError($event)"
           />
@@ -259,6 +268,15 @@ import {
       (confirm)="applyReconciliation($event)"
       (close)="closeReconciliation()"
     />
+
+    <!-- Panneau latéral : édition d'un point de passage (checkpoint, sommet, perso) -->
+    <ui-waypoint-form-panel
+      [open]="waypointModalOpen()"
+      [waypoint]="editingWaypoint()"
+      (save)="saveWaypoint($event)"
+      (delete)="deleteWaypoint()"
+      (close)="closeWaypointModal()"
+    />
   `,
 })
 export class NutritionStrategyInventoryPage implements OnInit {
@@ -308,6 +326,10 @@ export class NutritionStrategyInventoryPage implements OnInit {
   protected readonly reconcileOpen = signal(false);
   /** Écarts GPX / évènement à réconcilier. */
   protected readonly reconcileDiscrepancies = signal<GpxDiscrepancies | null>(null);
+  /** État d'ouverture de la modale d'édition d'un point de passage. */
+  protected readonly waypointModalOpen = signal(false);
+  /** Point de passage en cours d'édition (`null` sinon). */
+  protected readonly editingWaypoint = signal<RouteWaypoint | null>(null);
 
   /** État d'ouverture du panneau d'édition de l'évènement. */
   protected readonly panelOpen = signal(false);
@@ -545,6 +567,29 @@ export class NutritionStrategyInventoryPage implements OnInit {
     if (station) this.editAidStation(station);
   }
 
+  /** Aiguille l'ajout d'un point selon son type (ravitaillement ou waypoint). */
+  addPoint(payload: { distance: number; kind: RoutePointKind }): void {
+    if (payload.kind === 'AID_STATION') {
+      this.addAidStationAtDistance(payload.distance);
+    } else {
+      this.createWaypointAtDistance(payload.distance, payload.kind);
+    }
+  }
+
+  /** Ouvre l'éditeur approprié selon la nature du point sélectionné. */
+  selectPoint(id: string): void {
+    const station = (this.event()?.aidStations ?? []).find((s) => s.id === id);
+    if (station) {
+      this.editAidStation(station);
+      return;
+    }
+    const waypoint = (this.event()?.waypoints ?? []).find((w) => w.id === id);
+    if (waypoint) {
+      this.editingWaypoint.set(waypoint);
+      this.waypointModalOpen.set(true);
+    }
+  }
+
   /**
    * Crée un ravitaillement à une distance précise (clic sur le profil / le
    * tracé), enrichi depuis la trace, puis ouvre le formulaire pour le détailler.
@@ -578,20 +623,104 @@ export class NutritionStrategyInventoryPage implements OnInit {
   }
 
   /**
-   * Repositionne un ravitaillement à une nouvelle distance (glisser sur le
-   * profil / le tracé) et recalcule ses valeurs dérivées depuis la trace.
+   * Repositionne un point de passage (ravitaillement ou waypoint) à une nouvelle
+   * distance (glisser sur le profil / le tracé) et recalcule ses valeurs
+   * dérivées depuis la trace.
    */
   moveAidStationToDistance(payload: { id: string; distance: number }): void {
     const event = this.event();
     if (!event) return;
     const track = this.gpxTrack();
     const rounded = Math.round(payload.distance * 100) / 100;
-    const aidStations = (event.aidStations ?? []).map((s) => {
-      if (s.id !== payload.id) return s;
-      const moved: AidStation = { ...s, distanceFromStart: rounded };
-      return track ? enrichAidStationFromTrack(moved, track, { overwrite: true }) : moved;
+
+    const isAidStation = (event.aidStations ?? []).some((s) => s.id === payload.id);
+    if (isAidStation) {
+      const aidStations = (event.aidStations ?? []).map((s) => {
+        if (s.id !== payload.id) return s;
+        const moved: AidStation = { ...s, distanceFromStart: rounded };
+        return track ? enrichAidStationFromTrack(moved, track, { overwrite: true }) : moved;
+      });
+      this.persistAidStations(event.id, aidStations, 'Ravitaillement repositionné.');
+      return;
+    }
+
+    const waypoints = (event.waypoints ?? []).map((w) => {
+      if (w.id !== payload.id) return w;
+      const moved: RouteWaypoint = { ...w, distanceFromStart: rounded };
+      return track ? enrichWaypointFromTrack(moved, track, { overwrite: true }) : moved;
     });
-    this.persistAidStations(event.id, aidStations, 'Ravitaillement repositionné.');
+    this.persistWaypoints(event.id, waypoints, 'Point repositionné.');
+  }
+
+  /**
+   * Crée un point de passage (checkpoint, sommet, perso) à une distance précise,
+   * enrichi depuis la trace, puis ouvre l'éditeur léger pour le nommer.
+   */
+  private createWaypointAtDistance(distanceKm: number, kind: RoutePointKind): void {
+    const event = this.event();
+    const track = this.gpxTrack();
+    if (!event || !track || kind === 'AID_STATION') return;
+    const rounded = Math.round(distanceKm * 100) / 100;
+    const estimatedDurationFromStart = estimatePassageTimeByKmRatio(
+      rounded,
+      event.targetTimeMinutes,
+      track.distance,
+    );
+    let waypoint: RouteWaypoint = {
+      id: newLocalId('wpt'),
+      name: routePointKindLabel(kind),
+      kind: kind as Exclude<RoutePointKind, 'AID_STATION'>,
+      distanceFromStart: rounded,
+      estimatedDurationFromStart,
+    };
+    waypoint = enrichWaypointFromTrack(waypoint, track, { overwrite: true });
+    const waypoints = [...(event.waypoints ?? []), waypoint];
+    this.persistWaypoints(event.id, waypoints, 'Point ajouté.');
+    this.editingWaypoint.set(waypoint);
+    this.waypointModalOpen.set(true);
+  }
+
+  /** Enregistre le nom/type du point de passage en cours d'édition. */
+  saveWaypoint(payload: { name: string; kind: Exclude<RoutePointKind, 'AID_STATION'> }): void {
+    const event = this.event();
+    const editing = this.editingWaypoint();
+    if (!event || !editing) return;
+    const waypoints = (event.waypoints ?? []).map((w) =>
+      w.id === editing.id ? { ...w, name: payload.name, kind: payload.kind } : w,
+    );
+    this.persistWaypoints(event.id, waypoints, 'Point mis à jour.');
+    this.closeWaypointModal();
+  }
+
+  /** Supprime le point de passage en cours d'édition. */
+  deleteWaypoint(): void {
+    const event = this.event();
+    const editing = this.editingWaypoint();
+    if (!event || !editing) return;
+    const waypoints = (event.waypoints ?? []).filter((w) => w.id !== editing.id);
+    this.persistWaypoints(event.id, waypoints, 'Point supprimé.');
+    this.closeWaypointModal();
+  }
+
+  /** Ferme l'éditeur de point de passage. */
+  closeWaypointModal(): void {
+    this.waypointModalOpen.set(false);
+    this.editingWaypoint.set(null);
+  }
+
+  /** Persiste la liste des points de passage et met à jour l'état local. */
+  private persistWaypoints(
+    eventId: string,
+    waypoints: RouteWaypoint[],
+    successMessage: string,
+  ): void {
+    this.service.updateEvent(eventId, { waypoints }).subscribe({
+      next: (updated) => {
+        this.event.set(updated);
+        this.toast.success(successMessage);
+      },
+      error: () => this.toast.error("Impossible d'enregistrer le point. Veuillez réessayer."),
+    });
   }
 
   /** Importe (ou remplace) la trace GPX de la stratégie. */

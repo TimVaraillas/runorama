@@ -14,6 +14,7 @@ import {
 import type * as L from 'leaflet';
 import type { GpxTrack, RoutePointMarker } from '../../../core/models';
 import { haversineMeters } from '../../../core/utils/gpx.util';
+import { routePointKindColor } from '../../../core/utils/route-point.util';
 
 /**
  * Organism : **tracé du parcours sur fond cartographique** (Leaflet + tuiles
@@ -147,7 +148,7 @@ export class TrackMapComponent {
       const pin = leaflet.marker([marker.latitude, marker.longitude], {
         draggable: !addMode,
         interactive: !addMode,
-        icon: this.pinIcon(leaflet),
+        icon: this.pinIcon(leaflet, routePointKindColor(marker.kind)),
       });
       pin.bindTooltip(`${marker.name} · km ${km}`, { direction: 'top' });
       pin.on('click', () => {
@@ -195,11 +196,11 @@ export class TrackMapComponent {
     return nearest;
   }
 
-  /** Icône de repère (pastille HTML) — évite les images d'icône par défaut. */
-  private pinIcon(leaflet: typeof L): L.DivIcon {
+  /** Icône de repère (pastille HTML colorée) — évite les images par défaut. */
+  private pinIcon(leaflet: typeof L, color: string): L.DivIcon {
     return leaflet.divIcon({
       className: '',
-      html: '<span style="display:block;width:16px;height:16px;border-radius:9999px;background:#6366f1;border:2px solid #fff;box-shadow:0 0 0 1px rgba(15,23,42,.2)"></span>',
+      html: `<span style="display:block;width:16px;height:16px;border-radius:9999px;background:${color};border:2px solid #fff;box-shadow:0 0 0 1px rgba(15,23,42,.2)"></span>`,
       iconSize: [16, 16],
       iconAnchor: [8, 8],
     });

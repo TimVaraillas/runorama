@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import type { GpxTrack, RoutePointMarker } from '../../../core/models';
+import { routePointKindColor } from '../../../core/utils/route-point.util';
 import { faFlag, faFlagCheckered, faLocationDot } from '@fortawesome/free-solid-svg-icons';
 
 /** Point interne du tracé, en coordonnées SVG + valeurs de la trace. */
@@ -31,6 +32,8 @@ interface PlotMarker {
   altitude: number | null;
   distance: number;
   durationLabel: string | null;
+  /** Niveau vertical du label (0 = base), pour désempiler les labels proches. */
+  labelLevel: number;
 }
 
 /** Graduation d'axe (position SVG + libellé). */
@@ -50,12 +53,26 @@ interface HoverState {
 
 const VIEW_WIDTH = 1000;
 const VIEW_HEIGHT = 340;
-const MARGIN = { top: 24, right: 16, bottom: 36, left: 48 };
+const MARGIN = { top: 28, right: 16, bottom: 36, left: 48 };
+
+/** Marge haute de base (unités viewBox) quand aucun label n'est échelonné. */
+const BASE_TOP = 28;
+/** Écart vertical (unités viewBox) entre deux niveaux de labels. */
+const LABEL_STEP_UNITS = 38;
+/** Niveau d'échelonnement maximal (borne la marge haute réservée). */
+const MAX_LABEL_LEVEL = 4;
 
 /** Seuil (unités viewBox) au-delà duquel un appui est interprété comme un glisser. */
 const DRAG_THRESHOLD = 6;
 /** Distance (unités viewBox) sous laquelle un appui saisit un repère à déplacer. */
 const MARKER_HIT = 14;
+/**
+ * Écart horizontal (unités viewBox) sous lequel deux labels sont considérés
+ * comme se chevauchant : le second est alors monté d'un niveau. Doit couvrir la
+ * largeur d'un label (pastille jusqu'à ~120 px) pour éviter tout chevauchement
+ * entre deux labels d'un même niveau.
+ */
+const LABEL_MIN_GAP = 140;
 
 /**
  * Organism : **profil altimétrique** d'une trace GPX (distance en X, altitude
@@ -140,11 +157,11 @@ const MARKER_HIT = 14;
           stroke-linecap="round"
         />
 
-        <!-- Repères verticaux (départ, arrivée, ravitaillements) -->
+        <!-- Repères verticaux (départ, arrivée, points de passage) -->
         @for (marker of geometry().markers; track marker.id) {
           <g
             [class]="
-              marker.kind === 'AID_STATION' && !addMode()
+              isPoint(marker) && !addMode()
                 ? dragging() && draggingId() === marker.id
                   ? 'cursor-grabbing'
                   : 'cursor-grab'
@@ -155,14 +172,14 @@ const MARKER_HIT = 14;
             <line
               [attr.x1]="marker.x"
               [attr.x2]="marker.x"
-              [attr.y1]="margin.top"
+              [attr.y1]="geometry().marginTop - marker.labelLevel * labelStepUnits"
               [attr.y2]="viewHeight - margin.bottom"
-              [class]="markerLineClass(marker)"
+              [attr.stroke]="markerColor(marker)"
               stroke-width="1.5"
-              [attr.stroke-dasharray]="marker.kind === 'AID_STATION' ? '4 3' : ''"
+              [attr.stroke-dasharray]="isPoint(marker) ? '4 3' : ''"
             />
-            <circle [attr.cx]="marker.x" [attr.cy]="marker.y" r="4" [class]="markerDotClass(marker)" />
-            @if (marker.kind === 'AID_STATION') {
+            <circle [attr.cx]="marker.x" [attr.cy]="marker.y" r="4" [attr.fill]="markerColor(marker)" />
+            @if (isPoint(marker)) {
               <circle
                 [attr.cx]="marker.x"
                 [attr.cy]="marker.y"
@@ -178,7 +195,7 @@ const MARKER_HIT = 14;
           <line
             [attr.x1]="h.x"
             [attr.x2]="h.x"
-            [attr.y1]="margin.top"
+            [attr.y1]="geometry().marginTop"
             [attr.y2]="viewHeight - margin.bottom"
             class="stroke-slate-400"
             stroke-width="1"
@@ -194,29 +211,29 @@ const MARKER_HIT = 14;
           <div
             class="absolute -translate-x-1/2"
             [style.left.%]="(marker.x / viewWidth) * 100"
-            [style.top.%]="(margin.top / viewHeight) * 100"
+            [style.top.%]="((geometry().marginTop - marker.labelLevel * labelStepUnits) / viewHeight) * 100"
           >
-            <div
-              class="flex -translate-y-full flex-col items-center gap-0.5 pb-1 text-center"
-            >
+            <div class="flex -translate-y-full flex-col items-center gap-0.5 pb-1 text-center">
+              @if (marker.durationLabel) {
+                <span class="text-[10px] font-semibold tabular-nums text-slate-500">
+                  {{ marker.durationLabel }}
+                </span>
+              }
               @if (marker.kind === 'START') {
                 <ui-icon [icon]="faFlag" size="sm" class="text-emerald-600" />
               } @else if (marker.kind === 'FINISH') {
                 <ui-icon [icon]="faFlagCheckered" size="sm" class="text-slate-700" />
               } @else {
                 <span
-                  class="max-w-30 truncate rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700 shadow-sm"
+                  class="whitespace-nowrap rounded-full border bg-white px-2 py-0.5 text-[11px] font-medium shadow-sm"
+                  [style.color]="markerColor(marker)"
+                  [style.border-color]="markerColor(marker)"
                   [class.pointer-events-auto]="!addMode()"
                   [class.cursor-pointer]="!addMode()"
                   [title]="markerTooltip(marker)"
                   (click)="!addMode() && select.emit(marker.id)"
                 >
                   {{ marker.name }}
-                </span>
-              }
-              @if (marker.durationLabel) {
-                <span class="text-[10px] font-semibold tabular-nums text-slate-500">
-                  {{ marker.durationLabel }}
                 </span>
               }
             </div>
@@ -268,6 +285,8 @@ export class ElevationProfileComponent {
   protected readonly viewHeight = VIEW_HEIGHT;
   protected readonly margin = MARGIN;
   protected readonly viewBox = `0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`;
+  /** Écart vertical (unités viewBox) entre deux niveaux de labels échelonnés. */
+  protected readonly labelStepUnits = LABEL_STEP_UNITS;
 
   /** État du curseur de survol. */
   protected readonly hover = signal<HoverState | null>(null);
@@ -299,8 +318,6 @@ export class ElevationProfileComponent {
     const track = this.track();
     const points = track.points;
     const plotW = VIEW_WIDTH - MARGIN.left - MARGIN.right;
-    const plotH = VIEW_HEIGHT - MARGIN.top - MARGIN.bottom;
-    const baselineY = VIEW_HEIGHT - MARGIN.bottom;
 
     const maxDistance = track.distance || points[points.length - 1]?.distance || 1;
     // Marge verticale de 5 % autour des altitudes pour aérer le tracé.
@@ -312,7 +329,23 @@ export class ElevationProfileComponent {
     const eleSpan = maxEle - minEle || 1;
 
     const xOf = (distance: number) => MARGIN.left + (distance / maxDistance) * plotW;
-    const yOf = (ele: number) => MARGIN.top + (1 - (ele - minEle) / eleSpan) * plotH;
+
+    // Repères + niveaux de label (basés sur X, indépendants de la marge haute).
+    const markers = this.buildPlotMarkers(xOf, maxDistance, track);
+    this.assignLabelLevels(markers);
+    const maxLevel = markers.reduce((max, m) => Math.max(max, m.labelLevel), 0);
+    // Marge haute dynamique : réserve juste la place nécessaire aux labels
+    // échelonnés (pas de vide inutile quand ils ne se chevauchent pas).
+    const marginTop = BASE_TOP + maxLevel * LABEL_STEP_UNITS;
+
+    const plotH = VIEW_HEIGHT - marginTop - MARGIN.bottom;
+    const baselineY = VIEW_HEIGHT - MARGIN.bottom;
+    const yOf = (ele: number) => marginTop + (1 - (ele - minEle) / eleSpan) * plotH;
+
+    // L'altitude Y des repères dépend de la marge : calculée une fois connue.
+    for (const marker of markers) {
+      marker.y = marker.altitude != null ? yOf(marker.altitude) : marginTop;
+    }
 
     const plot: PlotPoint[] = points.map((p) => ({
       x: xOf(p.distance),
@@ -332,17 +365,15 @@ export class ElevationProfileComponent {
           )},${baselineY} Z`
         : '';
 
-    const markers = this.buildPlotMarkers(xOf, yOf, maxDistance, track);
     const yTicks = this.buildYTicks(rawMin, rawMax, yOf);
     const xTicks = this.buildXTicks(maxDistance, xOf);
 
-    return { plot, linePath, areaPath, markers, yTicks, xTicks, baselineY };
+    return { plot, linePath, areaPath, markers, yTicks, xTicks, baselineY, marginTop };
   }
 
-  /** Construit les repères SVG : départ, arrivée et points de passage. */
+  /** Construit les repères SVG (X et altitude) ; le Y est fixé ensuite. */
   private buildPlotMarkers(
     xOf: (d: number) => number,
-    yOf: (e: number) => number,
     maxDistance: number,
     track: GpxTrack,
   ): PlotMarker[] {
@@ -356,10 +387,11 @@ export class ElevationProfileComponent {
         name: 'Départ',
         kind: 'START',
         x: xOf(0),
-        y: yOf(first.ele),
+        y: 0,
         altitude: first.ele,
         distance: 0,
         durationLabel: null,
+        labelLevel: 0,
       });
     }
 
@@ -371,10 +403,11 @@ export class ElevationProfileComponent {
         name: marker.name,
         kind: marker.kind,
         x: xOf(distance),
-        y: altitude != null ? yOf(altitude) : MARGIN.top,
+        y: 0,
         altitude,
         distance: marker.distanceFromStart,
         durationLabel: this.formatDuration(marker.estimatedDurationFromStart),
+        labelLevel: 0,
       });
     }
 
@@ -384,14 +417,36 @@ export class ElevationProfileComponent {
         name: 'Arrivée',
         kind: 'FINISH',
         x: xOf(last.distance),
-        y: yOf(last.ele),
+        y: 0,
         altitude: last.ele,
         distance: last.distance,
         durationLabel: null,
+        labelLevel: 0,
       });
     }
 
     return result;
+  }
+
+  /**
+   * Attribue un niveau vertical à chaque label pour éviter les chevauchements :
+   * les repères sont parcourus par distance croissante ; un repère trop proche
+   * (en X) d'un autre déjà placé sur un niveau monte au niveau suivant.
+   */
+  private assignLabelLevels(markers: PlotMarker[]): void {
+    const laneLastX: number[] = [];
+    for (const marker of markers) {
+      let level = 0;
+      while (
+        level < MAX_LABEL_LEVEL &&
+        laneLastX[level] != null &&
+        marker.x - laneLastX[level]! < LABEL_MIN_GAP
+      ) {
+        level++;
+      }
+      marker.labelLevel = level;
+      laneLastX[level] = marker.x;
+    }
   }
 
   /** Graduations d'altitude (5 paliers arrondis). */
@@ -416,16 +471,16 @@ export class ElevationProfileComponent {
     return ticks;
   }
 
-  protected markerLineClass(marker: PlotMarker): string {
-    if (marker.kind === 'START') return 'stroke-emerald-400';
-    if (marker.kind === 'FINISH') return 'stroke-slate-400';
-    return 'stroke-indigo-400';
+  /** Vrai pour un point de passage (ni départ ni arrivée). */
+  protected isPoint(marker: PlotMarker): boolean {
+    return marker.kind !== 'START' && marker.kind !== 'FINISH';
   }
 
-  protected markerDotClass(marker: PlotMarker): string {
-    if (marker.kind === 'START') return 'fill-emerald-500';
-    if (marker.kind === 'FINISH') return 'fill-slate-600';
-    return 'fill-indigo-500';
+  /** Couleur d'un repère selon son type. */
+  protected markerColor(marker: PlotMarker): string {
+    if (marker.kind === 'START') return '#10b981';
+    if (marker.kind === 'FINISH') return '#334155';
+    return routePointKindColor(marker.kind);
   }
 
   protected markerTooltip(marker: PlotMarker): string {
@@ -435,7 +490,7 @@ export class ElevationProfileComponent {
     return parts.join(' · ');
   }
 
-  /** Amorce un déplacement si l'appui est proche d'un ravitaillement. */
+  /** Amorce un déplacement si l'appui est proche d'un point de passage. */
   protected onPointerDown(event: PointerEvent): void {
     if (this.addMode()) {
       return;
@@ -447,7 +502,7 @@ export class ElevationProfileComponent {
     let target: PlotMarker | null = null;
     let best = MARKER_HIT;
     for (const marker of this.geometry().markers) {
-      if (marker.kind !== 'AID_STATION') {
+      if (!this.isPoint(marker)) {
         continue;
       }
       const d = Math.abs(marker.x - vbX);

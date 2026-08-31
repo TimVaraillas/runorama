@@ -1,4 +1,10 @@
-import type { AidStation, GpxTrack, RoutePointMarker, RouteWaypoint } from '../models';
+import type {
+  AidStation,
+  GpxTrack,
+  RoutePointKind,
+  RoutePointMarker,
+  RouteWaypoint,
+} from '../models';
 import { interpolateAtDistance, type ProcessedTrackPoint } from './gpx.util';
 
 /**
@@ -8,6 +14,24 @@ import { interpolateAtDistance, type ProcessedTrackPoint } from './gpx.util';
  * format de marqueur pour l'affichage sur le profil. La V1 ne câble que les
  * ravitaillements, mais le mapper accepte déjà les waypoints génériques.
  */
+
+/** Métadonnées d'affichage d'un type de point de passage (libellé, couleur). */
+export const ROUTE_POINT_KIND_META: Record<RoutePointKind, { label: string; color: string }> = {
+  AID_STATION: { label: 'Ravitaillement', color: '#6366f1' },
+  CHECKPOINT: { label: 'Checkpoint', color: '#0ea5e9' },
+  SUMMIT: { label: 'Sommet', color: '#f59e0b' },
+  CUSTOM: { label: 'Point personnalisé', color: '#a855f7' },
+};
+
+/** Libellé lisible d'un type de point de passage. */
+export function routePointKindLabel(kind: RoutePointKind): string {
+  return ROUTE_POINT_KIND_META[kind]?.label ?? 'Point';
+}
+
+/** Couleur associée à un type de point de passage. */
+export function routePointKindColor(kind: RoutePointKind): string {
+  return ROUTE_POINT_KIND_META[kind]?.color ?? '#6366f1';
+}
 
 /**
  * Convertit un ravitaillement en marqueur de profil. L'altitude est prise sur
@@ -123,6 +147,37 @@ export function enrichAidStationFromTrack(
     changed = changed || station.elevationGainFromStart !== next.elevationGainFromStart;
   }
   return changed ? next : station;
+}
+
+/**
+ * Enrichit un waypoint (checkpoint, sommet, point perso) à partir de la trace :
+ * dérive altitude, D+ cumulé et coordonnées à sa distance. Même logique
+ * non-destructive que pour les ravitaillements.
+ */
+export function enrichWaypointFromTrack(
+  waypoint: RouteWaypoint,
+  track: GpxTrack,
+  options: { overwrite?: boolean } = {},
+): RouteWaypoint {
+  if (waypoint.distanceFromStart == null) {
+    return waypoint;
+  }
+  const point = interpolateAtDistance(
+    track.points as unknown as ProcessedTrackPoint[],
+    waypoint.distanceFromStart,
+  );
+  if (!point) {
+    return waypoint;
+  }
+  const overwrite = options.overwrite ?? false;
+  const next: RouteWaypoint = { ...waypoint };
+  if (overwrite || next.latitude == null) next.latitude = point.lat;
+  if (overwrite || next.longitude == null) next.longitude = point.lon;
+  if (overwrite || next.altitude == null) next.altitude = Math.round(point.ele);
+  if (overwrite || next.elevationGainFromStart == null) {
+    next.elevationGainFromStart = Math.round(point.elevationGain);
+  }
+  return next;
 }
 
 /** Nature d'un avertissement de cohérence d'un ravitaillement vs la trace. */

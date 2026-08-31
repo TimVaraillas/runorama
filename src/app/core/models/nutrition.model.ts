@@ -2,6 +2,8 @@
  * Modèles du volet nutrition : catégories et produits.
  */
 
+import type { RouteWaypoint } from './gpx.model';
+
 /** Une catégorie de produit (ex : « Gels », « Boissons d'effort »). */
 export interface NutritionCategory {
   id: string;
@@ -456,6 +458,8 @@ export interface NutritionEvent {
   intakes?: NutritionIntake[];
   /** Ravitaillements positionnés sur le parcours (0 à N). */
   aidStations?: AidStation[];
+  /** Points de passage légers (checkpoints, sommets, points personnalisés). */
+  waypoints?: RouteWaypoint[];
   /** Identifiant de la trace GPX associée (parcours réel), si importée. */
   gpxTrackId?: string;
   /** Résumé GPX : distance totale (km). */

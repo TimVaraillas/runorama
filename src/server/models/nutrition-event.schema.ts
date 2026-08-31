@@ -184,6 +184,34 @@ const goalsSchema = new Schema(
 );
 
 /**
+ * Point de passage léger (checkpoint, sommet, point personnalisé). Contrairement
+ * au ravitaillement, il ne porte ni logistique ni nutrition : juste une position
+ * et un temps de passage estimé. Même base positionnelle que le ravitaillement.
+ */
+const waypointSchema = new Schema(
+  {
+    /** Identifiant unique généré côté client. */
+    id: { type: String, required: true },
+    name: { type: String, required: true, trim: true },
+    /** Nature du point (hors ravitaillement, qui vit dans `aidStations`). */
+    kind: { type: String, enum: ['CHECKPOINT', 'SUMMIT', 'CUSTOM'], required: true },
+    /** Distance depuis le départ (km) — source de vérité du positionnement. */
+    distanceFromStart: { type: Number, min: 0 },
+    /** Dénivelé positif cumulé depuis le départ (m). */
+    elevationGainFromStart: { type: Number, min: 0 },
+    /** Latitude (degrés) — dérivée du GPX ou saisie. */
+    latitude: { type: Number, min: -90, max: 90 },
+    /** Longitude (degrés) — dérivée du GPX ou saisie. */
+    longitude: { type: Number, min: -180, max: 180 },
+    /** Altitude (m) — dérivée du GPX au point. */
+    altitude: { type: Number },
+    /** Temps de passage estimé depuis le départ (minutes). */
+    estimatedDurationFromStart: { type: Number, min: 0 },
+  },
+  { _id: false },
+);
+
+/**
  * Schéma d'un évènement / stratégie alimentaire (collection `nutrition_events`).
  * Associe un évènement (course, sortie longue) à une liste de produits emportés
  * et à des objectifs horaires par nutriment.
@@ -220,6 +248,8 @@ const nutritionEventSchema = new Schema(
     intakes: { type: [intakeSchema], default: [] },
     /** Ravitaillements positionnés sur le parcours (0 à N). */
     aidStations: { type: [aidStationSchema], default: [] },
+    /** Points de passage légers (checkpoints, sommets, points personnalisés). */
+    waypoints: { type: [waypointSchema], default: [] },
     /** Trace GPX associée (parcours réel), stockée dans `gpx_tracks`. */
     gpxTrackId: { type: Schema.Types.ObjectId, ref: 'GpxTrack' },
     /** Résumé dénormalisé du GPX (évite de charger la trace dans les listes). */
