@@ -2,9 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal } f
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { BadgeComponent } from '../../atoms/badge/badge.component';
 import {
-  NUTRITION_EVENT_CATEGORIES,
-  nutritionEventCategoryMeta,
-  type NutritionEvent,
+  RACE_STRATEGY_CATEGORIES,
+  raceStrategyCategoryMeta,
+  type RaceStrategy,
 } from '../../../core/models';
 import {
   faCalendarDay,
@@ -36,7 +36,7 @@ type SortDirection = 'asc' | 'desc';
  * tableau. Chaque ligne est cliquable pour ouvrir l'inventaire de la stratégie.
  */
 @Component({
-  selector: 'ui-nutrition-event-table',
+  selector: 'ui-race-strategy-table',
   standalone: true,
   imports: [IconComponent, BadgeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -170,15 +170,15 @@ type SortDirection = 'asc' | 'desc';
     </div>
   `,
 })
-export class NutritionEventTableComponent {
+export class RaceStrategyTableComponent {
   /** Évènements à afficher. */
-  readonly events = input<NutritionEvent[]>([]);
+  readonly events = input<RaceStrategy[]>([]);
   /** Affiche la colonne « Utilisateur » (propriétaire de la stratégie). */
   readonly showOwner = input(false);
 
-  readonly select = output<NutritionEvent>();
-  readonly edit = output<NutritionEvent>();
-  readonly delete = output<NutritionEvent>();
+  readonly select = output<RaceStrategy>();
+  readonly edit = output<RaceStrategy>();
+  readonly delete = output<RaceStrategy>();
   protected readonly faCalendarDay = faCalendarDay;
   protected readonly faLocationDot = faLocationDot;
   protected readonly faRoute = faRoute;
@@ -245,18 +245,18 @@ export class NutritionEventTableComponent {
   }
 
   /** Métadonnées d'affichage de l'étiquette d'un évènement. */
-  protected categoryMeta(event: NutritionEvent) {
-    return nutritionEventCategoryMeta(event.category);
+  protected categoryMeta(event: RaceStrategy) {
+    return raceStrategyCategoryMeta(event.category);
   }
 
   /** Clé de tri d'un évènement pour une colonne donnée. */
-  private sortValue(event: NutritionEvent, column: SortColumn): string | number | undefined {
+  private sortValue(event: RaceStrategy, column: SortColumn): string | number | undefined {
     switch (column) {
       case 'name':
         return event.name?.toLowerCase();
       case 'category':
         return event.category
-          ? NUTRITION_EVENT_CATEGORIES.findIndex((meta) => meta.value === event.category)
+          ? RACE_STRATEGY_CATEGORIES.findIndex((meta) => meta.value === event.category)
           : undefined;
       case 'owner':
         return event.owner ? `${event.owner.firstName} ${event.owner.lastName}`.toLowerCase() : undefined;

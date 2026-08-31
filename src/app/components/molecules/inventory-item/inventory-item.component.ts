@@ -2,11 +2,11 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { DecimalPipe } from '@angular/common';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { QuantityStepperComponent } from '../../atoms/quantity-stepper/quantity-stepper.component';
-import type { NutritionEventItem, NutritionProduct } from '../../../core/models';
+import type { RaceStrategyItem, NutritionProduct } from '../../../core/models';
 import { faAppleWhole, faTrash } from '@fortawesome/free-solid-svg-icons';
 
 /** Item d'inventaire dont le produit a été résolu (jamais `null`). */
-export type ResolvedInventoryItem = NutritionEventItem & { product: NutritionProduct };
+export type ResolvedInventoryItem = RaceStrategyItem & { product: NutritionProduct };
 
 /**
  * Molecule : une ligne de l'inventaire des produits emportés.

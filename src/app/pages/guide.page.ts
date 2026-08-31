@@ -349,14 +349,14 @@ export class GuidePage {
     {
       id: 'strategies',
       icon: faFlag,
-      title: 'Stratégies de nutrition',
+      title: 'Mes courses',
       intro:
-        'Une stratégie correspond à une course. Elle réunit tes objectifs, ton inventaire, ton plan horaire et ta logistique de ravitaillement.',
+        'Une course réunit tes objectifs, ton parcours, tes allures, ton plan de ravitaillement et ta nutrition.',
       blocks: [
         {
-          heading: 'Créer une stratégie',
+          heading: 'Créer une course',
           items: [
-            'Depuis l’onglet « Stratégies de nutrition », crée un nouvel évènement.',
+            'Depuis l’onglet « Mes courses », crée une nouvelle course.',
             'Renseigne un nom, une date et ton chrono cible (durée estimée de la course).',
           ],
         },

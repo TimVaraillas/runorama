@@ -17,7 +17,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import type {
   DragPayload,
   GhostBlock,
-  NutritionEvent,
+  RaceStrategy,
   NutritionIntake,
   NutritionProduct,
   PaletteEntry,
@@ -129,7 +129,7 @@ export class ConsumptionPlanComponent implements OnDestroy {
   private readonly toast = inject(ToastService);
 
   /** Évènement dont on planifie la consommation. */
-  readonly event = input.required<NutritionEvent>();
+  readonly event = input.required<RaceStrategy>();
   /** Catalogue des produits (pour résoudre les identifiants). */
   readonly products = input<NutritionProduct[]>([]);
 

@@ -27,7 +27,7 @@ import {
   type AidStationLogisticVia,
   type AidStationType,
   type LogisticItem,
-  type NutritionEventItem,
+  type RaceStrategyItem,
   type NutritionProduct,
 } from '../../../core/models';
 import {
@@ -352,7 +352,7 @@ export class AidStationFormComponent {
   /** Catalogue des produits (sélection logistique et consommation sur place). */
   readonly products = input<NutritionProduct[]>([]);
   /** Inventaire de l'évènement (consommation « depuis l'inventaire »). */
-  readonly inventoryItems = input<NutritionEventItem[]>([]);
+  readonly inventoryItems = input<RaceStrategyItem[]>([]);
   /**
    * Quantités de produits déjà réparties en « à récupérer » sur les **autres**
    * ravitaillements, par identifiant de produit. Sert à plafonner ce que l'on

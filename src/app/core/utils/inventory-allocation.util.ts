@@ -2,8 +2,8 @@ import type {
   AidStation,
   AidStationLogisticVia,
   LogisticItem,
-  NutritionEvent,
-  NutritionEventItem,
+  RaceStrategy,
+  RaceStrategyItem,
   NutritionProduct,
 } from '../models';
 
@@ -39,7 +39,7 @@ export interface InventoryLocation {
 
 /** Nouvel état d'inventaire renvoyé par les opérations (prêt pour l'API). */
 export interface AllocationResult {
-  items: NutritionEventItem[];
+  items: RaceStrategyItem[];
   aidStations: AidStation[];
 }
 
@@ -69,7 +69,7 @@ function hasLogistics(station: AidStation): boolean {
 }
 
 /** Réduit l'inventaire à sa charge utile API (`productId` + `quantity`). */
-function toItems(items: readonly NutritionEventItem[]): NutritionEventItem[] {
+function toItems(items: readonly RaceStrategyItem[]): RaceStrategyItem[] {
   return items.map((item) => ({ productId: item.productId, quantity: item.quantity }));
 }
 
@@ -79,7 +79,7 @@ function toItems(items: readonly NutritionEventItem[]): NutritionEventItem[] {
  * trié par temps de passage.
  */
 export function buildInventoryLocations(
-  event: NutritionEvent,
+  event: RaceStrategy,
   productMap: Map<string, NutritionProduct>,
 ): InventoryLocation[] {
   const resolve = (productId: string, fallback?: NutritionProduct): NutritionProduct | null =>
@@ -126,7 +126,7 @@ export function buildInventoryLocations(
 }
 
 /** Quantité disponible d'un produit à un emplacement (départ dérivé ou pickup). */
-export function availableAt(event: NutritionEvent, locationId: string, productId: string): number {
+export function availableAt(event: RaceStrategy, locationId: string, productId: string): number {
   if (locationId === START_LOCATION_ID) {
     const item = event.items.find((i) => i.productId === productId);
     if (!item) return 0;
@@ -166,7 +166,7 @@ function withStationPickupDelta(
  * identiques, ravito destinataire sans logistique).
  */
 export function moveUnit(
-  event: NutritionEvent,
+  event: RaceStrategy,
   fromId: string,
   toId: string,
   productId: string,
@@ -194,14 +194,14 @@ export function moveUnit(
  * récupération ailleurs retire le produit de l'inventaire.
  */
 export function setStartQuantity(
-  event: NutritionEvent,
+  event: RaceStrategy,
   productId: string,
   quantity: number,
 ): AllocationResult {
   const clamped = Math.max(0, Math.round(quantity));
   const pickups = pickupSum(event.aidStations ?? [], productId);
   const total = clamped + pickups;
-  const items: NutritionEventItem[] = [];
+  const items: RaceStrategyItem[] = [];
   let found = false;
   for (const item of event.items) {
     if (item.productId !== productId) {
@@ -220,7 +220,7 @@ export function setStartQuantity(
  * répercuté sur le total emporté (la quantité au départ reste inchangée).
  */
 export function setStationQuantity(
-  event: NutritionEvent,
+  event: RaceStrategy,
   stationId: string,
   productId: string,
   quantity: number,
@@ -233,7 +233,7 @@ export function setStationQuantity(
 
   const stations = withStationPickupDelta([...(event.aidStations ?? [])], stationId, productId, delta);
 
-  const items: NutritionEventItem[] = [];
+  const items: RaceStrategyItem[] = [];
   let found = false;
   for (const item of event.items) {
     if (item.productId !== productId) {
@@ -249,7 +249,7 @@ export function setStationQuantity(
 }
 
 /** Retire complètement un produit de l'inventaire (départ + tous les ravitos). */
-export function removeProductEverywhere(event: NutritionEvent, productId: string): AllocationResult {
+export function removeProductEverywhere(event: RaceStrategy, productId: string): AllocationResult {
   const items = event.items
     .filter((item) => item.productId !== productId)
     .map((item) => ({ productId: item.productId, quantity: item.quantity }));

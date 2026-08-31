@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { SidePanelComponent } from '../../molecules/side-panel/side-panel.component';
-import { NutritionEventFormComponent } from '../nutrition-event-form/nutrition-event-form.component';
-import type { NutritionEvent } from '../../../core/models';
+import { RaceStrategyFormComponent } from '../race-strategy-form/race-strategy-form.component';
+import type { RaceStrategy } from '../../../core/models';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
 
 /**
@@ -16,9 +16,9 @@ import { faXmark } from '@fortawesome/free-solid-svg-icons';
  * Émet `save` avec la charge utile du formulaire et `close` à la fermeture.
  */
 @Component({
-  selector: 'ui-nutrition-event-form-panel',
+  selector: 'ui-race-strategy-form-panel',
   standalone: true,
-  imports: [IconComponent, SidePanelComponent, NutritionEventFormComponent],
+  imports: [IconComponent, SidePanelComponent, RaceStrategyFormComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ui-side-panel [open]="open()" [ariaLabel]="heading()" (close)="close.emit()">
@@ -36,7 +36,7 @@ import { faXmark } from '@fortawesome/free-solid-svg-icons';
             </button>
           </div>
           <div class="flex-1 overflow-y-auto p-6">
-            <ui-nutrition-event-form
+            <ui-race-strategy-form
               [event]="event()"
               (save)="save.emit($event)"
               (cancel)="close.emit()"
@@ -47,20 +47,20 @@ import { faXmark } from '@fortawesome/free-solid-svg-icons';
     </ui-side-panel>
   `,
 })
-export class NutritionEventFormPanelComponent {
+export class RaceStrategyFormPanelComponent {
   /** Ouvre ou ferme le panneau. */
   readonly open = input(false);
   /** Évènement à modifier ; `null` pour une création. */
-  readonly event = input<NutritionEvent | null>(null);
+  readonly event = input<RaceStrategy | null>(null);
 
   /** Émis avec la charge utile du formulaire lors de l'enregistrement. */
-  readonly save = output<Partial<NutritionEvent>>();
+  readonly save = output<Partial<RaceStrategy>>();
   /** Émis lors d'une demande de fermeture. */
   readonly close = output<void>();
 
   protected readonly faXmark = faXmark;
 
   protected heading(): string {
-    return this.event() ? "Modifier l'évènement" : 'Nouvel évènement';
+    return this.event() ? 'Modifier la course' : 'Nouvelle course';
   }
 }

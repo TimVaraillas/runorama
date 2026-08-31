@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import type { NutritionEvent } from '../../../core/models';
 import { createDefaultGoals } from '../../../core/utils/nutrition-goals.util';
-import { NutritionEventCardComponent } from './nutrition-event-card.component';
+import { RaceStrategyCardComponent } from './race-strategy-card.component';
 
 const sampleEvent: NutritionEvent = {
   id: 'e1',
@@ -19,9 +19,9 @@ const sampleEvent: NutritionEvent = {
   ],
 };
 
-const meta: Meta<NutritionEventCardComponent> = {
+const meta: Meta<RaceStrategyCardComponent> = {
   title: 'Molecules/NutritionEventCard',
-  component: NutritionEventCardComponent,
+  component: RaceStrategyCardComponent,
   tags: ['autodocs'],
   argTypes: {
     selected: { control: 'boolean' },
@@ -32,7 +32,7 @@ const meta: Meta<NutritionEventCardComponent> = {
   render: (args) => ({
     props: args,
     template: `<div class="max-w-sm">
-      <ui-nutrition-event-card
+      <ui-race-strategy-card
         [event]="event"
         [selected]="selected"
         (select)="select($event)"
@@ -44,7 +44,7 @@ const meta: Meta<NutritionEventCardComponent> = {
 };
 
 export default meta;
-type Story = StoryObj<NutritionEventCardComponent>;
+type Story = StoryObj<RaceStrategyCardComponent>;
 
 export const Default: Story = {
   args: { event: sampleEvent, selected: false },

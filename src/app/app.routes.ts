@@ -59,6 +59,24 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'courses',
+    loadComponent: () =>
+      import('./pages/nutrition/courses/courses.page').then(
+        (m) => m.CoursesPage,
+      ),
+    title: 'Mes courses — Runorama',
+    canActivate: [authGuard],
+  },
+  {
+    path: 'courses/:id',
+    loadComponent: () =>
+      import('./pages/nutrition/courses/race-strategy.page').then(
+        (m) => m.RaceStrategyPage,
+      ),
+    title: 'Course — Runorama',
+    canActivate: [authGuard],
+  },
+  {
     path: 'nutrition',
     loadComponent: () =>
       import('./pages/nutrition/nutrition-layout.page').then((m) => m.NutritionLayoutPage),
@@ -74,22 +92,9 @@ export const routes: Routes = [
           ),
         title: 'Produits — Runorama',
       },
-      {
-        path: 'strategies',
-        loadComponent: () =>
-          import('./pages/nutrition/strategies/nutrition-strategies.page').then(
-            (m) => m.NutritionStrategiesPage,
-          ),
-        title: 'Stratégies alimentaires — Runorama',
-      },
-      {
-        path: 'strategies/:id',
-        loadComponent: () =>
-          import('./pages/nutrition/strategies/nutrition-strategy-inventory.page').then(
-            (m) => m.NutritionStrategyInventoryPage,
-          ),
-        title: 'Inventaire — Runorama',
-      },
+      // Anciens chemins renommés en /courses (compatibilité des liens).
+      { path: 'strategies', redirectTo: '/courses', pathMatch: 'full' },
+      { path: 'strategies/:id', redirectTo: '/courses/:id', pathMatch: 'full' },
     ],
   },
   {

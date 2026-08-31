@@ -1,4 +1,4 @@
-import type { AidStation, NutritionEventItem, NutritionIntake } from '../models';
+import type { AidStation, RaceStrategyItem, NutritionIntake } from '../models';
 
 /** Variation de stock d'un produit à l'instant d'un ravitaillement. */
 export interface AvailabilityEvent {
@@ -31,7 +31,7 @@ export interface AvailabilityUnlock {
  * affectées en « à déposer » cessent de l'être à partir de ce même instant.
  */
 export function buildAvailabilitySchedules(
-  items: NutritionEventItem[],
+  items: RaceStrategyItem[],
   aidStations: AidStation[],
 ): Map<string, ProductAvailability> {
   const schedules = new Map<string, ProductAvailability>();
@@ -103,7 +103,7 @@ export function earliestAvailableMinute(
  */
 export function pruneUnavailableIntakes(
   intakes: NutritionIntake[],
-  items: NutritionEventItem[],
+  items: RaceStrategyItem[],
   aidStations: AidStation[],
   productMap: Map<string, { name: string }>,
 ): { intakes: NutritionIntake[]; removedProductNames: string[] } {

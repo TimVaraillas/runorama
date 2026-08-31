@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { ModalComponent } from '../modal/modal.component';
-import type { GpxDiscrepancies, NutritionEvent } from '../../../core/models';
+import type { GpxDiscrepancies, RaceStrategy } from '../../../core/models';
 import { faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 
 /** Ligne d'écart affichée dans la modale. */
@@ -84,7 +84,7 @@ export class GpxReconciliationModalComponent {
   readonly discrepancies = input<GpxDiscrepancies | null>(null);
 
   /** Émis avec le patch d'évènement à appliquer (valeurs choisies). */
-  readonly confirm = output<Partial<NutritionEvent>>();
+  readonly confirm = output<Partial<RaceStrategy>>();
   /** Émis lorsque l'utilisateur conserve ses valeurs / ferme la modale. */
   readonly close = output<void>();
 
@@ -146,7 +146,7 @@ export class GpxReconciliationModalComponent {
   }
 
   protected apply(): void {
-    const patch: Partial<NutritionEvent> = {};
+    const patch: Partial<RaceStrategy> = {};
     for (const row of this.rows()) {
       if (this.selected().has(row.key)) {
         patch[row.key] = row.gpx;

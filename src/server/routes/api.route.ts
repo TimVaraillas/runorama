@@ -5,7 +5,7 @@ import { connectToDatabase } from '../db/mongoose';
 import { NutritionCategoryModel } from '../models/nutrition-category.schema';
 import { NutritionProductModel } from '../models/nutrition-product.schema';
 import { NutritionProductFeedbackModel } from '../models/nutrition-product-feedback.schema';
-import { NutritionEventModel } from '../models/nutrition-event.schema';
+import { RaceStrategyModel } from '../models/race-strategy.schema';
 import { GpxTrackModel } from '../models/gpx-track.schema';
 import { UserModel } from '../models/user.schema';
 import { requireAdmin, requireAuth } from '../auth/auth.middleware';
@@ -728,7 +728,7 @@ export function createApiRouter(): Router {
       return res.status(403).json({ message: 'Accès refusé' });
     }
 
-    const inUse = await NutritionEventModel.exists({
+    const inUse = await RaceStrategyModel.exists({
       $or: [{ 'items.productId': product._id }, { 'intakes.productId': product._id }],
     });
     if (inUse) {
@@ -752,8 +752,8 @@ export function createApiRouter(): Router {
   const eventScope = (req: Request): Record<string, unknown> =>
     req.user!.role === 'admin' ? {} : { userId: req.user!.id };
 
-  router.get('/nutrition/events', async (req: Request, res: Response) => {
-    const query = NutritionEventModel.find(eventScope(req)).populate('items.productId');
+  router.get('/race-strategies', async (req: Request, res: Response) => {
+    const query = RaceStrategyModel.find(eventScope(req)).populate('items.productId');
     // L'admin voit toutes les stratégies : on expose leur propriétaire.
     if (req.user!.role === 'admin') {
       query.populate('userId', 'firstName lastName email');
@@ -762,8 +762,8 @@ export function createApiRouter(): Router {
     return res.json(serializeMany(events));
   });
 
-  router.get('/nutrition/events/:id', async (req: Request, res: Response) => {
-    const query = NutritionEventModel.findOne({
+  router.get('/race-strategies/:id', async (req: Request, res: Response) => {
+    const query = RaceStrategyModel.findOne({
       _id: req.params['id'],
       ...eventScope(req),
     }).populate('items.productId');
@@ -772,36 +772,36 @@ export function createApiRouter(): Router {
     }
     const event = await query.lean();
     if (!event) {
-      return res.status(404).json({ message: 'Évènement introuvable' });
+      return res.status(404).json({ message: 'Course introuvable' });
     }
     return res.json(serialize(event));
   });
 
-  router.post('/nutrition/events', async (req: Request, res: Response) => {
-    const created = await NutritionEventModel.create({ ...req.body, userId: req.user!.id });
+  router.post('/race-strategies', async (req: Request, res: Response) => {
+    const created = await RaceStrategyModel.create({ ...req.body, userId: req.user!.id });
     return res.status(201).json(created.toJSON());
   });
 
-  router.put('/nutrition/events/:id', async (req: Request, res: Response) => {
+  router.put('/race-strategies/:id', async (req: Request, res: Response) => {
     const { userId: _ignored, ...payload } = req.body ?? {};
-    const updated = await NutritionEventModel.findOneAndUpdate(
+    const updated = await RaceStrategyModel.findOneAndUpdate(
       { _id: req.params['id'], ...eventScope(req) },
       payload,
       { returnDocument: 'after', runValidators: true },
     );
     if (!updated) {
-      return res.status(404).json({ message: 'Évènement introuvable' });
+      return res.status(404).json({ message: 'Course introuvable' });
     }
     return res.json(updated.toJSON());
   });
 
-  router.delete('/nutrition/events/:id', async (req: Request, res: Response) => {
-    const deleted = await NutritionEventModel.findOneAndDelete({
+  router.delete('/race-strategies/:id', async (req: Request, res: Response) => {
+    const deleted = await RaceStrategyModel.findOneAndDelete({
       _id: req.params['id'],
       ...eventScope(req),
     });
     if (!deleted) {
-      return res.status(404).json({ message: 'Évènement introuvable' });
+      return res.status(404).json({ message: 'Course introuvable' });
     }
     // Supprime la trace GPX associée (parcours réel) le cas échéant.
     await GpxTrackModel.deleteMany({ eventId: deleted._id });
@@ -817,15 +817,15 @@ export function createApiRouter(): Router {
 
   // Import / remplacement de la trace GPX d'une stratégie.
   router.post(
-    '/nutrition/events/:id/gpx',
+    '/race-strategies/:id/gpx',
     gpxBodyParser,
     async (req: Request, res: Response) => {
-      const event = await NutritionEventModel.findOne({
+      const event = await RaceStrategyModel.findOne({
         _id: req.params['id'],
         ...eventScope(req),
       });
       if (!event) {
-        return res.status(404).json({ message: 'Évènement introuvable' });
+        return res.status(404).json({ message: 'Course introuvable' });
       }
 
       const raw = typeof req.body === 'string' ? req.body : '';
@@ -867,7 +867,7 @@ export function createApiRouter(): Router {
 
       // Met à jour uniquement le résumé GPX de l'évènement (jamais les données
       // saisies par l'utilisateur : distance/D+ ne sont pas écrasés).
-      await NutritionEventModel.updateOne(
+      await RaceStrategyModel.updateOne(
         { _id: event._id },
         {
           $set: {
@@ -891,15 +891,15 @@ export function createApiRouter(): Router {
   );
 
   // Lecture de la trace GPX (points simplifiés pour le profil).
-  router.get('/nutrition/events/:id/gpx', async (req: Request, res: Response) => {
-    const event = await NutritionEventModel.findOne({
+  router.get('/race-strategies/:id/gpx', async (req: Request, res: Response) => {
+    const event = await RaceStrategyModel.findOne({
       _id: req.params['id'],
       ...eventScope(req),
     })
       .select('_id')
       .lean();
     if (!event) {
-      return res.status(404).json({ message: 'Évènement introuvable' });
+      return res.status(404).json({ message: 'Course introuvable' });
     }
     const track = await GpxTrackModel.findOne({ eventId: req.params['id'] }).lean();
     if (!track) {
@@ -909,16 +909,16 @@ export function createApiRouter(): Router {
   });
 
   // Suppression de la trace GPX et nettoyage du résumé de l'évènement.
-  router.delete('/nutrition/events/:id/gpx', async (req: Request, res: Response) => {
-    const event = await NutritionEventModel.findOne({
+  router.delete('/race-strategies/:id/gpx', async (req: Request, res: Response) => {
+    const event = await RaceStrategyModel.findOne({
       _id: req.params['id'],
       ...eventScope(req),
     }).select('_id');
     if (!event) {
-      return res.status(404).json({ message: 'Évènement introuvable' });
+      return res.status(404).json({ message: 'Course introuvable' });
     }
     await GpxTrackModel.deleteMany({ eventId: event._id });
-    await NutritionEventModel.updateOne(
+    await RaceStrategyModel.updateOne(
       { _id: event._id },
       { $unset: { gpxTrackId: '', gpxDistance: '', gpxElevationGain: '', gpxElevationLoss: '' } },
     );

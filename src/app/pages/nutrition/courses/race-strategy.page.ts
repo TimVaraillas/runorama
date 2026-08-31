@@ -19,7 +19,7 @@ import { DropdownMenuItemComponent } from '../../../components/atoms/dropdown-me
 import { PageHeaderComponent } from '../../../components/molecules/page-header/page-header.component';
 import { TabsComponent, type TabItem } from '../../../components/molecules/tabs/tabs.component';
 import { ConfirmDeleteModalComponent } from '../../../components/molecules/confirm-delete-modal/confirm-delete-modal.component';
-import { NutritionEventFormPanelComponent } from '../../../components/organisms/nutrition-event-form-panel/nutrition-event-form-panel.component';
+import { RaceStrategyFormPanelComponent } from '../../../components/organisms/race-strategy-form-panel/race-strategy-form-panel.component';
 import { NutritionStrategyInventoryComponent } from '../../../components/organisms/nutrition-strategy-inventory/nutrition-strategy-inventory.component';
 import { ConsumptionPlanComponent } from '../../../components/organisms/consumption-plan/consumption-plan.component';
 import { AidStationTableComponent } from '../../../components/organisms/aid-station-table/aid-station-table.component';
@@ -35,7 +35,7 @@ import type {
   GpxDiscrepancies,
   GpxTrack,
   NutritionCategory,
-  NutritionEvent,
+  RaceStrategy,
   NutritionGoals,
   NutritionIntake,
   NutritionProduct,
@@ -86,7 +86,7 @@ import {
     PageHeaderComponent,
     TabsComponent,
     ConfirmDeleteModalComponent,
-    NutritionEventFormPanelComponent,
+    RaceStrategyFormPanelComponent,
     NutritionStrategyInventoryComponent,
     ConsumptionPlanComponent,
     AidStationTableComponent,
@@ -105,8 +105,8 @@ import {
       "
     >
       <ui-page-header
-        [title]="event()?.name ?? 'Stratégie alimentaire'"
-        subtitle="Quelle est la composition de votre stratégie alimentaire ?"
+        [title]="event()?.name ?? 'Course'"
+        subtitle="Composez votre stratégie de course : parcours, allures, assistance et nutrition."
         [icon]="faFlag"
       >
 
@@ -157,7 +157,7 @@ import {
           </ui-dropdown-menu-item>
         </ui-dropdown-menu>
 
-         <ui-button actions color="default" variant="ghost" size="sm" [icon]="faArrowLeft" (clicked)="goBack()" tooltipContent="Retour aux stratégies" />
+         <ui-button actions color="default" variant="ghost" size="sm" [icon]="faArrowLeft" (clicked)="goBack()" tooltipContent="Retour aux courses" />
       </ui-page-header>
 
       @if (event(); as ev) {
@@ -245,21 +245,21 @@ import {
           <div class="grid h-14 w-14 place-items-center rounded-full bg-brand-50 text-brand-600">
             <ui-icon [icon]="faUtensils" size="xl" />
           </div>
-          <p class="text-slate-600">Cette stratégie est introuvable.</p>
+          <p class="text-slate-600">Cette course est introuvable.</p>
           <ui-button color="secondary" variant="outlined" [icon]="faArrowLeft" (clicked)="goBack()">
-            Retour aux stratégies
+            Retour aux courses
           </ui-button>
         </div>
       } @else {
         <div class="flex flex-col items-center gap-3 py-16 text-center">
           <ui-spinner [size]="32" />
-          <p class="text-sm text-slate-400">Chargement de la stratégie…</p>
+          <p class="text-sm text-slate-400">Chargement de la course…</p>
         </div>
       }
     </section>
 
     <!-- Panneau : formulaire évènement -->
-    <ui-nutrition-event-form-panel
+    <ui-race-strategy-form-panel
       [open]="panelOpen()"
       [event]="event()"
       (save)="saveEvent($event)"
@@ -281,9 +281,9 @@ import {
     <ui-confirm-delete-modal
       [open]="deleteModalOpen()"
       [itemName]="event()?.name ?? ''"
-      title="Supprimer la stratégie"
-      entityLabel="de la stratégie"
-      placeholder="Nom de la stratégie"
+      title="Supprimer la course"
+      entityLabel="de la course"
+      placeholder="Nom de la course"
       [deleting]="deleting()"
       (confirm)="confirmDelete()"
       (cancel)="cancelDelete()"
@@ -307,7 +307,7 @@ import {
     />
   `,
 })
-export class NutritionStrategyInventoryPage {
+export class RaceStrategyPage {
   private readonly service = inject(NutritionService);
   private readonly exportService = inject(NutritionExportService);
   private readonly router = inject(Router);
@@ -341,7 +341,7 @@ export class NutritionStrategyInventoryPage {
   /** État plein écran du plan de consommation (piloté depuis l'en-tête). */
   protected readonly planFullscreen = signal(false);
 
-  protected readonly event = signal<NutritionEvent | null>(null);
+  protected readonly event = signal<RaceStrategy | null>(null);
   protected readonly products = signal<NutritionProduct[]>([]);
   /** Chargement des produits en cours (inventaire / plan). */
   protected readonly productsLoading = signal(true);
@@ -408,7 +408,7 @@ export class NutritionStrategyInventoryPage {
   private loadEvent(): void {
     this.notFound.set(false);
     this.gpxLoading.set(true);
-    this.service.getEvent(this.id()).subscribe({
+    this.service.getStrategy(this.id()).subscribe({
       next: (event) => {
         this.event.set(event);
         if (event.gpxTrackId) {
@@ -476,7 +476,7 @@ export class NutritionStrategyInventoryPage {
   }
 
   goBack(): void {
-    this.router.navigate(['/nutrition/strategies']);
+    this.router.navigate(['/courses']);
   }
 
   // --- Édition de l'évènement ---
@@ -491,15 +491,15 @@ export class NutritionStrategyInventoryPage {
     this.panelOpen.set(false);
   }
 
-  saveEvent(payload: Partial<NutritionEvent>): void {
+  saveEvent(payload: Partial<RaceStrategy>): void {
     const current = this.event();
     if (!current) return;
-    this.service.updateEvent(current.id, payload).subscribe({
+    this.service.updateStrategy(current.id, payload).subscribe({
       next: (updated) => {
         this.event.set(updated);
         this.closePanel();
       },
-      error: () => this.toast.error("Impossible d'enregistrer la stratégie. Veuillez réessayer."),
+      error: () => this.toast.error("Impossible d'enregistrer la course. Veuillez réessayer."),
     });
   }
 
@@ -507,7 +507,7 @@ export class NutritionStrategyInventoryPage {
   saveGoals(goals: NutritionGoals): void {
     const current = this.event();
     if (!current) return;
-    this.service.updateEvent(current.id, { goals }).subscribe({
+    this.service.updateStrategy(current.id, { goals }).subscribe({
       next: (updated) => {
         this.event.set(updated);
         this.toast.success('Objectifs nutritionnels mis à jour.');
@@ -598,7 +598,7 @@ export class NutritionStrategyInventoryPage {
       productMap,
     );
 
-    this.service.updateEvent(eventId, { aidStations, intakes }).subscribe({
+    this.service.updateStrategy(eventId, { aidStations, intakes }).subscribe({
       next: (updated) => {
         this.event.set(updated);
         this.toast.success(successMessage);
@@ -768,7 +768,7 @@ export class NutritionStrategyInventoryPage {
     waypoints: RouteWaypoint[],
     successMessage: string,
   ): void {
-    this.service.updateEvent(eventId, { waypoints }).subscribe({
+    this.service.updateStrategy(eventId, { waypoints }).subscribe({
       next: (updated) => {
         this.event.set(updated);
         this.toast.success(successMessage);
@@ -838,11 +838,11 @@ export class NutritionStrategyInventoryPage {
   }
 
   /** Applique le patch de réconciliation choisi (mise à jour explicite). */
-  applyReconciliation(patch: Partial<NutritionEvent>): void {
+  applyReconciliation(patch: Partial<RaceStrategy>): void {
     this.reconcileOpen.set(false);
     const event = this.event();
     if (!event || Object.keys(patch).length === 0) return;
-    this.service.updateEvent(event.id, patch).subscribe({
+    this.service.updateStrategy(event.id, patch).subscribe({
       next: (updated) => {
         this.event.set(updated);
         this.toast.success("Données de l'évènement mises à jour.");
@@ -882,7 +882,7 @@ export class NutritionStrategyInventoryPage {
     const enriched = stations.map((s) => enrichAidStationFromTrack(s, track));
     const changed = enriched.some((s, i) => s !== stations[i]);
     if (!changed) return;
-    this.service.updateEvent(event.id, { aidStations: enriched }).subscribe({
+    this.service.updateStrategy(event.id, { aidStations: enriched }).subscribe({
       next: (updated) => this.event.set(updated),
       error: () => {
         /* Enrichissement best-effort : l'affichage interpole déjà l'altitude. */
@@ -923,16 +923,16 @@ export class NutritionStrategyInventoryPage {
     const current = this.event();
     if (!current || this.deleting()) return;
     this.deleting.set(true);
-    this.service.removeEvent(current.id).subscribe({
+    this.service.removeStrategy(current.id).subscribe({
       next: () => {
         this.deleting.set(false);
         this.deleteModalOpen.set(false);
-        this.toast.success('Stratégie supprimée.');
-        this.router.navigate(['/nutrition/strategies']);
+        this.toast.success('Course supprimée.');
+        this.router.navigate(['/courses']);
       },
       error: () => {
         this.deleting.set(false);
-        this.toast.error('Impossible de supprimer la stratégie.');
+        this.toast.error('Impossible de supprimer la course.');
       },
     });
   }
@@ -943,7 +943,7 @@ export class NutritionStrategyInventoryPage {
     if (!event) return;
     const opened = this.exportService.exportStrategyToPdf(event, this.products());
     if (!opened) {
-      this.toast.error("Autorisez les fenêtres pop-up pour exporter la stratégie en PDF.");
+      this.toast.error("Autorisez les fenêtres pop-up pour exporter la course en PDF.");
     }
   }
 
@@ -999,7 +999,7 @@ export class NutritionStrategyInventoryPage {
   }
 
   private persistItems(eventId: string, items: { productId: string; quantity: number }[]): void {
-    this.service.updateEvent(eventId, { items }).subscribe({
+    this.service.updateStrategy(eventId, { items }).subscribe({
       next: (updated) => this.event.set(updated),
       error: () => this.toast.error("Impossible de mettre à jour l'inventaire."),
     });
@@ -1022,7 +1022,7 @@ export class NutritionStrategyInventoryPage {
     );
 
     this.service
-      .updateEvent(event.id, { items: result.items, aidStations: result.aidStations, intakes })
+      .updateStrategy(event.id, { items: result.items, aidStations: result.aidStations, intakes })
       .subscribe({
         next: (updated) => {
           this.event.set(updated);
@@ -1043,7 +1043,7 @@ export class NutritionStrategyInventoryPage {
     if (!event) return;
     // Mise à jour optimiste : la timeline reste fluide même si l'appel échoue.
     this.event.set({ ...event, intakes });
-    this.service.updateEvent(event.id, { intakes }).subscribe({
+    this.service.updateStrategy(event.id, { intakes }).subscribe({
       error: () => this.toast.error('Impossible de mettre à jour le plan de consommation.'),
     });
   }
@@ -1052,7 +1052,7 @@ export class NutritionStrategyInventoryPage {
     const event = this.event();
     if (!event) return;
     this.event.set({ ...event, planSequenceMinutes });
-    this.service.updateEvent(event.id, { planSequenceMinutes }).subscribe({
+    this.service.updateStrategy(event.id, { planSequenceMinutes }).subscribe({
       error: () => this.toast.error('Impossible de mettre à jour le découpage des séquences.'),
     });
   }

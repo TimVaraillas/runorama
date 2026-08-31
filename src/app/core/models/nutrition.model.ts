@@ -93,7 +93,7 @@ export interface NutritionProduct {
 }
 
 /** Un produit emporté avec sa quantité (ligne d'inventaire). */
-export interface NutritionEventItem {
+export interface RaceStrategyItem {
   /** Identifiant du produit associé. */
   productId: string;
   /** Produit dénormalisé (optionnel, pour l'affichage et les calculs). */
@@ -390,7 +390,7 @@ export interface AidStation {
 /**
  * Propriétaire d'une stratégie alimentaire, tel qu'exposé aux administrateurs.
  */
-export interface NutritionEventOwner {
+export interface RaceStrategyOwner {
   id: string;
   firstName: string;
   lastName: string;
@@ -400,38 +400,38 @@ export interface NutritionEventOwner {
 /**
  * Étiquette d'une stratégie : nature de la sortie/évènement associé.
  */
-export type NutritionEventCategory =
+export type RaceStrategyCategory =
   | 'training'
   | 'long-run'
   | 'race';
 
 /** Description d'une étiquette de stratégie (libellé + tonalité du badge). */
-export interface NutritionEventCategoryMeta {
-  value: NutritionEventCategory;
+export interface RaceStrategyCategoryMeta {
+  value: RaceStrategyCategory;
   label: string;
   /** Tonalité du badge d'affichage (voir `BadgeTone`). */
   tone: 'neutral' | 'brand' | 'accent' | 'success' | 'warning' | 'danger';
 }
 
 /** Étiquettes disponibles, dans l'ordre d'affichage. */
-export const NUTRITION_EVENT_CATEGORIES: readonly NutritionEventCategoryMeta[] = [
+export const RACE_STRATEGY_CATEGORIES: readonly RaceStrategyCategoryMeta[] = [
   { value: 'training', label: 'Entraînement', tone: 'neutral' },
   { value: 'long-run', label: 'Sortie longue', tone: 'accent' },
   { value: 'race', label: 'Course', tone: 'danger' },
 ];
 
 /** Retrouve les métadonnées d'une étiquette à partir de sa valeur. */
-export function nutritionEventCategoryMeta(
-  value: NutritionEventCategory | undefined,
-): NutritionEventCategoryMeta | undefined {
-  return NUTRITION_EVENT_CATEGORIES.find((category) => category.value === value);
+export function raceStrategyCategoryMeta(
+  value: RaceStrategyCategory | undefined,
+): RaceStrategyCategoryMeta | undefined {
+  return RACE_STRATEGY_CATEGORIES.find((category) => category.value === value);
 }
 
 /**
  * Un évènement / stratégie alimentaire : associe un évènement (course, sortie
  * longue) à une liste de produits emportés et à des besoins horaires cibles.
  */
-export interface NutritionEvent {
+export interface RaceStrategy {
   id: string;
   name: string;
   description?: string;
@@ -439,7 +439,7 @@ export interface NutritionEvent {
   date: string;
   location?: string;
   /** Étiquette : nature de la sortie/évènement (facultative). */
-  category?: NutritionEventCategory;
+  category?: RaceStrategyCategory;
   /** Distance en kilomètres. */
   distance?: number;
   /** Dénivelé positif en mètres. */
@@ -451,7 +451,7 @@ export interface NutritionEvent {
   /** Objectifs horaires par nutriment (énergie, glucides, lipides, …). */
   goals: NutritionGoals;
   /** Inventaire des produits emportés. */
-  items: NutritionEventItem[];
+  items: RaceStrategyItem[];
   /** Granularité (minutes) des séquences du plan de consommation. */
   planSequenceMinutes?: PlanSequenceMinutes;
   /** Répartition des prises sur le parcours (plan de consommation). */
@@ -472,7 +472,7 @@ export interface NutritionEvent {
    * Propriétaire de la stratégie (renseigné uniquement pour les
    * administrateurs, qui accèdent aux stratégies de tous les utilisateurs).
    */
-  owner?: NutritionEventOwner;
+  owner?: RaceStrategyOwner;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -9,9 +9,9 @@ import {
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { NutritionGoalsEditorComponent } from '../../molecules/nutrition-goals-editor/nutrition-goals-editor.component';
 import {
-  NUTRITION_EVENT_CATEGORIES,
-  type NutritionEvent,
-  type NutritionEventCategory,
+  RACE_STRATEGY_CATEGORIES,
+  type RaceStrategy,
+  type RaceStrategyCategory,
   type NutritionGoals,
 } from '../../../core/models';
 import { createDefaultGoals, resolveGoals } from '../../../core/utils/nutrition-goals.util';
@@ -33,7 +33,7 @@ function chronoRequiredValidator(group: AbstractControl): ValidationErrors | nul
  * converti en minutes) et `cancel` à l'annulation.
  */
 @Component({
-  selector: 'ui-nutrition-event-form',
+  selector: 'ui-race-strategy-form',
   standalone: true,
   imports: [ReactiveFormsModule, ButtonComponent, NutritionGoalsEditorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -41,7 +41,7 @@ function chronoRequiredValidator(group: AbstractControl): ValidationErrors | nul
     <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-5">
       <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
         <div>
-          <label [class]="labelClass" for="event-name">Nom de l'évènement</label>
+          <label [class]="labelClass" for="event-name">Nom de la course</label>
           <input
             id="event-name"
             type="text"
@@ -137,7 +137,7 @@ function chronoRequiredValidator(group: AbstractControl): ValidationErrors | nul
           </div>
           @if (form.hasError('chronoRequired') && form.get('targetHours')?.touched) {
             <p class="mt-1 text-xs text-rose-600">
-              Le chrono cible est requis pour établir une stratégie alimentaire.
+              Le chrono cible est requis pour établir une stratégie de course.
             </p>
           } @else {
             <p class="mt-1 text-xs text-slate-400">
@@ -161,19 +161,19 @@ function chronoRequiredValidator(group: AbstractControl): ValidationErrors | nul
       <div class="flex items-center justify-end gap-3">
         <ui-button type="button" color="default" variant="ghost" (clicked)="cancel.emit()">Annuler</ui-button>
         <ui-button type="submit" [disabled]="form.invalid">
-          {{ event() ? 'Enregistrer' : "Créer l'évènement" }}
+          {{ event() ? 'Enregistrer' : 'Créer la course' }}
         </ui-button>
       </div>
     </form>
   `,
 })
-export class NutritionEventFormComponent {
+export class RaceStrategyFormComponent {
   private readonly fb = inject(FormBuilder);
 
   /** Évènement à éditer (mode modification). Absent = création. */
-  readonly event = input<NutritionEvent | null>(null);
+  readonly event = input<RaceStrategy | null>(null);
 
-  readonly save = output<Partial<NutritionEvent>>();
+  readonly save = output<Partial<RaceStrategy>>();
   readonly cancel = output<void>();
 
   protected readonly labelClass = 'mb-1 block text-xs font-medium text-slate-600';
@@ -181,7 +181,7 @@ export class NutritionEventFormComponent {
     'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
 
   /** Étiquettes disponibles pour le sélecteur. */
-  protected readonly categories = NUTRITION_EVENT_CATEGORIES;
+  protected readonly categories = RACE_STRATEGY_CATEGORIES;
 
   /** Objectifs nutritionnels édités (pilotés par le composant réutilisable). */
   protected readonly goalsDraft = signal<NutritionGoals>(createDefaultGoals());
@@ -192,7 +192,7 @@ export class NutritionEventFormComponent {
       description: [''],
       date: ['', Validators.required],
       location: [''],
-      category: [null as NutritionEventCategory | null],
+      category: [null as RaceStrategyCategory | null],
       distance: [null as number | null, Validators.min(0)],
       elevationGain: [null as number | null, Validators.min(0)],
       elevationLoss: [null as number | null, Validators.min(0)],
@@ -233,7 +233,7 @@ export class NutritionEventFormComponent {
     const minutes = v.targetMinutes ?? 0;
     const totalMinutes = hours * 60 + minutes;
 
-    const payload: Partial<NutritionEvent> = {
+    const payload: Partial<RaceStrategy> = {
       name: v.name!.trim(),
       description: v.description?.trim() || undefined,
       date: v.date!,

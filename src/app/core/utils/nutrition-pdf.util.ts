@@ -1,4 +1,4 @@
-import type { NutrientGoalKey, NutritionEvent, NutritionProduct } from '../models';
+import type { NutrientGoalKey, RaceStrategy, NutritionProduct } from '../models';
 import { enabledGoals, type ResolvedGoal } from './nutrition-goals.util';
 import { resolveIntakeProduct } from './water.util';
 import { formatMinutes } from './plan-layout.util';
@@ -67,7 +67,7 @@ interface RecapRow {
 
 /** Construit la table produit par identifiant (catalogue + dénormalisés). */
 function buildProductMap(
-  event: NutritionEvent,
+  event: RaceStrategy,
   products: NutritionProduct[],
 ): Map<string, NutritionProduct> {
   const map = new Map<string, NutritionProduct>();
@@ -80,7 +80,7 @@ function buildProductMap(
 }
 
 /** Compose les données de l'inventaire (lignes + totaux). */
-function buildInventory(event: NutritionEvent, map: Map<string, NutritionProduct>) {
+function buildInventory(event: RaceStrategy, map: Map<string, NutritionProduct>) {
   const rows: InventoryRow[] = [];
   const totals = { weight: 0, energy: 0, carbs: 0, fats: 0, proteins: 0, sodium: 0 };
   for (const item of event.items) {
@@ -109,7 +109,7 @@ function buildInventory(event: NutritionEvent, map: Map<string, NutritionProduct
 
 /** Compose les prises planifiées (triées) et le récapitulatif horaire. */
 function buildPlan(
-  event: NutritionEvent,
+  event: RaceStrategy,
   map: Map<string, NutritionProduct>,
   goals: ResolvedGoal[],
 ) {
@@ -187,7 +187,7 @@ interface LogisticBag {
  * chaque ravitaillement avec logistique (assistance / drop bag), le contenu à
  * récupérer et, le cas échéant, à déposer (produits du catalogue + matériel).
  */
-function buildLogistics(event: NutritionEvent, map: Map<string, NutritionProduct>): LogisticBag[] {
+function buildLogistics(event: RaceStrategy, map: Map<string, NutritionProduct>): LogisticBag[] {
   const viaLabel = (via?: string): string =>
     via === 'ASSISTANCE' ? 'Assistance' : via === 'DROP_BAG' ? 'Drop bag' : '';
 
@@ -245,7 +245,7 @@ function buildLogistics(event: NutritionEvent, map: Map<string, NutritionProduct
  * emportés et plan de consommation planifié.
  */
 export function buildStrategyPdfHtml(
-  event: NutritionEvent,
+  event: RaceStrategy,
   products: NutritionProduct[],
 ): string {
   const map = buildProductMap(event, products);
@@ -451,7 +451,7 @@ export function buildStrategyPdfHtml(
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <title>${escapeHtml(event.name)} — Stratégie alimentaire</title>
+  <title>${escapeHtml(event.name)} — Stratégie de course</title>
   <style>
     * { box-sizing: border-box; }
     body {

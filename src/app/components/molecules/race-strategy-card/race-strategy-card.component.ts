@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { BadgeComponent } from '../../atoms/badge/badge.component';
-import { nutritionEventCategoryMeta, type NutritionEvent } from '../../../core/models';
+import { raceStrategyCategoryMeta, type RaceStrategy } from '../../../core/models';
 import {
   faCalendarDay,
   faLocationDot,
@@ -20,7 +20,7 @@ import {
  * Cliquable pour sélectionner l'évènement ; expose des actions `edit`/`delete`.
  */
 @Component({
-  selector: 'ui-nutrition-event-card',
+  selector: 'ui-race-strategy-card',
   standalone: true,
   imports: [IconComponent, BadgeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -50,7 +50,7 @@ import {
             type="button"
             class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
             (click)="edit.emit(event()); $event.stopPropagation()"
-            aria-label="Modifier l'évènement"
+            aria-label="Modifier la course"
           >
             <ui-icon [icon]="faPen" size="sm" />
           </button>
@@ -58,7 +58,7 @@ import {
             type="button"
             class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
             (click)="delete.emit(event()); $event.stopPropagation()"
-            aria-label="Supprimer l'évènement"
+            aria-label="Supprimer la course"
           >
             <ui-icon [icon]="faTrash" size="sm" />
           </button>
@@ -86,15 +86,15 @@ import {
     </article>
   `,
 })
-export class NutritionEventCardComponent {
+export class RaceStrategyCardComponent {
   /** Évènement à afficher. */
-  readonly event = input.required<NutritionEvent>();
+  readonly event = input.required<RaceStrategy>();
   /** Indique si la carte est actuellement sélectionnée. */
   readonly selected = input(false);
 
-  readonly select = output<NutritionEvent>();
-  readonly edit = output<NutritionEvent>();
-  readonly delete = output<NutritionEvent>();
+  readonly select = output<RaceStrategy>();
+  readonly edit = output<RaceStrategy>();
+  readonly delete = output<RaceStrategy>();
 
   protected readonly faCalendarDay = faCalendarDay;
   protected readonly faLocationDot = faLocationDot;
@@ -111,7 +111,7 @@ export class NutritionEventCardComponent {
   );
 
   /** Métadonnées d'affichage de l'étiquette (badge). */
-  protected readonly categoryMeta = computed(() => nutritionEventCategoryMeta(this.event().category));
+  protected readonly categoryMeta = computed(() => raceStrategyCategoryMeta(this.event().category));
 
   /** Date formatée `JJ/MM/AAAA` à partir d'une date ISO `YYYY-MM-DD`. */
   protected readonly formattedDate = computed(() => {

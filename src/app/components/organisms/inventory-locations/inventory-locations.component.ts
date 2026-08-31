@@ -4,7 +4,7 @@ import { IconComponent } from '../../atoms/icon/icon.component';
 import { BadgeComponent } from '../../atoms/badge/badge.component';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { QuantityStepperComponent } from '../../atoms/quantity-stepper/quantity-stepper.component';
-import type { NutritionEvent, NutritionProduct } from '../../../core/models';
+import type { RaceStrategy, NutritionProduct } from '../../../core/models';
 import {
   START_LOCATION_ID,
   buildInventoryLocations,
@@ -152,7 +152,7 @@ import {
 })
 export class InventoryLocationsComponent {
   /** Évènement dont on gère l'inventaire. */
-  readonly event = input.required<NutritionEvent>();
+  readonly event = input.required<RaceStrategy>();
   /** Catalogue des produits (résolution des libellés). */
   readonly products = input<NutritionProduct[]>([]);
   /** Autorise l'ouverture du sélecteur d'ajout de produits. */

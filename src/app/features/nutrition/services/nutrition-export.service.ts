@@ -1,6 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import { Injectable, inject } from '@angular/core';
-import type { NutritionEvent, NutritionProduct } from '../../../core/models';
+import type { RaceStrategy, NutritionProduct } from '../../../core/models';
 import { buildStrategyPdfHtml } from '../../../core/utils/nutrition-pdf.util';
 
 /**
@@ -19,7 +19,7 @@ export class NutritionExportService {
    * Ouvre l'aperçu imprimable de la stratégie et déclenche l'impression.
    * @returns `true` si la fenêtre a pu être ouverte, `false` sinon (popup bloquée).
    */
-  exportStrategyToPdf(event: NutritionEvent, products: NutritionProduct[]): boolean {
+  exportStrategyToPdf(event: RaceStrategy, products: NutritionProduct[]): boolean {
     const win = this.document.defaultView?.open('', '_blank');
     if (!win) return false;
 

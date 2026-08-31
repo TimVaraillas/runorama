@@ -3,7 +3,7 @@ import { IconComponent } from '../../atoms/icon/icon.component';
 import { BadgeComponent } from '../../atoms/badge/badge.component';
 import type {
   AidConsumption,
-  NutritionEventItem,
+  RaceStrategyItem,
   NutritionProduct,
 } from '../../../core/models';
 import { newAidConsumptionId } from '../../../core/utils/aid-station.util';
@@ -218,7 +218,7 @@ export class AidConsumptionListComponent {
   /** Catalogue des produits (source « sur place »). */
   readonly products = input<NutritionProduct[]>([]);
   /** Inventaire de l'évènement (source « depuis l'inventaire »). */
-  readonly inventoryItems = input<NutritionEventItem[]>([]);
+  readonly inventoryItems = input<RaceStrategyItem[]>([]);
 
   /** Émis avec la nouvelle liste à chaque modification. */
   readonly consumptionsChange = output<AidConsumption[]>();

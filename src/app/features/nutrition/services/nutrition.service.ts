@@ -5,7 +5,7 @@ import type {
   GpxTrack,
   GpxUploadResult,
   NutritionCategory,
-  NutritionEvent,
+  RaceStrategy,
   NutritionProduct,
 } from '../../../core/models';
 import type { ProductModerationStatus } from '../../../core/models/nutrition.model';
@@ -34,7 +34,7 @@ export class NutritionService {
   private readonly http = inject(HttpClient);
   private readonly categoriesUrl = '/api/nutrition/categories';
   private readonly productsUrl = '/api/nutrition/products';
-  private readonly eventsUrl = '/api/nutrition/events';
+  private readonly eventsUrl = '/api/race-strategies';
 
   // --- Catégories ---
 
@@ -151,23 +151,23 @@ export class NutritionService {
 
   // --- Évènements / stratégies alimentaires ---
 
-  listEvents(): Observable<NutritionEvent[]> {
-    return this.http.get<NutritionEvent[]>(this.eventsUrl);
+  listStrategies(): Observable<RaceStrategy[]> {
+    return this.http.get<RaceStrategy[]>(this.eventsUrl);
   }
 
-  getEvent(id: string): Observable<NutritionEvent> {
-    return this.http.get<NutritionEvent>(`${this.eventsUrl}/${id}`);
+  getStrategy(id: string): Observable<RaceStrategy> {
+    return this.http.get<RaceStrategy>(`${this.eventsUrl}/${id}`);
   }
 
-  createEvent(payload: Partial<NutritionEvent>): Observable<NutritionEvent> {
-    return this.http.post<NutritionEvent>(this.eventsUrl, payload);
+  createStrategy(payload: Partial<RaceStrategy>): Observable<RaceStrategy> {
+    return this.http.post<RaceStrategy>(this.eventsUrl, payload);
   }
 
-  updateEvent(id: string, payload: Partial<NutritionEvent>): Observable<NutritionEvent> {
-    return this.http.put<NutritionEvent>(`${this.eventsUrl}/${id}`, payload);
+  updateStrategy(id: string, payload: Partial<RaceStrategy>): Observable<RaceStrategy> {
+    return this.http.put<RaceStrategy>(`${this.eventsUrl}/${id}`, payload);
   }
 
-  removeEvent(id: string): Observable<void> {
+  removeStrategy(id: string): Observable<void> {
     return this.http.delete<void>(`${this.eventsUrl}/${id}`);
   }
 

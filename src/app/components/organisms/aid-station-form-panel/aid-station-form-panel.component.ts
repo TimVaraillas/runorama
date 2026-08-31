@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { SidePanelComponent } from '../../molecules/side-panel/side-panel.component';
 import { AidStationFormComponent } from '../aid-station-form/aid-station-form.component';
-import type { AidStation, NutritionEventItem, NutritionProduct } from '../../../core/models';
+import type { AidStation, RaceStrategyItem, NutritionProduct } from '../../../core/models';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
 
 /**
@@ -56,7 +56,7 @@ export class AidStationFormPanelComponent {
   /** Catalogue des produits (sélection logistique et consommation sur place). */
   readonly products = input<NutritionProduct[]>([]);
   /** Inventaire de l'évènement (consommation « depuis l'inventaire »). */
-  readonly inventoryItems = input<NutritionEventItem[]>([]);
+  readonly inventoryItems = input<RaceStrategyItem[]>([]);
   /** Quantités déjà réparties en « à récupérer » sur les autres ravitaillements. */
   readonly pickupElsewhere = input<Record<string, number>>({});
 

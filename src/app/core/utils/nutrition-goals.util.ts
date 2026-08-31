@@ -1,7 +1,7 @@
 import {
   NUTRIENT_GOALS,
   type NutrientGoalKey,
-  type NutritionEvent,
+  type RaceStrategy,
   type NutritionGoal,
   type NutritionGoals,
 } from '../models';
@@ -38,8 +38,8 @@ export function createDefaultGoals(): NutritionGoals {
  * avec leurs valeurs par défaut et retombe, le cas échéant, sur les anciens
  * champs `hourlyEnergy` / `hourlyCarbs` (stratégies non migrées).
  */
-export function resolveGoals(event: NutritionEvent): NutritionGoals {
-  const legacy = event as NutritionEvent & LegacyEvent;
+export function resolveGoals(event: RaceStrategy): NutritionGoals {
+  const legacy = event as RaceStrategy & LegacyEvent;
   const source = event.goals;
   return NUTRIENT_GOALS.reduce((acc, meta) => {
     const existing = source?.[meta.key];
@@ -60,7 +60,7 @@ export function resolveGoals(event: NutritionEvent): NutritionGoals {
  * Liste, dans l'ordre du catalogue, les objectifs actifs d'un évènement avec
  * leurs métadonnées d'affichage.
  */
-export function enabledGoals(event: NutritionEvent): ResolvedGoal[] {
+export function enabledGoals(event: RaceStrategy): ResolvedGoal[] {
   const goals = resolveGoals(event);
   return NUTRIENT_GOALS.filter((meta) => goals[meta.key]?.enabled).map((meta) => ({
     key: meta.key,
@@ -75,7 +75,7 @@ export function enabledGoals(event: NutritionEvent): ResolvedGoal[] {
  * Objectifs actifs à comptabilisation horaire (exclut les objectifs « total »
  * comme le poids). Utilisé pour les récaps horaires (plan, PDF).
  */
-export function enabledHourlyGoals(event: NutritionEvent): ResolvedGoal[] {
+export function enabledHourlyGoals(event: RaceStrategy): ResolvedGoal[] {
   return enabledGoals(event).filter((goal) => goal.mode === 'hourly');
 }
 

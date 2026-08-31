@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import type { NutritionEvent } from '../../../core/models';
 import { createDefaultGoals } from '../../../core/utils/nutrition-goals.util';
-import { NutritionEventFormComponent } from './nutrition-event-form.component';
+import { RaceStrategyFormComponent } from './race-strategy-form.component';
 
 const event: NutritionEvent = {
   id: 'e1',
@@ -17,9 +17,9 @@ const event: NutritionEvent = {
   items: [],
 };
 
-const meta: Meta<NutritionEventFormComponent> = {
+const meta: Meta<RaceStrategyFormComponent> = {
   title: 'Organisms/NutritionEventForm',
-  component: NutritionEventFormComponent,
+  component: RaceStrategyFormComponent,
   tags: ['autodocs'],
   argTypes: {
     save: { action: 'save' },
@@ -28,7 +28,7 @@ const meta: Meta<NutritionEventFormComponent> = {
   render: (args) => ({
     props: args,
     template: `<div class="max-w-2xl">
-      <ui-nutrition-event-form
+      <ui-race-strategy-form
         [event]="event"
         (save)="save($event)"
         (cancel)="cancel()"
@@ -38,7 +38,7 @@ const meta: Meta<NutritionEventFormComponent> = {
 };
 
 export default meta;
-type Story = StoryObj<NutritionEventFormComponent>;
+type Story = StoryObj<RaceStrategyFormComponent>;
 
 export const Create: Story = {
   args: { event: null },

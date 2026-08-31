@@ -68,7 +68,7 @@ const gpxTrackSchema = new Schema(
     /** Stratégie (évènement) propriétaire de la trace. */
     eventId: {
       type: Schema.Types.ObjectId,
-      ref: 'NutritionEvent',
+      ref: 'RaceStrategy',
       required: true,
       index: true,
     },

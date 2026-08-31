@@ -23,14 +23,14 @@ import { ViewToggleComponent, type ProductViewMode } from '../../../components/a
 import { FilterBarComponent } from '../../../components/molecules/filter-bar/filter-bar.component';
 import { PageHeaderComponent } from '../../../components/molecules/page-header/page-header.component';
 import { ConfirmDeleteModalComponent } from '../../../components/molecules/confirm-delete-modal/confirm-delete-modal.component';
-import { NutritionEventFormPanelComponent } from '../../../components/organisms/nutrition-event-form-panel/nutrition-event-form-panel.component';
-import { NutritionEventGridComponent } from '../../../components/organisms/nutrition-event-grid/nutrition-event-grid.component';
-import { NutritionEventTableComponent } from '../../../components/organisms/nutrition-event-table/nutrition-event-table.component';
+import { RaceStrategyFormPanelComponent } from '../../../components/organisms/race-strategy-form-panel/race-strategy-form-panel.component';
+import { RaceStrategyGridComponent } from '../../../components/organisms/race-strategy-grid/race-strategy-grid.component';
+import { RaceStrategyTableComponent } from '../../../components/organisms/race-strategy-table/race-strategy-table.component';
 import type {
-  NutritionEvent,
-  NutritionEventOwner,
+  RaceStrategy,
+  RaceStrategyOwner,
 } from '../../../core/models';
-import { NUTRITION_EVENT_CATEGORIES } from '../../../core/models';
+import { RACE_STRATEGY_CATEGORIES } from '../../../core/models';
 import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
 
 /**
@@ -54,19 +54,19 @@ import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
     FilterBarComponent,
     PageHeaderComponent,
     ConfirmDeleteModalComponent,
-    NutritionEventFormPanelComponent,
-    NutritionEventGridComponent,
-    NutritionEventTableComponent,
+    RaceStrategyFormPanelComponent,
+    RaceStrategyGridComponent,
+    RaceStrategyTableComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="space-y-6">
       <ui-page-header
-        title="Stratégies de nutrition"
-        subtitle="Composez et retrouvez vos plans nutritionnels de course."
+        title="Mes courses"
+        subtitle="Composez et retrouvez vos stratégies de course."
         [icon]="faUtensils"
       >
-        <ui-button actions [icon]="faPlus" (clicked)="newEvent()">Nouvel évènement</ui-button>
+        <ui-button actions [icon]="faPlus" (clicked)="newEvent()">Nouvelle course</ui-button>
       </ui-page-header>
 
       <!-- Filtres -->
@@ -75,19 +75,19 @@ import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
           <ui-search-input
             [(value)]="search"
             placeholder="Rechercher par titre…"
-            ariaLabel="Rechercher une stratégie par titre"
+            ariaLabel="Rechercher une course par titre"
           />
           <ui-date-range-filter
             [(from)]="dateFrom"
             [(to)]="dateTo"
-            fromAriaLabel="Filtrer les stratégies à partir de cette date"
-            toAriaLabel="Filtrer les stratégies jusqu'à cette date"
+            fromAriaLabel="Filtrer les courses à partir de cette date"
+            toAriaLabel="Filtrer les courses jusqu'à cette date"
           />
           <ui-filterable-select
             [options]="categoryOptions"
             [(value)]="selectedCategory"
             placeholder="Toutes les étiquettes"
-            ariaLabel="Filtrer les stratégies par étiquette"
+            ariaLabel="Filtrer les courses par étiquette"
             clearAriaLabel="Effacer le filtre d'étiquette"
           />
           @if (isAdmin() && ownerOptions().length) {
@@ -95,7 +95,7 @@ import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
               [options]="ownerOptions()"
               [(value)]="selectedOwnerId"
               placeholder="Tous les utilisateurs"
-              ariaLabel="Filtrer les stratégies par utilisateur"
+              ariaLabel="Filtrer les courses par utilisateur"
               clearAriaLabel="Effacer le filtre utilisateur"
             />
           }
@@ -116,9 +116,9 @@ import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
             <div class="grid h-14 w-14 place-items-center rounded-full bg-brand-50 text-brand-600">
               <ui-icon [icon]="faUtensils" size="xl" />
             </div>
-            <p class="text-slate-600">Aucune stratégie pour le moment.</p>
+            <p class="text-slate-600">Aucune course pour le moment.</p>
             <ui-button color="secondary" variant="outlined" [icon]="faPlus" (clicked)="newEvent()">
-              Créer ma première stratégie
+              Créer ma première course
             </ui-button>
           </div>
         } @else if (filteredEvents().length === 0) {
@@ -128,11 +128,11 @@ import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
             <div class="grid h-14 w-14 place-items-center rounded-full bg-brand-50 text-brand-600">
               <ui-icon [icon]="faUtensils" size="xl" />
             </div>
-            <p class="text-slate-600">Aucune stratégie ne correspond à votre recherche.</p>
+            <p class="text-slate-600">Aucune course ne correspond à votre recherche.</p>
           </div>
         } @else {
           @if (viewMode() === 'table') {
-            <ui-nutrition-event-table
+            <ui-race-strategy-table
               [events]="filteredEvents()"
               [showOwner]="isAdmin()"
               (select)="openInventory($event)"
@@ -140,7 +140,7 @@ import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
               (delete)="requestDeleteEvent($event)"
             />
           } @else {
-            <ui-nutrition-event-grid
+            <ui-race-strategy-grid
               [events]="filteredEvents()"
               (select)="openInventory($event)"
               (edit)="editEvent($event)"
@@ -151,13 +151,13 @@ import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
       } @else {
         <div class="flex flex-col items-center gap-3 py-16 text-center">
           <ui-spinner [size]="32" />
-          <p class="text-sm text-slate-400">Chargement des stratégies…</p>
+          <p class="text-sm text-slate-400">Chargement des courses…</p>
         </div>
       }
     </section>
 
     <!-- Panneau : formulaire évènement -->
-    <ui-nutrition-event-form-panel
+    <ui-race-strategy-form-panel
       [open]="panelOpen()"
       [event]="editing()"
       (save)="saveEvent($event)"
@@ -168,16 +168,16 @@ import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
     <ui-confirm-delete-modal
       [open]="!!pendingDelete()"
       [itemName]="pendingDelete()?.name ?? ''"
-      title="Supprimer la stratégie"
-      entityLabel="de la stratégie"
-      placeholder="Nom de la stratégie"
+      title="Supprimer la course"
+      entityLabel="de la course"
+      placeholder="Nom de la course"
       [deleting]="deleting()"
       (confirm)="confirmDelete()"
       (cancel)="cancelDelete()"
     />
   `,
 })
-export class NutritionStrategiesPage {
+export class CoursesPage {
   private readonly service = inject(NutritionService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
@@ -189,7 +189,7 @@ export class NutritionStrategiesPage {
   protected readonly faTrash = faTrash;
   protected readonly faUtensils = faUtensils;
 
-  protected readonly events = signal<NutritionEvent[] | undefined>(undefined);
+  protected readonly events = signal<RaceStrategy[] | undefined>(undefined);
 
   protected readonly search = signal('');
   protected readonly dateFrom = signal('');
@@ -199,13 +199,13 @@ export class NutritionStrategiesPage {
   protected readonly viewMode = signal<ProductViewMode>('table');
 
   /** Options du filtre par étiquette. */
-  protected readonly categoryOptions: FilterableSelectOption[] = NUTRITION_EVENT_CATEGORIES.map(
+  protected readonly categoryOptions: FilterableSelectOption[] = RACE_STRATEGY_CATEGORIES.map(
     (category) => ({ value: category.value, label: category.label }),
   );
 
   /** Liste des propriétaires distincts (filtre utilisateur, vue admin). */
   protected readonly ownerOptions = computed<FilterableSelectOption[]>(() => {
-    const byId = new Map<string, NutritionEventOwner>();
+    const byId = new Map<string, RaceStrategyOwner>();
     for (const event of this.events() ?? []) {
       if (event.owner) byId.set(event.owner.id, event.owner);
     }
@@ -215,7 +215,7 @@ export class NutritionStrategiesPage {
   });
 
   protected readonly panelOpen = signal(false);
-  protected readonly editing = signal<NutritionEvent | null>(null);
+  protected readonly editing = signal<RaceStrategy | null>(null);
 
   protected readonly pendingDelete = signal<{ id: string; name: string } | null>(null);
   protected readonly deleting = signal(false);
@@ -245,18 +245,18 @@ export class NutritionStrategiesPage {
   }
 
   private loadEvents(): void {
-    this.service.listEvents().subscribe({
+    this.service.listStrategies().subscribe({
       next: (events) => this.events.set(events),
       error: () => {
         this.events.set([]);
-        this.toast.error('Impossible de charger les stratégies.');
+        this.toast.error('Impossible de charger les courses.');
       },
     });
   }
 
   /** Ouvre la page d'inventaire dédiée à l'évènement. */
-  openInventory(event: NutritionEvent): void {
-    this.router.navigate(['/nutrition/strategies', event.id]);
+  openInventory(event: RaceStrategy): void {
+    this.router.navigate(['/courses', event.id]);
   }
 
   // --- Évènements (CRUD) ---
@@ -266,7 +266,7 @@ export class NutritionStrategiesPage {
     this.panelOpen.set(true);
   }
 
-  editEvent(event: NutritionEvent): void {
+  editEvent(event: RaceStrategy): void {
     this.editing.set(event);
     this.panelOpen.set(true);
   }
@@ -276,21 +276,21 @@ export class NutritionStrategiesPage {
     this.editing.set(null);
   }
 
-  saveEvent(payload: Partial<NutritionEvent>): void {
+  saveEvent(payload: Partial<RaceStrategy>): void {
     const current = this.editing();
     const request = current
-      ? this.service.updateEvent(current.id, payload)
-      : this.service.createEvent(payload);
+      ? this.service.updateStrategy(current.id, payload)
+      : this.service.createStrategy(payload);
     request.subscribe({
       next: () => {
         this.closePanel();
         this.loadEvents();
       },
-      error: () => this.toast.error("Impossible d'enregistrer la stratégie. Veuillez réessayer."),
+      error: () => this.toast.error("Impossible d'enregistrer la course. Veuillez réessayer."),
     });
   }
 
-  requestDeleteEvent(event: NutritionEvent): void {
+  requestDeleteEvent(event: RaceStrategy): void {
     this.pendingDelete.set({ id: event.id, name: event.name });
   }
 
@@ -303,7 +303,7 @@ export class NutritionStrategiesPage {
     const pending = this.pendingDelete();
     if (!pending) return;
     this.deleting.set(true);
-    this.service.removeEvent(pending.id).subscribe({
+    this.service.removeStrategy(pending.id).subscribe({
       next: () => {
         this.deleting.set(false);
         this.pendingDelete.set(null);
@@ -312,7 +312,7 @@ export class NutritionStrategiesPage {
       error: () => {
         this.deleting.set(false);
         this.pendingDelete.set(null);
-        this.toast.error('Impossible de supprimer la stratégie.');
+        this.toast.error('Impossible de supprimer la course.');
       },
     });
   }

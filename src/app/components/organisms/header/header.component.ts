@@ -7,7 +7,7 @@ import { AuthService } from '../../../features/auth/services/auth.service';
 import {
   faPersonRunning,
   faBookOpen,
-  faUtensils,
+  faFlagCheckered,
   faCircleQuestion,
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -72,7 +72,7 @@ export class HeaderComponent {
 
   readonly links = [
     { path: '/nutrition/products', label: 'Bibliothèque de produits', icon: faBookOpen, exact: false },
-    { path: '/nutrition/strategies', label: 'Stratégies de nutrition', icon: faUtensils, exact: false },
+    { path: '/courses', label: 'Mes courses', icon: faFlagCheckered, exact: false },
   ];
 
   constructor() {

@@ -8,6 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:runorama": "node dist/runorama/server/server.mjs",
+    "migrate:race-strategies": "node scripts/migrate-race-strategies.mjs",
     "docs:json": "compodoc -p .storybook/tsconfig.doc.json -e json -d .",
     "storybook": "ng run runorama:storybook",
     "build-storybook": "ng run runorama:build-storybook"

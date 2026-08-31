@@ -14,8 +14,8 @@ import { InventoryLocationsComponent } from '../inventory-locations/inventory-lo
 import { NutritionGoalsEditorComponent } from '../../molecules/nutrition-goals-editor/nutrition-goals-editor.component';
 import {
   type NutritionCategory,
-  type NutritionEvent,
-  type NutritionEventItem,
+  type RaceStrategy,
+  type RaceStrategyItem,
   type NutritionGoals,
   type NutritionProduct,
 } from '../../../core/models';
@@ -250,7 +250,7 @@ interface InventoryTotals {
 })
 export class NutritionStrategyInventoryComponent {
   /** Évènement dont on gère l'inventaire. */
-  readonly event = input.required<NutritionEvent>();
+  readonly event = input.required<RaceStrategy>();
   /** Catalogue des produits disponibles (pour l'ajout). */
   readonly products = input<NutritionProduct[]>([]);
   /** Catégories disponibles (pour filtrer le sélecteur de produits). */
@@ -350,7 +350,7 @@ export class NutritionStrategyInventoryComponent {
         const product = item.product ?? catalog.find((p) => p.id === item.productId);
         return product ? { ...item, product } : null;
       })
-      .filter((item): item is NutritionEventItem & { product: NutritionProduct } => item !== null);
+      .filter((item): item is RaceStrategyItem & { product: NutritionProduct } => item !== null);
   });
 
   /** Totaux cumulés (nutriments + poids). */

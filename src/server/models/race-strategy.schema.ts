@@ -212,11 +212,11 @@ const waypointSchema = new Schema(
 );
 
 /**
- * Schéma d'un évènement / stratégie alimentaire (collection `nutrition_events`).
+ * Schéma d'une **stratégie de course** (collection `race_strategies`).
  * Associe un évènement (course, sortie longue) à une liste de produits emportés
  * et à des objectifs horaires par nutriment.
  */
-const nutritionEventSchema = new Schema(
+const raceStrategySchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     name: { type: String, required: true, trim: true },
@@ -258,7 +258,7 @@ const nutritionEventSchema = new Schema(
     gpxElevationLoss: { type: Number, min: 0 },
   },
   {
-    collection: 'nutrition_events',
+    collection: 'race_strategies',
     timestamps: true,
     toJSON: {
       versionKey: false,
@@ -271,9 +271,9 @@ const nutritionEventSchema = new Schema(
   },
 );
 
-nutritionEventSchema.index({ date: 1 });
+raceStrategySchema.index({ date: 1 });
 
-export type NutritionEventDocument = InferSchemaType<typeof nutritionEventSchema>;
+export type RaceStrategyDocument = InferSchemaType<typeof raceStrategySchema>;
 
-export const NutritionEventModel =
-  models['NutritionEvent'] ?? model('NutritionEvent', nutritionEventSchema);
+export const RaceStrategyModel =
+  models['RaceStrategy'] ?? model('RaceStrategy', raceStrategySchema);
