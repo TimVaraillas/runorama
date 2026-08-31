@@ -84,7 +84,7 @@ type PendingDelete =
   template: `
     <section class="space-y-6">
       <ui-page-header
-        title="Bibliothèque de produits"
+        title="Catalogue nutrition"
         subtitle="Gérez les produits nutritionnels et leurs catégories."
         [icon]="faBookOpen"
       >

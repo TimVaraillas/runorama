@@ -293,9 +293,9 @@ export class GuidePage {
     {
       id: 'produits',
       icon: faBookOpen,
-      title: 'Bibliothèque de produits',
+      title: 'Catalogue nutrition',
       intro:
-        'La bibliothèque centralise tous les produits nutritionnels utilisables dans tes stratégies : gels, barres, boissons, aliments solides…',
+        'Le catalogue centralise tous les produits nutritionnels utilisables dans tes stratégies : gels, barres, boissons, aliments solides…',
       blocks: [
         {
           heading: 'Rechercher et filtrer',

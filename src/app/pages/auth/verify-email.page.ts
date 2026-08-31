@@ -87,7 +87,7 @@ export class VerifyEmailPage implements OnInit {
       next: () => {
         this.state.set('success');
         this.toast.success('Adresse e-mail confirmée, bienvenue !');
-        setTimeout(() => void this.router.navigate(['/nutrition']), 1500);
+        setTimeout(() => void this.router.navigate(['/courses']), 1500);
       },
       error: () => {
         this.state.set('error');

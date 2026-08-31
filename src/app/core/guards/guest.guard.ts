@@ -21,11 +21,11 @@ export const guestGuard: CanActivateFn = () => {
   }
 
   if (auth.isAuthenticated()) {
-    return router.createUrlTree(['/nutrition']);
+    return router.createUrlTree(['/courses']);
   }
 
   return auth.fetchMe().pipe(
-    map(() => router.createUrlTree(['/nutrition'])),
+    map(() => router.createUrlTree(['/courses'])),
     catchError(() => of(true)),
   );
 };

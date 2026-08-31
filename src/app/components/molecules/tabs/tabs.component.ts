@@ -54,7 +54,7 @@ export class TabsComponent {
     const active = this.active() === id;
     return `${this.base} ${
       active
-        ? 'z-10 border-slate-200 border-b-slate-50 text-brand-600'
+        ? 'z-10 border-slate-200 border-b-white text-brand-600'
         : 'border-transparent border-b-slate-200 text-slate-400 hover:bg-slate-200 hover:text-slate-700'
     }`;
   }

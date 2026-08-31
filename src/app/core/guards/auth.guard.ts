@@ -45,7 +45,7 @@ export const adminGuard: CanActivateFn = () => {
   const ensure = auth.isAuthenticated() ? of(auth.currentUser()) : auth.fetchMe();
 
   return ensure.pipe(
-    map(() => (auth.isAdmin() ? true : router.createUrlTree(['/nutrition']))),
+    map(() => (auth.isAdmin() ? true : router.createUrlTree(['/courses']))),
     catchError(() => of(router.createUrlTree(['/login']))),
   );
 };

@@ -71,8 +71,8 @@ export class HeaderComponent {
   readonly faCircleQuestion = faCircleQuestion;
 
   readonly links = [
-    { path: '/nutrition/products', label: 'Bibliothèque de produits', icon: faBookOpen, exact: false },
     { path: '/courses', label: 'Mes courses', icon: faFlagCheckered, exact: false },
+    { path: '/nutrition/products', label: 'Catalogue nutrition', icon: faBookOpen, exact: false },
   ];
 
   constructor() {

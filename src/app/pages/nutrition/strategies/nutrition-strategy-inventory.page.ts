@@ -329,12 +329,14 @@ export class RaceStrategyPage {
   protected readonly faRoute = faRoute;
 
   protected readonly tabs: TabItem[] = [
-    { id: 'route', label: 'Parcours', icon: faRoute },
-    { id: 'aid-stations', label: 'Ravitaillements', icon: faLocationDot },
     { id: 'inventory', label: 'Inventaire', icon: faUtensils },
+    { id: 'aid-stations', label: 'Ravitaillements', icon: faLocationDot },
+    { id: 'route', label: 'Parcours', icon: faRoute },
     { id: 'plan', label: 'Plan de consommation', icon: faStopwatch },
   ];
-  protected readonly activeTab = signal<'inventory' | 'aid-stations' | 'route' | 'plan'>('route');
+  protected readonly activeTab = signal<'inventory' | 'aid-stations' | 'route' | 'plan'>(
+    'inventory',
+  );
 
   /** État plein écran du plan de consommation (piloté depuis l'en-tête). */
   protected readonly planFullscreen = signal(false);
