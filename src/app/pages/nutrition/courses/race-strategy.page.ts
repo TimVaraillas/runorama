@@ -54,6 +54,7 @@ import { pruneUnavailableIntakes } from '../../../core/utils/product-availabilit
 import type { AllocationResult } from '../../../core/utils/inventory-allocation.util';
 import {
   faArrowLeft,
+  faBasketShopping,
   faCompress,
   faEllipsisVertical,
   faExpand,
@@ -62,7 +63,6 @@ import {
   faLocationDot,
   faPen,
   faRoute,
-  faStopwatch,
   faTrash,
   faUtensils,
 } from '@fortawesome/free-solid-svg-icons';
@@ -331,8 +331,8 @@ export class RaceStrategyPage {
   protected readonly tabs: TabItem[] = [
     { id: 'route', label: 'Parcours', icon: faRoute },
     { id: 'aid-stations', label: 'Ravitaillements', icon: faLocationDot },
-    { id: 'inventory', label: 'Inventaire', icon: faUtensils },
-    { id: 'plan', label: 'Plan de nutrition', icon: faStopwatch },
+    { id: 'inventory', label: 'Inventaire', icon: faBasketShopping },
+    { id: 'plan', label: 'Plan de nutrition', icon: faUtensils },
   ];
   protected readonly activeTab = signal<'inventory' | 'aid-stations' | 'route' | 'plan'>('route');
 
