@@ -8,8 +8,10 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
  * responsive). Le contenu (champ de recherche, sélecteurs, bascule de vue…)
  * est projeté via `<ng-content>`.
  *
- * `nowrap` force tout sur une seule ligne (avec défilement horizontal de
- * secours) au lieu du retour à la ligne par défaut.
+ * `nowrap` force tout sur une seule ligne au lieu du retour à la ligne par
+ * défaut. On évite `overflow` sur la barre : il créerait un contexte de rognage
+ * qui masquerait les listes déroulantes des filtres (elles débordent vers le
+ * bas).
  *
  * @example
  * ```html
@@ -27,7 +29,6 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
     class: 'flex items-center gap-3 border-b border-slate-200 pb-4',
     '[class.flex-wrap]': '!nowrap()',
     '[class.flex-nowrap]': 'nowrap()',
-    '[class.overflow-x-auto]': 'nowrap()',
   },
   template: `<ng-content />`,
 })
