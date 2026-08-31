@@ -177,7 +177,14 @@ export interface GpxSelection {
           [class.pointer-events-none]="uploading()"
           [class.opacity-60]="uploading()"
         >
-          <ui-icon [icon]="faArrowUpFromBracket" size="sm" />
+          @if (uploading()) {
+            <span
+              class="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent opacity-80"
+              aria-hidden="true"
+            ></span>
+          } @else {
+            <ui-icon [icon]="faArrowUpFromBracket" size="sm" />
+          }
           {{ uploading() ? 'Import en cours…' : 'Importer un fichier GPX' }}
           <input
             type="file"
