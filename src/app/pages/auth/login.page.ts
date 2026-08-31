@@ -53,7 +53,7 @@ import { AuthService } from '../../features/auth/services/auth.service';
             autocomplete="current-password"
           />
 
-          <ui-button type="submit" color="primary" [disabled]="form.invalid || loading()">
+          <ui-button type="submit" color="primary" [loading]="loading()" [disabled]="form.invalid || loading()">
             {{ loading() ? 'Connexion…' : 'Se connecter' }}
           </ui-button>
         </form>

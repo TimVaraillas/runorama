@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
+import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
 import { ModalComponent } from '../../molecules/modal/modal.component';
 import { ElevationProfileComponent } from '../elevation-profile/elevation-profile.component';
 import { TrackMapComponent } from '../track-map/track-map.component';
@@ -41,6 +42,7 @@ export interface GpxSelection {
   imports: [
     ButtonComponent,
     IconComponent,
+    SpinnerComponent,
     ModalComponent,
     ElevationProfileComponent,
     TrackMapComponent,
@@ -149,6 +151,13 @@ export interface GpxSelection {
           départ. Cliquez sur un repère pour ouvrir le ravitaillement correspondant.
         </p>
       </div>
+    } @else if (loading()) {
+      <div
+        class="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white p-12 text-center"
+      >
+        <ui-spinner [size]="32" />
+        <p class="text-sm text-slate-500">Chargement du parcours…</p>
+      </div>
     } @else {
       <div
         class="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center"
@@ -207,6 +216,8 @@ export class RouteProfilePanelComponent {
   readonly aidStations = input<AidStation[]>([]);
   /** Points de passage légers (checkpoints, sommets, points personnalisés). */
   readonly waypoints = input<RouteWaypoint[]>([]);
+  /** Chargement de la trace en cours (affiche un loader). */
+  readonly loading = input(false);
   /** Import en cours (désactive les actions). */
   readonly uploading = input(false);
 

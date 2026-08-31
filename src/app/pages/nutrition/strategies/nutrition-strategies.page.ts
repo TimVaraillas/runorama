@@ -1,10 +1,18 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  afterNextRender,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { NutritionService } from '../../../features/nutrition/services/nutrition.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../features/auth/services/auth.service';
 import { ButtonComponent } from '../../../components/atoms/button/button.component';
 import { IconComponent } from '../../../components/atoms/icon/icon.component';
+import { SpinnerComponent } from '../../../components/atoms/spinner/spinner.component';
 import { SearchInputComponent } from '../../../components/atoms/search-input/search-input.component';
 import { DateRangeFilterComponent } from '../../../components/atoms/date-range-filter/date-range-filter.component';
 import {
@@ -38,6 +46,7 @@ import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
   imports: [
     ButtonComponent,
     IconComponent,
+    SpinnerComponent,
     SearchInputComponent,
     DateRangeFilterComponent,
     FilterableSelectComponent,
@@ -62,7 +71,7 @@ import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
 
       <!-- Filtres -->
       @if (events()?.length) {
-        <ui-filter-bar>
+        <ui-filter-bar [nowrap]="true">
           <ui-search-input
             [(value)]="search"
             placeholder="Rechercher par titre…"
@@ -90,7 +99,11 @@ import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
               clearAriaLabel="Effacer le filtre utilisateur"
             />
           }
-          <ui-view-toggle [mode]="viewMode()" (modeChange)="viewMode.set($event)" />
+          <ui-view-toggle
+            class="ml-auto shrink-0"
+            [mode]="viewMode()"
+            (modeChange)="viewMode.set($event)"
+          />
         </ui-filter-bar>
       }
 
@@ -136,7 +149,10 @@ import { faPlus, faTrash, faUtensils } from '@fortawesome/free-solid-svg-icons';
           }
         }
       } @else {
-        <p class="text-slate-400">Chargement des stratégies…</p>
+        <div class="flex flex-col items-center gap-3 py-16 text-center">
+          <ui-spinner [size]="32" />
+          <p class="text-sm text-slate-400">Chargement des stratégies…</p>
+        </div>
       }
     </section>
 
@@ -223,7 +239,9 @@ export class NutritionStrategiesPage {
   });
 
   constructor() {
-    this.loadEvents();
+    // Chargement navigateur uniquement : évite que le SSR rende l'état vide
+    // (requête non authentifiée côté serveur) avant le loader côté client.
+    afterNextRender(() => this.loadEvents());
   }
 
   private loadEvents(): void {

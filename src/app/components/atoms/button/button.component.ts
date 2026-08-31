@@ -34,11 +34,16 @@ interface ColorStyles {
     <ui-tooltip [text]="tooltipContent()" [position]="tooltipPosition()">
       <button
         [type]="type()"
-        [disabled]="disabled()"
+        [disabled]="disabled() || loading()"
         [class]="classes()"
         (click)="clicked.emit($event)"
       >
-        @if (icon() && iconPosition() === 'left') {
+        @if (loading()) {
+          <span
+            class="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent opacity-70"
+            aria-hidden="true"
+          ></span>
+        } @else if (icon() && iconPosition() === 'left') {
           <fa-icon [icon]="icon()!" />
         }
         <span class="empty:hidden"><ng-content /></span>
@@ -55,6 +60,8 @@ export class ButtonComponent {
   readonly size = input<ButtonSize>('md');
   readonly type = input<'button' | 'submit' | 'reset'>('button');
   readonly disabled = input(false);
+  /** Affiche un spinner et désactive le bouton pendant une action asynchrone. */
+  readonly loading = input(false);
   readonly icon = input<IconDefinition | null>(null);
   readonly iconPosition = input<'left' | 'right'>('left');
   /** Texte affiché dans l'info-bulle. Le tooltip n'apparaît que s'il est renseigné. */

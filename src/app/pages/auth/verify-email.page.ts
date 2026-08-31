@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ButtonComponent } from '../../components/atoms/button/button.component';
+import { SpinnerComponent } from '../../components/atoms/spinner/spinner.component';
 import { ToastService } from '../../core/services/toast.service';
 import { AuthService } from '../../features/auth/services/auth.service';
 
@@ -15,13 +16,14 @@ type VerificationState = 'loading' | 'success' | 'error' | 'missing';
 @Component({
   selector: 'app-verify-email-page',
   standalone: true,
-  imports: [RouterLink, ButtonComponent],
+  imports: [RouterLink, ButtonComponent, SpinnerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4">
       <div class="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
         @switch (state()) {
           @case ('loading') {
+            <ui-spinner [size]="36" class="mx-auto mb-4 block w-fit" />
             <h1 class="text-2xl font-bold text-slate-900">Confirmation en cours…</h1>
             <p class="mt-2 text-sm text-slate-500">
               Nous validons votre adresse e-mail, merci de patienter.

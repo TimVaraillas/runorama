@@ -74,7 +74,7 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
               }
             </div>
 
-            <ui-button type="submit" color="primary" [disabled]="form.invalid || loading()">
+            <ui-button type="submit" color="primary" [loading]="loading()" [disabled]="form.invalid || loading()">
               {{ loading() ? 'Enregistrement…' : 'Réinitialiser' }}
             </ui-button>
           </form>

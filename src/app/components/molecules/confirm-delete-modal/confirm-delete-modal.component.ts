@@ -57,6 +57,7 @@ import { faTrash } from '@fortawesome/free-solid-svg-icons';
         <ui-button
           color="danger"
           [icon]="faTrash"
+          [loading]="deleting()"
           [disabled]="!nameMatches() || deleting()"
           (clicked)="confirm.emit()"
         >

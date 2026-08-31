@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 /**
  * Molecule : barre de filtres réutilisable.
@@ -7,6 +7,9 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
  * l'application (séparateur en bas, espacement horizontal, retour à la ligne
  * responsive). Le contenu (champ de recherche, sélecteurs, bascule de vue…)
  * est projeté via `<ng-content>`.
+ *
+ * `nowrap` force tout sur une seule ligne (avec défilement horizontal de
+ * secours) au lieu du retour à la ligne par défaut.
  *
  * @example
  * ```html
@@ -20,7 +23,15 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
   selector: 'ui-filter-bar',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'flex flex-wrap items-center gap-3 border-b border-slate-200 pb-4' },
+  host: {
+    class: 'flex items-center gap-3 border-b border-slate-200 pb-4',
+    '[class.flex-wrap]': '!nowrap()',
+    '[class.flex-nowrap]': 'nowrap()',
+    '[class.overflow-x-auto]': 'nowrap()',
+  },
   template: `<ng-content />`,
 })
-export class FilterBarComponent {}
+export class FilterBarComponent {
+  /** Force l'affichage sur une seule ligne (pas de retour à la ligne). */
+  readonly nowrap = input(false);
+}

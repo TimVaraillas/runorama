@@ -44,7 +44,7 @@ import { AuthService } from '../../features/auth/services/auth.service';
               autocomplete="email"
             />
 
-            <ui-button type="submit" color="primary" [disabled]="form.invalid || loading()">
+            <ui-button type="submit" color="primary" [loading]="loading()" [disabled]="form.invalid || loading()">
               {{ loading() ? 'Envoi…' : 'Envoyer le lien' }}
             </ui-button>
           </form>

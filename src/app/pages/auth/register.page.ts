@@ -75,7 +75,7 @@ import { AuthService } from '../../features/auth/services/auth.service';
             </div>
           </div>
 
-          <ui-button type="submit" color="primary" [disabled]="form.invalid || loading()">
+          <ui-button type="submit" color="primary" [loading]="loading()" [disabled]="form.invalid || loading()">
             {{ loading() ? 'Création…' : 'Créer mon compte' }}
           </ui-button>
         </form>

@@ -1,10 +1,19 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  afterNextRender,
+  computed,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { NutritionService } from '../../../features/nutrition/services/nutrition.service';
 import { NutritionExportService } from '../../../features/nutrition/services/nutrition-export.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ButtonComponent } from '../../../components/atoms/button/button.component';
 import { IconComponent } from '../../../components/atoms/icon/icon.component';
+import { SpinnerComponent } from '../../../components/atoms/spinner/spinner.component';
 import { DropdownMenuComponent } from '../../../components/molecules/dropdown-menu/dropdown-menu.component';
 import { DropdownMenuItemComponent } from '../../../components/atoms/dropdown-menu-item/dropdown-menu-item.component';
 import { PageHeaderComponent } from '../../../components/molecules/page-header/page-header.component';
@@ -71,6 +80,7 @@ import {
   imports: [
     ButtonComponent,
     IconComponent,
+    SpinnerComponent,
     DropdownMenuComponent,
     DropdownMenuItemComponent,
     PageHeaderComponent,
@@ -154,17 +164,24 @@ import {
         <ui-tabs [tabs]="tabs" [(active)]="activeTab" />
 
         @if (activeTab() === 'inventory') {
-          <ui-nutrition-strategy-inventory
-            [event]="ev"
-            [products]="products()"
-            [categories]="categories()"
-            (applySelection)="applySelection($event)"
-            (setQuantity)="setQuantity($event)"
-            (remove)="removeProduct($event)"
-            (allocationChange)="onAllocationChange($event)"
-            (goalsChange)="saveGoals($event)"
-            (toggleFavorite)="toggleFavorite($event)"
-          />
+          @if (productsLoading()) {
+            <div class="flex flex-col items-center gap-3 py-16 text-center">
+              <ui-spinner [size]="32" />
+              <p class="text-sm text-slate-400">Chargement de l'inventaire…</p>
+            </div>
+          } @else {
+            <ui-nutrition-strategy-inventory
+              [event]="ev"
+              [products]="products()"
+              [categories]="categories()"
+              (applySelection)="applySelection($event)"
+              (setQuantity)="setQuantity($event)"
+              (remove)="removeProduct($event)"
+              (allocationChange)="onAllocationChange($event)"
+              (goalsChange)="saveGoals($event)"
+              (toggleFavorite)="toggleFavorite($event)"
+            />
+          }
         } @else if (activeTab() === 'aid-stations') {
           <div class="space-y-4">
             <div class="flex items-center justify-between gap-3">
@@ -193,6 +210,7 @@ import {
             [track]="gpxTrack()"
             [aidStations]="ev.aidStations ?? []"
             [waypoints]="ev.waypoints ?? []"
+            [loading]="gpxLoading()"
             [uploading]="gpxUploading()"
             (gpxSelected)="onGpxSelected($event)"
             (removeTrack)="removeGpx()"
@@ -203,14 +221,21 @@ import {
           />
         } @else {
           <div class="lg:min-h-0 lg:flex-1">
-            <ui-consumption-plan
-              [event]="ev"
-              [products]="products()"
-              [(fullscreen)]="planFullscreen"
-              (intakesChange)="onIntakesChange($event)"
-              (planSequenceChange)="onPlanSequenceChange($event)"
-              (selectAidStation)="onSelectAidStationFromPlan($event)"
-            />
+            @if (productsLoading()) {
+              <div class="flex flex-col items-center gap-3 py-16 text-center">
+                <ui-spinner [size]="32" />
+                <p class="text-sm text-slate-400">Chargement du plan…</p>
+              </div>
+            } @else {
+              <ui-consumption-plan
+                [event]="ev"
+                [products]="products()"
+                [(fullscreen)]="planFullscreen"
+                (intakesChange)="onIntakesChange($event)"
+                (planSequenceChange)="onPlanSequenceChange($event)"
+                (selectAidStation)="onSelectAidStationFromPlan($event)"
+              />
+            }
           </div>
         }
       } @else if (notFound()) {
@@ -226,7 +251,10 @@ import {
           </ui-button>
         </div>
       } @else {
-        <p class="text-slate-400">Chargement de la stratégie…</p>
+        <div class="flex flex-col items-center gap-3 py-16 text-center">
+          <ui-spinner [size]="32" />
+          <p class="text-sm text-slate-400">Chargement de la stratégie…</p>
+        </div>
       }
     </section>
 
@@ -279,7 +307,7 @@ import {
     />
   `,
 })
-export class NutritionStrategyInventoryPage implements OnInit {
+export class NutritionStrategyInventoryPage {
   private readonly service = inject(NutritionService);
   private readonly exportService = inject(NutritionExportService);
   private readonly router = inject(Router);
@@ -315,11 +343,15 @@ export class NutritionStrategyInventoryPage implements OnInit {
 
   protected readonly event = signal<NutritionEvent | null>(null);
   protected readonly products = signal<NutritionProduct[]>([]);
+  /** Chargement des produits en cours (inventaire / plan). */
+  protected readonly productsLoading = signal(true);
   protected readonly categories = signal<NutritionCategory[]>([]);
   protected readonly notFound = signal(false);
 
   /** Trace GPX de la stratégie (parcours réel), `null` si aucune. */
   protected readonly gpxTrack = signal<GpxTrack | null>(null);
+  /** Chargement de la trace GPX en cours. */
+  protected readonly gpxLoading = signal(true);
   /** Import GPX en cours. */
   protected readonly gpxUploading = signal(false);
   /** État d'ouverture de la modale de réconciliation des écarts GPX. */
@@ -363,37 +395,60 @@ export class NutritionStrategyInventoryPage implements OnInit {
   /** Suppression en cours (désactive les actions de la modale). */
   protected readonly deleting = signal(false);
 
-  ngOnInit(): void {
-    this.loadProducts();
-    this.loadCategories();
-    this.loadEvent();
+  constructor() {
+    // Chargement navigateur uniquement : le SSR rend les loaders au lieu des
+    // états vides / « introuvable » (requêtes non authentifiées côté serveur).
+    afterNextRender(() => {
+      this.loadProducts();
+      this.loadCategories();
+      this.loadEvent();
+    });
   }
 
   private loadEvent(): void {
     this.notFound.set(false);
+    this.gpxLoading.set(true);
     this.service.getEvent(this.id()).subscribe({
       next: (event) => {
         this.event.set(event);
         if (event.gpxTrackId) {
           this.loadGpx();
+        } else {
+          this.gpxLoading.set(false);
         }
       },
-      error: () => this.notFound.set(true),
+      error: () => {
+        this.gpxLoading.set(false);
+        this.notFound.set(true);
+      },
     });
   }
 
   /** Charge la trace GPX associée à la stratégie (si elle existe). */
   private loadGpx(): void {
     this.service.getGpx(this.id()).subscribe({
-      next: (track) => this.gpxTrack.set(track),
-      error: () => this.gpxTrack.set(null),
+      next: (track) => {
+        this.gpxTrack.set(track);
+        this.gpxLoading.set(false);
+      },
+      error: () => {
+        this.gpxTrack.set(null);
+        this.gpxLoading.set(false);
+      },
     });
   }
 
   private loadProducts(): void {
+    this.productsLoading.set(true);
     this.service.listProducts().subscribe({
-      next: (products) => this.products.set(products),
-      error: () => this.toast.error('Impossible de charger les produits.'),
+      next: (products) => {
+        this.products.set(products);
+        this.productsLoading.set(false);
+      },
+      error: () => {
+        this.productsLoading.set(false);
+        this.toast.error('Impossible de charger les produits.');
+      },
     });
   }
 

@@ -22,6 +22,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../features/auth/services/auth.service';
 import { ButtonComponent } from '../../../components/atoms/button/button.component';
 import { IconComponent } from '../../../components/atoms/icon/icon.component';
+import { SpinnerComponent } from '../../../components/atoms/spinner/spinner.component';
 import { ViewToggleComponent, type ProductViewMode } from '../../../components/atoms/view-toggle/view-toggle.component';
 import { SearchInputComponent } from '../../../components/atoms/search-input/search-input.component';
 import { SidePanelComponent } from '../../../components/molecules/side-panel/side-panel.component';
@@ -66,6 +67,7 @@ type PendingDelete =
     FormsModule,
     ButtonComponent,
     IconComponent,
+    SpinnerComponent,
     ViewToggleComponent,
     SearchInputComponent,
     SidePanelComponent,
@@ -254,7 +256,10 @@ type PendingDelete =
           ></div>
 
           @if (loadingMore()) {
-            <p class="py-4 text-center text-sm text-slate-400">Chargement…</p>
+            <div class="flex items-center justify-center gap-2 py-4 text-sm text-slate-400">
+              <ui-spinner [size]="18" [thickness]="2" />
+              Chargement…
+            </div>
           } @else if (!hasMore()) {
             <p class="py-4 text-center text-xs text-slate-400">
               {{ total() }} produit(s) — fin de la liste.
@@ -262,7 +267,10 @@ type PendingDelete =
           }
         }
       } @else {
-        <p class="text-slate-400">Chargement des produits…</p>
+        <div class="flex flex-col items-center gap-3 py-16 text-center">
+          <ui-spinner [size]="32" />
+          <p class="text-sm text-slate-400">Chargement des produits…</p>
+        </div>
       }
     </section>
 
