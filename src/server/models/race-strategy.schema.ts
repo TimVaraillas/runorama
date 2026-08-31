@@ -16,7 +16,7 @@ const eventItemSchema = new Schema(
 
 /**
  * Prise planifiée : une (ou plusieurs) unité(s) d'un produit consommée(s) sur
- * une fenêtre de temps du parcours (plan de consommation).
+ * une fenêtre de temps du parcours (plan de nutrition).
  */
 const intakeSchema = new Schema(
   {
@@ -242,9 +242,9 @@ const raceStrategySchema = new Schema(
     goals: { type: goalsSchema, default: () => ({}) },
     /** Produits emportés (inventaire). */
     items: { type: [eventItemSchema], default: [] },
-    /** Granularité (minutes) des séquences du plan de consommation. */
+    /** Granularité (minutes) des séquences du plan de nutrition. */
     planSequenceMinutes: { type: Number, enum: [5, 10, 15, 20], default: 10 },
-    /** Répartition des prises sur le parcours (plan de consommation). */
+    /** Répartition des prises sur le parcours (plan de nutrition). */
     intakes: { type: [intakeSchema], default: [] },
     /** Ravitaillements positionnés sur le parcours (0 à N). */
     aidStations: { type: [aidStationSchema], default: [] },

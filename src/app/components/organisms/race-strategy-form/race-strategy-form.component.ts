@@ -141,7 +141,7 @@ function chronoRequiredValidator(group: AbstractControl): ValidationErrors | nul
             </p>
           } @else {
             <p class="mt-1 text-xs text-slate-400">
-              Base du plan de consommation et des besoins totaux (à partir des besoins horaires).
+              Base du plan de nutrition et des besoins totaux (à partir des besoins horaires).
             </p>
           }
         </div>

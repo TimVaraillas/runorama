@@ -71,7 +71,7 @@ import {
  * Sous-page Nutrition : détail d'une stratégie alimentaire (`strategies/:id`).
  *
  * Deux volets : l'« Inventaire » (produits emportés et couverture des besoins)
- * et le « Plan de consommation » (répartition des prises sur le parcours par
+ * et le « Plan de nutrition » (répartition des prises sur le parcours par
  * glisser-déposer).
  */
 @Component({
@@ -332,11 +332,11 @@ export class RaceStrategyPage {
     { id: 'route', label: 'Parcours', icon: faRoute },
     { id: 'aid-stations', label: 'Ravitaillements', icon: faLocationDot },
     { id: 'inventory', label: 'Inventaire', icon: faUtensils },
-    { id: 'plan', label: 'Plan de consommation', icon: faStopwatch },
+    { id: 'plan', label: 'Plan de nutrition', icon: faStopwatch },
   ];
   protected readonly activeTab = signal<'inventory' | 'aid-stations' | 'route' | 'plan'>('route');
 
-  /** État plein écran du plan de consommation (piloté depuis l'en-tête). */
+  /** État plein écran du plan de nutrition (piloté depuis l'en-tête). */
   protected readonly planFullscreen = signal(false);
 
   protected readonly event = signal<RaceStrategy | null>(null);
@@ -602,7 +602,7 @@ export class RaceStrategyPage {
         this.toast.success(successMessage);
         if (removedProductNames.length > 0) {
           this.toast.warning(
-            `Retirés du plan de consommation (produit non disponible à cet instant) : ${removedProductNames.join(', ')}.`,
+            `Retirés du plan de nutrition (produit non disponible à cet instant) : ${removedProductNames.join(', ')}.`,
           );
         }
       },
@@ -1026,7 +1026,7 @@ export class RaceStrategyPage {
           this.event.set(updated);
           if (removedProductNames.length > 0) {
             this.toast.warning(
-              `Retirés du plan de consommation (produit non disponible à cet instant) : ${removedProductNames.join(', ')}.`,
+              `Retirés du plan de nutrition (produit non disponible à cet instant) : ${removedProductNames.join(', ')}.`,
             );
           }
         },
@@ -1034,7 +1034,7 @@ export class RaceStrategyPage {
       });
   }
 
-  // --- Plan de consommation ---
+  // --- Plan de nutrition ---
 
   onIntakesChange(intakes: NutritionIntake[]): void {
     const event = this.event();
@@ -1042,7 +1042,7 @@ export class RaceStrategyPage {
     // Mise à jour optimiste : la timeline reste fluide même si l'appel échoue.
     this.event.set({ ...event, intakes });
     this.service.updateStrategy(event.id, { intakes }).subscribe({
-      error: () => this.toast.error('Impossible de mettre à jour le plan de consommation.'),
+      error: () => this.toast.error('Impossible de mettre à jour le plan de nutrition.'),
     });
   }
 

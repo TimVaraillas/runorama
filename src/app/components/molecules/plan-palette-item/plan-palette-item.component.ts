@@ -7,7 +7,7 @@ import { isWaterProduct } from '../../../core/utils/water.util';
 import { formatMinutes } from '../../../core/utils/plan-layout.util';
 
 /**
- * Molecule : vignette d'un produit dans la palette du plan de consommation.
+ * Molecule : vignette d'un produit dans la palette du plan de nutrition.
  *
  * Affiche le produit et le reste d'unités à placer sur le parcours. Purement
  * présentationnel : le glisser-déposer est géré par le composant parent.

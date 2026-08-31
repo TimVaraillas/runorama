@@ -97,7 +97,7 @@ export function earliestAvailableMinute(
 }
 
 /**
- * Retire du plan de consommation les prises devenues invalides (produit non
+ * Retire du plan de nutrition les prises devenues invalides (produit non
  * disponible en quantité suffisante à leur instant), rejouées dans l'ordre
  * chronologique. Les prises d'eau (illimitées) sont toujours conservées.
  */

@@ -48,7 +48,7 @@ const PX_PER_SEQUENCE = 30;
 const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
 
 /**
- * Organism : plan de consommation d'une stratégie alimentaire.
+ * Organism : plan de nutrition d'une stratégie alimentaire.
  *
  * Permet de répartir, par glisser-déposer, les produits de l'inventaire sur
  * une timeline verticale découpée en séquences (5 à 20 min). Chaque prise
@@ -71,7 +71,7 @@ const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
   template: `
     @if (totalMinutes() <= 0) {
       <p class="rounded-lg bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
-        Définissez un chrono cible sur l'évènement pour construire le plan de consommation.
+        Définissez un chrono cible sur l'évènement pour construire le plan de nutrition.
       </p>
     } @else if (paletteEntries().length === 0) {
       <p class="rounded-lg bg-amber-50 px-4 py-2.5 text-sm text-amber-700">

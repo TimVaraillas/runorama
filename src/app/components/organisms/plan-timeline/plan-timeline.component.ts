@@ -14,7 +14,7 @@ import type {
 } from '../../../core/models';
 
 /**
- * Organism : piste verticale du plan de consommation.
+ * Organism : piste verticale du plan de nutrition.
  *
  * Regroupe la gouttière horaire, la piste de dépôt (`cdkDropList`) découpée en
  * séquences, les blocs de prises placées et l'emplacement fantôme prévisualisé.

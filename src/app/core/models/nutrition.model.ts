@@ -102,7 +102,7 @@ export interface RaceStrategyItem {
   quantity: number;
 }
 
-/** Granularité (en minutes) d'une séquence du plan de consommation. */
+/** Granularité (en minutes) d'une séquence du plan de nutrition. */
 export type PlanSequenceMinutes = 5 | 10 | 15 | 20;
 
 /**
@@ -452,9 +452,9 @@ export interface RaceStrategy {
   goals: NutritionGoals;
   /** Inventaire des produits emportés. */
   items: RaceStrategyItem[];
-  /** Granularité (minutes) des séquences du plan de consommation. */
+  /** Granularité (minutes) des séquences du plan de nutrition. */
   planSequenceMinutes?: PlanSequenceMinutes;
-  /** Répartition des prises sur le parcours (plan de consommation). */
+  /** Répartition des prises sur le parcours (plan de nutrition). */
   intakes?: NutritionIntake[];
   /** Ravitaillements positionnés sur le parcours (0 à N). */
   aidStations?: AidStation[];

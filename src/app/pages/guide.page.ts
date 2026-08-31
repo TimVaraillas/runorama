@@ -372,7 +372,7 @@ export class GuidePage {
           heading: 'Retrouver ses stratégies',
           items: [
             'Recherche une stratégie par son nom et filtre par intervalle de dates.',
-            'Ouvre-la pour accéder à son détail : inventaire, plan de consommation et ravitaillements.',
+            'Ouvre-la pour accéder à son détail : inventaire, plan de nutrition et ravitaillements.',
           ],
         },
       ],
@@ -419,7 +419,7 @@ export class GuidePage {
     {
       id: 'plan',
       icon: faChartLine,
-      title: 'Plan de consommation',
+      title: 'Plan de nutrition',
       intro:
         'Le plan place tes prises dans le temps pour lisser tes apports sur toute la durée de la course.',
       blocks: [

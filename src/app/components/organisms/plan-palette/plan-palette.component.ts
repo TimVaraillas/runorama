@@ -6,7 +6,7 @@ import { PlanHourlyRecapComponent } from '../../molecules/plan-hourly-recap/plan
 import type { PaletteEntry, PlanHourlyRecap, PlanSequenceMinutes } from '../../../core/models';
 
 /**
- * Organism : panneau latéral du plan de consommation.
+ * Organism : panneau latéral du plan de nutrition.
  *
  * Regroupe le sélecteur de séquences, la palette des produits à placer
  * (source de glisser-déposer) et le récapitulatif horaire. Purement

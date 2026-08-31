@@ -6,7 +6,7 @@ import { buildStrategyPdfHtml } from '../../../core/utils/nutrition-pdf.util';
 /**
  * Service d'export d'une stratégie alimentaire au format PDF.
  *
- * Génère un document HTML autonome (inventaire + plan de consommation) et
+ * Génère un document HTML autonome (inventaire + plan de nutrition) et
  * ouvre la boîte d'impression du navigateur, où l'utilisateur choisit
  * « Enregistrer en PDF ». Cette approche évite toute dépendance lourde tout en
  * produisant un rendu propre et paginé.

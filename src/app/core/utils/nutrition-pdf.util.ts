@@ -242,7 +242,7 @@ function buildLogistics(event: RaceStrategy, map: Map<string, NutritionProduct>)
 /**
  * Construit un document HTML autonome et imprimable (destiné à « Enregistrer
  * en PDF ») récapitulant une stratégie alimentaire : inventaire des produits
- * emportés et plan de consommation planifié.
+ * emportés et plan de nutrition planifié.
  */
 export function buildStrategyPdfHtml(
   event: RaceStrategy,
@@ -415,7 +415,7 @@ export function buildStrategyPdfHtml(
     total > 0
       ? `
       <section class="sec sec-plan">
-        <h2>Plan de consommation</h2>
+        <h2>Plan de nutrition</h2>
         <table>
           <thead>
             <tr>
@@ -443,7 +443,7 @@ export function buildStrategyPdfHtml(
       </section>`
       : `
       <section class="sec sec-plan">
-        <h2>Plan de consommation</h2>
+        <h2>Plan de nutrition</h2>
         <p class="muted">Définissez un chrono cible sur l'évènement pour construire le plan.</p>
       </section>`;
 
