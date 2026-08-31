@@ -1,12 +1,20 @@
-import { Router, type Request, type Response } from 'express';
+import express, { Router, type Request, type Response } from 'express';
 import mongoose from 'mongoose';
+import { createHash } from 'node:crypto';
 import { connectToDatabase } from '../db/mongoose';
 import { NutritionCategoryModel } from '../models/nutrition-category.schema';
 import { NutritionProductModel } from '../models/nutrition-product.schema';
 import { NutritionProductFeedbackModel } from '../models/nutrition-product-feedback.schema';
 import { NutritionEventModel } from '../models/nutrition-event.schema';
+import { GpxTrackModel } from '../models/gpx-track.schema';
 import { UserModel } from '../models/user.schema';
 import { requireAdmin, requireAuth } from '../auth/auth.middleware';
+import {
+  GpxError,
+  processGpx,
+  simplifyForDisplay,
+  type ProcessedTrackPoint,
+} from '../../app/core/utils/gpx.util';
 import {
   sendProductApprovedEmail,
   sendProductRejectedEmail,
@@ -186,6 +194,78 @@ function serialize(doc: Record<string, unknown> | null): Record<string, unknown>
 /** Sérialise une liste de documents `lean`. */
 function serializeMany(docs: Record<string, unknown>[]): Array<Record<string, unknown> | null> {
   return docs.map((d) => serialize(d));
+}
+
+/** Colonnes parallèles d'une trace (format de stockage compact). */
+interface TrackColumns {
+  lat: number[];
+  lon: number[];
+  ele: number[];
+  dist: number[];
+  dPlus: number[];
+  dMinus: number[];
+}
+
+/** Convertit des points de trace en colonnes parallèles (stockage). */
+function toColumns(points: readonly ProcessedTrackPoint[]): TrackColumns {
+  return {
+    lat: points.map((p) => p.lat),
+    lon: points.map((p) => p.lon),
+    ele: points.map((p) => p.ele),
+    dist: points.map((p) => p.distance),
+    dPlus: points.map((p) => p.elevationGain),
+    dMinus: points.map((p) => p.elevationLoss),
+  };
+}
+
+/** Reconstruit des points de trace (pour le client) depuis des colonnes. */
+function fromColumns(cols: TrackColumns): ProcessedTrackPoint[] {
+  return cols.lat.map((lat, i) => ({
+    lat,
+    lon: cols.lon[i] ?? 0,
+    ele: cols.ele[i] ?? 0,
+    distance: cols.dist[i] ?? 0,
+    elevationGain: cols.dPlus[i] ?? 0,
+    elevationLoss: cols.dMinus[i] ?? 0,
+  }));
+}
+
+/**
+ * Charge utile d'une trace envoyée au client : totaux, bbox et **points
+ * simplifiés** (rendu du profil). La pleine résolution et le GPX brut restent
+ * côté serveur.
+ */
+function toClientTrack(track: Record<string, unknown>): Record<string, unknown> {
+  const totals = (track['totals'] ?? {}) as Record<string, number>;
+  const simplified = (track['simplified'] ?? {}) as TrackColumns;
+  return {
+    id: String(track['_id'] ?? track['id']),
+    eventId: String(track['eventId']),
+    fileName: track['fileName'] ?? null,
+    distance: totals['distance'],
+    elevationGain: totals['elevationGain'],
+    elevationLoss: totals['elevationLoss'],
+    minAltitude: totals['minAltitude'],
+    maxAltitude: totals['maxAltitude'],
+    pointCount: totals['pointCount'],
+    bbox: track['bbox'],
+    points: fromColumns(simplified),
+  };
+}
+
+/**
+ * Écart relatif entre une valeur GPX et la valeur saisie dans l'évènement.
+ * Renvoie `null` si l'évènement n'a pas de valeur de référence exploitable.
+ */
+function discrepancy(
+  gpxValue: number,
+  eventValue: number | null | undefined,
+): { gpx: number; event: number; deltaPct: number } | null {
+  if (eventValue == null || eventValue === 0) {
+    return null;
+  }
+  const deltaPct = ((gpxValue - eventValue) / eventValue) * 100;
+  return { gpx: gpxValue, event: eventValue, deltaPct: Math.round(deltaPct * 10) / 10 };
 }
 
 /**
@@ -723,10 +803,130 @@ export function createApiRouter(): Router {
     if (!deleted) {
       return res.status(404).json({ message: 'Évènement introuvable' });
     }
+    // Supprime la trace GPX associée (parcours réel) le cas échéant.
+    await GpxTrackModel.deleteMany({ eventId: deleted._id });
+    return res.status(204).end();
+  });
+
+  // ----------------------------------------------------------------------
+  // Nutrition — Trace GPX (parcours réel) d'une stratégie
+  // ----------------------------------------------------------------------
+  // Corps volumineux (jusqu'à 25 Mo) reçu en texte brut : le parseur JSON
+  // global (5 Mo) ne s'applique pas car le client envoie du `application/gpx+xml`.
+  const gpxBodyParser = express.text({ type: () => true, limit: '25mb' });
+
+  // Import / remplacement de la trace GPX d'une stratégie.
+  router.post(
+    '/nutrition/events/:id/gpx',
+    gpxBodyParser,
+    async (req: Request, res: Response) => {
+      const event = await NutritionEventModel.findOne({
+        _id: req.params['id'],
+        ...eventScope(req),
+      });
+      if (!event) {
+        return res.status(404).json({ message: 'Évènement introuvable' });
+      }
+
+      const raw = typeof req.body === 'string' ? req.body : '';
+      if (!raw.trim()) {
+        return res.status(422).json({ code: 'EMPTY', message: 'Le fichier GPX est vide.' });
+      }
+
+      let processed;
+      try {
+        processed = processGpx(raw);
+      } catch (error) {
+        if (error instanceof GpxError) {
+          return res.status(422).json({ code: error.code, message: error.message });
+        }
+        throw error;
+      }
+
+      const simplified = simplifyForDisplay(processed.points);
+      const hash = createHash('sha256').update(raw).digest('hex');
+      const fileName =
+        typeof req.query['fileName'] === 'string' ? req.query['fileName'] : undefined;
+
+      const track = await GpxTrackModel.findOneAndUpdate(
+        { eventId: event._id },
+        {
+          $set: {
+            userId: event.userId,
+            fileName,
+            rawGpx: raw,
+            hash,
+            totals: processed.totals,
+            bbox: processed.bbox,
+            full: toColumns(processed.points),
+            simplified: toColumns(simplified),
+          },
+        },
+        { new: true, upsert: true, setDefaultsOnInsert: true },
+      ).lean();
+
+      // Met à jour uniquement le résumé GPX de l'évènement (jamais les données
+      // saisies par l'utilisateur : distance/D+ ne sont pas écrasés).
+      await NutritionEventModel.updateOne(
+        { _id: event._id },
+        {
+          $set: {
+            gpxTrackId: (track as { _id: unknown })._id,
+            gpxDistance: processed.totals.distance,
+            gpxElevationGain: processed.totals.elevationGain,
+            gpxElevationLoss: processed.totals.elevationLoss,
+          },
+        },
+      );
+
+      return res.status(201).json({
+        track: toClientTrack(track as Record<string, unknown>),
+        discrepancies: {
+          distance: discrepancy(processed.totals.distance, event.distance),
+          elevationGain: discrepancy(processed.totals.elevationGain, event.elevationGain),
+          elevationLoss: discrepancy(processed.totals.elevationLoss, event.elevationLoss),
+        },
+      });
+    },
+  );
+
+  // Lecture de la trace GPX (points simplifiés pour le profil).
+  router.get('/nutrition/events/:id/gpx', async (req: Request, res: Response) => {
+    const event = await NutritionEventModel.findOne({
+      _id: req.params['id'],
+      ...eventScope(req),
+    })
+      .select('_id')
+      .lean();
+    if (!event) {
+      return res.status(404).json({ message: 'Évènement introuvable' });
+    }
+    const track = await GpxTrackModel.findOne({ eventId: req.params['id'] }).lean();
+    if (!track) {
+      return res.status(404).json({ message: 'Aucune trace GPX pour cette stratégie.' });
+    }
+    return res.json(toClientTrack(track as Record<string, unknown>));
+  });
+
+  // Suppression de la trace GPX et nettoyage du résumé de l'évènement.
+  router.delete('/nutrition/events/:id/gpx', async (req: Request, res: Response) => {
+    const event = await NutritionEventModel.findOne({
+      _id: req.params['id'],
+      ...eventScope(req),
+    }).select('_id');
+    if (!event) {
+      return res.status(404).json({ message: 'Évènement introuvable' });
+    }
+    await GpxTrackModel.deleteMany({ eventId: event._id });
+    await NutritionEventModel.updateOne(
+      { _id: event._id },
+      { $unset: { gpxTrackId: '', gpxDistance: '', gpxElevationGain: '', gpxElevationLoss: '' } },
+    );
     return res.status(204).end();
   });
 
 
   return router;
 }
+
 

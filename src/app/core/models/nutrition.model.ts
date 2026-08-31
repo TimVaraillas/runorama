@@ -362,6 +362,12 @@ export interface AidStation {
   distanceFromStart?: number;
   /** Dénivelé positif cumulé depuis le départ (m). */
   elevationGainFromStart?: number;
+  /** Latitude (degrés) — dérivée du GPX ou saisie pour un positionnement précis. */
+  latitude?: number;
+  /** Longitude (degrés) — dérivée du GPX ou saisie pour un positionnement précis. */
+  longitude?: number;
+  /** Altitude (m) — dérivée du GPX au point de passage. */
+  altitude?: number;
   /** Temps estimé de passage depuis le départ (minutes) — clé de tri. */
   estimatedDurationFromStart: number;
   /** Éléments à récupérer par le coureur. */
@@ -450,6 +456,14 @@ export interface NutritionEvent {
   intakes?: NutritionIntake[];
   /** Ravitaillements positionnés sur le parcours (0 à N). */
   aidStations?: AidStation[];
+  /** Identifiant de la trace GPX associée (parcours réel), si importée. */
+  gpxTrackId?: string;
+  /** Résumé GPX : distance totale (km). */
+  gpxDistance?: number;
+  /** Résumé GPX : dénivelé positif total (m). */
+  gpxElevationGain?: number;
+  /** Résumé GPX : dénivelé négatif total (m). */
+  gpxElevationLoss?: number;
   /**
    * Propriétaire de la stratégie (renseigné uniquement pour les
    * administrateurs, qui accèdent aux stratégies de tous les utilisateurs).

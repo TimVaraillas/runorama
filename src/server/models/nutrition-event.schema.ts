@@ -129,6 +129,12 @@ const aidStationSchema = new Schema(
     distanceFromStart: { type: Number, min: 0 },
     /** Dénivelé positif cumulé depuis le départ (m). */
     elevationGainFromStart: { type: Number, min: 0 },
+    /** Latitude (degrés) — dérivée du GPX ou saisie pour un positionnement précis. */
+    latitude: { type: Number, min: -90, max: 90 },
+    /** Longitude (degrés) — dérivée du GPX ou saisie pour un positionnement précis. */
+    longitude: { type: Number, min: -180, max: 180 },
+    /** Altitude (m) — dérivée du GPX au point de passage. */
+    altitude: { type: Number },
     /** Temps estimé de passage depuis le départ (minutes) — clé de tri. */
     estimatedDurationFromStart: { type: Number, min: 0, required: true },
     /** Éléments à récupérer par le coureur. */
@@ -214,6 +220,12 @@ const nutritionEventSchema = new Schema(
     intakes: { type: [intakeSchema], default: [] },
     /** Ravitaillements positionnés sur le parcours (0 à N). */
     aidStations: { type: [aidStationSchema], default: [] },
+    /** Trace GPX associée (parcours réel), stockée dans `gpx_tracks`. */
+    gpxTrackId: { type: Schema.Types.ObjectId, ref: 'GpxTrack' },
+    /** Résumé dénormalisé du GPX (évite de charger la trace dans les listes). */
+    gpxDistance: { type: Number, min: 0 },
+    gpxElevationGain: { type: Number, min: 0 },
+    gpxElevationLoss: { type: Number, min: 0 },
   },
   {
     collection: 'nutrition_events',

@@ -32,6 +32,9 @@
             "styles": [
               "src/styles.css"
             ],
+            "allowedCommonJsDependencies": [
+              "leaflet"
+            ],
             "server": "src/main.server.ts",
             "outputMode": "server",
             "security": {

@@ -15,8 +15,15 @@ import { NutritionStrategyInventoryComponent } from '../../../components/organis
 import { ConsumptionPlanComponent } from '../../../components/organisms/consumption-plan/consumption-plan.component';
 import { AidStationTableComponent } from '../../../components/organisms/aid-station-table/aid-station-table.component';
 import { AidStationFormPanelComponent } from '../../../components/organisms/aid-station-form-panel/aid-station-form-panel.component';
+import {
+  RouteProfilePanelComponent,
+  type GpxSelection,
+} from '../../../components/organisms/route-profile-panel/route-profile-panel.component';
+import { GpxReconciliationModalComponent } from '../../../components/molecules/gpx-reconciliation-modal/gpx-reconciliation-modal.component';
 import type {
   AidStation,
+  GpxDiscrepancies,
+  GpxTrack,
   NutritionCategory,
   NutritionEvent,
   NutritionGoals,
@@ -25,6 +32,8 @@ import type {
   PlanSequenceMinutes,
 } from '../../../core/models';
 import { newAidStationId } from '../../../core/utils/aid-station.util';
+import { enrichAidStationFromTrack } from '../../../core/utils/route-point.util';
+import { estimatePassageTimeByKmRatio } from '../../../core/utils/passage-time.util';
 import { pruneUnavailableIntakes } from '../../../core/utils/product-availability.util';
 import type { AllocationResult } from '../../../core/utils/inventory-allocation.util';
 import {
@@ -36,6 +45,7 @@ import {
   faFlag,
   faLocationDot,
   faPen,
+  faRoute,
   faStopwatch,
   faTrash,
   faUtensils,
@@ -64,6 +74,8 @@ import {
     ConsumptionPlanComponent,
     AidStationTableComponent,
     AidStationFormPanelComponent,
+    RouteProfilePanelComponent,
+    GpxReconciliationModalComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -168,6 +180,18 @@ import {
               (delete)="deleteAidStation($event)"
             />
           </div>
+        } @else if (activeTab() === 'route') {
+          <ui-route-profile-panel
+            [track]="gpxTrack()"
+            [aidStations]="ev.aidStations ?? []"
+            [uploading]="gpxUploading()"
+            (gpxSelected)="onGpxSelected($event)"
+            (removeTrack)="removeGpx()"
+            (selectAidStation)="editAidStationById($event)"
+            (addAidStationAt)="addAidStationAtDistance($event)"
+            (moveAidStation)="moveAidStationToDistance($event)"
+            (fileError)="onFileError($event)"
+          />
         } @else {
           <div class="lg:min-h-0 lg:flex-1">
             <ui-consumption-plan
@@ -227,6 +251,14 @@ import {
       (confirm)="confirmDelete()"
       (cancel)="cancelDelete()"
     />
+
+    <!-- Modale : réconciliation des écarts GPX / évènement -->
+    <ui-gpx-reconciliation-modal
+      [open]="reconcileOpen()"
+      [discrepancies]="reconcileDiscrepancies()"
+      (confirm)="applyReconciliation($event)"
+      (close)="closeReconciliation()"
+    />
   `,
 })
 export class NutritionStrategyInventoryPage implements OnInit {
@@ -248,13 +280,17 @@ export class NutritionStrategyInventoryPage implements OnInit {
   protected readonly faTrash = faTrash;
   protected readonly faEllipsisVertical = faEllipsisVertical;
   protected readonly faLocationDot = faLocationDot;
+  protected readonly faRoute = faRoute;
 
   protected readonly tabs: TabItem[] = [
     { id: 'inventory', label: 'Inventaire', icon: faUtensils },
     { id: 'aid-stations', label: 'Ravitaillements', icon: faLocationDot },
+    { id: 'route', label: 'Parcours', icon: faRoute },
     { id: 'plan', label: 'Plan de consommation', icon: faStopwatch },
   ];
-  protected readonly activeTab = signal<'inventory' | 'aid-stations' | 'plan'>('inventory');
+  protected readonly activeTab = signal<'inventory' | 'aid-stations' | 'route' | 'plan'>(
+    'inventory',
+  );
 
   /** État plein écran du plan de consommation (piloté depuis l'en-tête). */
   protected readonly planFullscreen = signal(false);
@@ -263,6 +299,15 @@ export class NutritionStrategyInventoryPage implements OnInit {
   protected readonly products = signal<NutritionProduct[]>([]);
   protected readonly categories = signal<NutritionCategory[]>([]);
   protected readonly notFound = signal(false);
+
+  /** Trace GPX de la stratégie (parcours réel), `null` si aucune. */
+  protected readonly gpxTrack = signal<GpxTrack | null>(null);
+  /** Import GPX en cours. */
+  protected readonly gpxUploading = signal(false);
+  /** État d'ouverture de la modale de réconciliation des écarts GPX. */
+  protected readonly reconcileOpen = signal(false);
+  /** Écarts GPX / évènement à réconcilier. */
+  protected readonly reconcileDiscrepancies = signal<GpxDiscrepancies | null>(null);
 
   /** État d'ouverture du panneau d'édition de l'évènement. */
   protected readonly panelOpen = signal(false);
@@ -305,8 +350,21 @@ export class NutritionStrategyInventoryPage implements OnInit {
   private loadEvent(): void {
     this.notFound.set(false);
     this.service.getEvent(this.id()).subscribe({
-      next: (event) => this.event.set(event),
+      next: (event) => {
+        this.event.set(event);
+        if (event.gpxTrackId) {
+          this.loadGpx();
+        }
+      },
       error: () => this.notFound.set(true),
+    });
+  }
+
+  /** Charge la trace GPX associée à la stratégie (si elle existe). */
+  private loadGpx(): void {
+    this.service.getGpx(this.id()).subscribe({
+      next: (track) => this.gpxTrack.set(track),
+      error: () => this.gpxTrack.set(null),
     });
   }
 
@@ -477,6 +535,192 @@ export class NutritionStrategyInventoryPage implements OnInit {
       error: () =>
         this.toast.error("Impossible d'enregistrer le ravitaillement. Veuillez réessayer."),
     });
+  }
+
+  // --- Trace GPX (parcours réel) ---
+
+  /** Ouvre le formulaire d'un ravitaillement à partir de son identifiant. */
+  editAidStationById(id: string): void {
+    const station = (this.event()?.aidStations ?? []).find((s) => s.id === id);
+    if (station) this.editAidStation(station);
+  }
+
+  /**
+   * Crée un ravitaillement à une distance précise (clic sur le profil / le
+   * tracé), enrichi depuis la trace, puis ouvre le formulaire pour le détailler.
+   */
+  addAidStationAtDistance(distanceKm: number): void {
+    const event = this.event();
+    const track = this.gpxTrack();
+    if (!event || !track) return;
+    const rounded = Math.round(distanceKm * 100) / 100;
+    // Temps de passage estimé (V1) : ratio kilométrique sur le temps cible.
+    const estimatedDurationFromStart = estimatePassageTimeByKmRatio(
+      rounded,
+      event.targetTimeMinutes,
+      track.distance,
+    );
+    let station: AidStation = {
+      id: newAidStationId(),
+      name: 'Nouveau ravitaillement',
+      types: [],
+      distanceFromStart: rounded,
+      estimatedDurationFromStart,
+      pickup: [],
+      drop: [],
+      todo: [],
+      consumptions: [],
+    };
+    station = enrichAidStationFromTrack(station, track, { overwrite: true });
+    const aidStations = [...(event.aidStations ?? []), station];
+    this.persistAidStations(event.id, aidStations, 'Ravitaillement ajouté.');
+    this.editAidStation(station);
+  }
+
+  /**
+   * Repositionne un ravitaillement à une nouvelle distance (glisser sur le
+   * profil / le tracé) et recalcule ses valeurs dérivées depuis la trace.
+   */
+  moveAidStationToDistance(payload: { id: string; distance: number }): void {
+    const event = this.event();
+    if (!event) return;
+    const track = this.gpxTrack();
+    const rounded = Math.round(payload.distance * 100) / 100;
+    const aidStations = (event.aidStations ?? []).map((s) => {
+      if (s.id !== payload.id) return s;
+      const moved: AidStation = { ...s, distanceFromStart: rounded };
+      return track ? enrichAidStationFromTrack(moved, track, { overwrite: true }) : moved;
+    });
+    this.persistAidStations(event.id, aidStations, 'Ravitaillement repositionné.');
+  }
+
+  /** Importe (ou remplace) la trace GPX de la stratégie. */
+  onGpxSelected(selection: GpxSelection): void {
+    const event = this.event();
+    if (!event || this.gpxUploading()) return;
+    this.gpxUploading.set(true);
+    this.service.uploadGpx(event.id, selection.content, selection.fileName).subscribe({
+      next: (result) => {
+        this.gpxUploading.set(false);
+        this.gpxTrack.set(result.track);
+        this.event.update((ev) =>
+          ev
+            ? {
+                ...ev,
+                gpxTrackId: result.track.id,
+                gpxDistance: result.track.distance,
+                gpxElevationGain: result.track.elevationGain,
+                gpxElevationLoss: result.track.elevationLoss,
+              }
+            : ev,
+        );
+        this.toast.success('Trace GPX importée.');
+        this.enrichAidStationsFromTrack(result.track);
+        this.maybeOpenReconciliation(result.discrepancies);
+      },
+      error: (err: { error?: { code?: string; message?: string } }) => {
+        this.gpxUploading.set(false);
+        this.toast.error(this.gpxErrorMessage(err?.error?.code, err?.error?.message));
+      },
+    });
+  }
+
+  /** Supprime la trace GPX de la stratégie. */
+  removeGpx(): void {
+    const event = this.event();
+    if (!event) return;
+    this.service.removeGpx(event.id).subscribe({
+      next: () => {
+        this.gpxTrack.set(null);
+        this.event.update((ev) =>
+          ev
+            ? {
+                ...ev,
+                gpxTrackId: undefined,
+                gpxDistance: undefined,
+                gpxElevationGain: undefined,
+                gpxElevationLoss: undefined,
+              }
+            : ev,
+        );
+        this.toast.success('Trace GPX retirée.');
+      },
+      error: () => this.toast.error('Impossible de retirer la trace GPX. Veuillez réessayer.'),
+    });
+  }
+
+  /** Signale un fichier GPX illisible côté client. */
+  onFileError(message: string): void {
+    this.toast.error(message);
+  }
+
+  /** Applique le patch de réconciliation choisi (mise à jour explicite). */
+  applyReconciliation(patch: Partial<NutritionEvent>): void {
+    this.reconcileOpen.set(false);
+    const event = this.event();
+    if (!event || Object.keys(patch).length === 0) return;
+    this.service.updateEvent(event.id, patch).subscribe({
+      next: (updated) => {
+        this.event.set(updated);
+        this.toast.success("Données de l'évènement mises à jour.");
+      },
+      error: () => this.toast.error("Impossible de mettre à jour l'évènement. Veuillez réessayer."),
+    });
+  }
+
+  /** Ferme la modale de réconciliation sans modifier l'évènement. */
+  closeReconciliation(): void {
+    this.reconcileOpen.set(false);
+  }
+
+  /** Ouvre la réconciliation si un écart significatif (≥ 2 %) est détecté. */
+  private maybeOpenReconciliation(discrepancies: GpxDiscrepancies): void {
+    const significant = [
+      discrepancies.distance,
+      discrepancies.elevationGain,
+      discrepancies.elevationLoss,
+    ].some((d) => d != null && Math.abs(d.deltaPct) >= 2);
+    if (significant) {
+      this.reconcileDiscrepancies.set(discrepancies);
+      this.reconcileOpen.set(true);
+    }
+  }
+
+  /**
+   * Complète (sans écraser) altitude, D+ cumulé et coordonnées des
+   * ravitaillements à partir de la trace, puis persiste si des valeurs ont été
+   * dérivées.
+   */
+  private enrichAidStationsFromTrack(track: GpxTrack): void {
+    const event = this.event();
+    if (!event) return;
+    const stations = event.aidStations ?? [];
+    if (stations.length === 0) return;
+    const enriched = stations.map((s) => enrichAidStationFromTrack(s, track));
+    const changed = enriched.some((s, i) => s !== stations[i]);
+    if (!changed) return;
+    this.service.updateEvent(event.id, { aidStations: enriched }).subscribe({
+      next: (updated) => this.event.set(updated),
+      error: () => {
+        /* Enrichissement best-effort : l'affichage interpole déjà l'altitude. */
+      },
+    });
+  }
+
+  /** Message d'erreur lisible selon le code renvoyé par l'import GPX. */
+  private gpxErrorMessage(code: string | undefined, fallback: string | undefined): string {
+    switch (code) {
+      case 'EMPTY':
+        return 'Le fichier GPX est vide.';
+      case 'INVALID':
+        return "Le fichier n'est pas un GPX valide.";
+      case 'NO_TRACKPOINTS':
+        return 'Le GPX ne contient aucun point de trace.';
+      case 'NO_ALTITUDE':
+        return "La trace GPX ne contient pas d'altitude.";
+      default:
+        return fallback ?? "Impossible d'importer la trace GPX. Veuillez réessayer.";
+    }
   }
 
   // --- Suppression de l'évènement ---

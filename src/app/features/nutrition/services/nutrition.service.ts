@@ -1,7 +1,9 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import type {
+  GpxTrack,
+  GpxUploadResult,
   NutritionCategory,
   NutritionEvent,
   NutritionProduct,
@@ -167,5 +169,33 @@ export class NutritionService {
 
   removeEvent(id: string): Observable<void> {
     return this.http.delete<void>(`${this.eventsUrl}/${id}`);
+  }
+
+  // --- Trace GPX (parcours réel) ---
+
+  /**
+   * Importe (ou remplace) la trace GPX d'une stratégie. Le contenu brut est
+   * envoyé en texte ; le serveur parse, calcule le D+/D- lissé et stocke la
+   * trace. Renvoie la trace prête à l'affichage et les écarts détectés vs
+   * l'événement (distance/D+/D-) — sans jamais modifier les données saisies.
+   */
+  uploadGpx(eventId: string, gpx: string, fileName?: string): Observable<GpxUploadResult> {
+    const headers = new HttpHeaders({ 'Content-Type': 'application/gpx+xml' });
+    let params = new HttpParams();
+    if (fileName) params = params.set('fileName', fileName);
+    return this.http.post<GpxUploadResult>(`${this.eventsUrl}/${eventId}/gpx`, gpx, {
+      headers,
+      params,
+    });
+  }
+
+  /** Charge la trace GPX (points simplifiés pour le profil) d'une stratégie. */
+  getGpx(eventId: string): Observable<GpxTrack> {
+    return this.http.get<GpxTrack>(`${this.eventsUrl}/${eventId}/gpx`);
+  }
+
+  /** Supprime la trace GPX d'une stratégie. */
+  removeGpx(eventId: string): Observable<void> {
+    return this.http.delete<void>(`${this.eventsUrl}/${eventId}/gpx`);
   }
 }
