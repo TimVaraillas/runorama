@@ -32,6 +32,8 @@ interface PlotMarker {
   altitude: number | null;
   distance: number;
   durationLabel: string | null;
+  /** D+ cumulé depuis le départ (m) au niveau du repère, si calculable. */
+  cumulativeGain: number | null;
   /** Niveau vertical du label (0 = base), pour désempiler les labels proches. */
   labelLevel: number;
 }
@@ -241,6 +243,30 @@ const LABEL_MIN_GAP = 140;
         }
       </div>
 
+      <!-- Cumuls (km + D+) à la base, proche de l'axe X -->
+      <div class="pointer-events-none absolute inset-0">
+        @for (marker of geometry().markers; track marker.id) {
+          @if (isPoint(marker)) {
+            <div
+              class="absolute -translate-x-1/2 -translate-y-full"
+              [style.left.%]="(marker.x / viewWidth) * 100"
+              [style.top.%]="(geometry().baselineY / viewHeight) * 100"
+            >
+              <div
+                class="flex flex-col items-center rounded bg-white/80 px-1 leading-tight tabular-nums"
+              >
+                <span class="text-[9px] font-semibold text-slate-500">
+                  km {{ formatKm(marker.distance) }}
+                </span>
+                @if (marker.cumulativeGain != null) {
+                  <span class="text-[9px] text-slate-400">D+ {{ round(marker.cumulativeGain) }} m</span>
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
+
       <!-- Infobulle de survol -->
       @if (hover(); as h) {
         <div
@@ -381,6 +407,25 @@ export class ElevationProfileComponent {
     const last = track.points[track.points.length - 1];
     const result: PlotMarker[] = [];
 
+    // D+ cumulé (m) interpolé à une distance donnée, à partir des points de la trace.
+    const points = track.points;
+    const gainAt = (distance: number): number | null => {
+      if (points.length === 0) return null;
+      if (distance <= points[0]!.distance) return points[0]!.elevationGain;
+      const lastPt = points[points.length - 1]!;
+      if (distance >= lastPt.distance) return lastPt.elevationGain;
+      for (let i = 1; i < points.length; i++) {
+        const p = points[i]!;
+        if (p.distance >= distance) {
+          const prev = points[i - 1]!;
+          const span = p.distance - prev.distance || 1;
+          const t = (distance - prev.distance) / span;
+          return prev.elevationGain + (p.elevationGain - prev.elevationGain) * t;
+        }
+      }
+      return lastPt.elevationGain;
+    };
+
     if (first) {
       result.push({
         id: '__start__',
@@ -391,6 +436,7 @@ export class ElevationProfileComponent {
         altitude: first.ele,
         distance: 0,
         durationLabel: null,
+        cumulativeGain: 0,
         labelLevel: 0,
       });
     }
@@ -407,6 +453,7 @@ export class ElevationProfileComponent {
         altitude,
         distance: marker.distanceFromStart,
         durationLabel: this.formatDuration(marker.estimatedDurationFromStart),
+        cumulativeGain: gainAt(distance),
         labelLevel: 0,
       });
     }
@@ -421,6 +468,7 @@ export class ElevationProfileComponent {
         altitude: last.ele,
         distance: last.distance,
         durationLabel: null,
+        cumulativeGain: last.elevationGain,
         labelLevel: 0,
       });
     }
