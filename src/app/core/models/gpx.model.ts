@@ -7,6 +7,8 @@
  * future réalité de course.
  */
 
+import type { AidStationType } from './nutrition.model';
+
 /** Un point de la trace pour l'affichage du profil (valeurs cumulées). */
 export interface GpxTrackPoint {
   lat: number;
@@ -133,4 +135,6 @@ export interface RoutePointMarker {
   longitude?: number;
   /** Temps de passage cible depuis le départ (minutes), si défini. */
   estimatedDurationFromStart?: number;
+  /** Types de ravitaillement (point d'eau, nourriture…), pour un `AID_STATION`. */
+  aidStationTypes?: AidStationType[];
 }

@@ -10,8 +10,10 @@ import {
   viewChild,
 } from '@angular/core';
 import { IconComponent } from '../../atoms/icon/icon.component';
-import type { GpxTrack, RoutePointMarker } from '../../../core/models';
+import type { AidStationType, GpxTrack, RoutePointMarker } from '../../../core/models';
 import { routePointKindColor } from '../../../core/utils/route-point.util';
+import { aidStationTypeIcons } from '../../../core/utils/aid-station.util';
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
   faFlag,
   faFlagCheckered,
@@ -37,6 +39,8 @@ interface PlotMarker {
   altitude: number | null;
   distance: number;
   durationLabel: string | null;
+  /** Icônes des types de ravitaillement, à afficher au-dessus du label. */
+  typeIcons: IconDefinition[];
   /** D+ cumulé depuis le départ (m) au niveau du repère, si calculable. */
   cumulativeGain: number | null;
   /** Niveau vertical du label (0 = base), pour désempiler les labels proches. */
@@ -69,9 +73,7 @@ const LABEL_STEP_UNITS = 38;
 /** Niveau d'échelonnement maximal (borne la marge haute réservée). */
 const MAX_LABEL_LEVEL = 4;
 
-/** Seuil (unités viewBox) au-delà duquel un appui est interprété comme un glisser. */
-const DRAG_THRESHOLD = 6;
-/** Distance (unités viewBox) sous laquelle un appui saisit un repère à déplacer. */
+/** Distance (unités viewBox) sous laquelle un appui saisit un repère à sélectionner. */
 const MARKER_HIT = 14;
 /**
  * Écart horizontal (unités viewBox) sous lequel deux labels sont considérés
@@ -196,13 +198,7 @@ const ZOOM_STEP = 0.8;
         <!-- Repères verticaux (départ, arrivée, points de passage) -->
         @for (marker of geometry().markers; track marker.id) {
           <g
-            [class]="
-              isPoint(marker) && !addMode()
-                ? dragging() && draggingId() === marker.id
-                  ? 'cursor-grabbing'
-                  : 'cursor-grab'
-                : ''
-            "
+            [class]="isPoint(marker) && !addMode() ? 'cursor-pointer' : ''"
             [attr.pointer-events]="addMode() ? 'none' : null"
           >
             <line
@@ -250,6 +246,19 @@ const ZOOM_STEP = 0.8;
             [style.top.%]="((geometry().marginTop - marker.labelLevel * labelStepUnits) / viewHeight) * 100"
           >
             <div class="flex -translate-y-full flex-col items-center gap-0.5 pb-1 text-center">
+              @if (marker.typeIcons.length) {
+                <span class="flex items-center gap-1">
+                  @for (icon of marker.typeIcons; track $index) {
+                    <span
+                      class="grid h-6 w-6 place-items-center rounded-full border bg-white text-[9px] shadow-sm"
+                      [style.color]="markerColor(marker)"
+                      [style.border-color]="markerColor(marker)"
+                    >
+                      <ui-icon [icon]="icon" size="xs" />
+                    </span>
+                  }
+                </span>
+              }
               @if (marker.durationLabel) {
                 <span class="text-[10px] font-semibold tabular-nums text-slate-500">
                   {{ marker.durationLabel }}
@@ -261,7 +270,7 @@ const ZOOM_STEP = 0.8;
                 <ui-icon [icon]="faFlagCheckered" size="sm" class="text-slate-700" />
               } @else {
                 <span
-                  class="whitespace-nowrap rounded-full border bg-white px-2 py-0.5 text-[11px] font-medium shadow-sm"
+                  class="line-clamp-2 max-w-25 rounded-xl border bg-white px-2 py-0.5 text-[11px] font-medium leading-tight shadow-sm"
                   [style.color]="markerColor(marker)"
                   [style.border-color]="markerColor(marker)"
                   [class.pointer-events-auto]="!addMode()"
@@ -384,13 +393,9 @@ export class ElevationProfileComponent {
     });
   }
 
-  /** Glisser en cours (dépassement du seuil de déplacement). */
-  protected readonly dragging = signal(false);
-  /** Repère en cours de saisie/déplacement. */
+  /** Repère actuellement pressé (candidat à la sélection au relâchement). */
   protected readonly draggingId = signal<string | null>(null);
-  private dragStartVbX = 0;
-  private dragDistance = 0;
-  /** Neutralise le `click` qui suit un glisser (évite un ajout parasite). */
+  /** Neutralise le `click` qui suit un pan / une sélection (évite un ajout parasite). */
   private suppressClick = false;
 
   /** Géométrie projetée du profil (recalculée quand la trace/les repères changent). */
@@ -507,6 +512,7 @@ export class ElevationProfileComponent {
         altitude: first.ele,
         distance: 0,
         durationLabel: null,
+        typeIcons: [],
         cumulativeGain: 0,
         labelLevel: 0,
       });
@@ -524,6 +530,7 @@ export class ElevationProfileComponent {
         altitude,
         distance: marker.distanceFromStart,
         durationLabel: this.formatDuration(marker.estimatedDurationFromStart),
+        typeIcons: aidStationTypeIcons(marker.aidStationTypes ?? []),
         cumulativeGain: gainAt(distance),
         labelLevel: 0,
       });
@@ -539,6 +546,7 @@ export class ElevationProfileComponent {
         altitude: last.ele,
         distance: last.distance,
         durationLabel: null,
+        typeIcons: [],
         cumulativeGain: last.elevationGain,
         labelLevel: 0,
       });
@@ -663,7 +671,7 @@ export class ElevationProfileComponent {
     this.viewStartFrac.set(Math.min(max, Math.max(0, start)));
   }
 
-  /** Amorce un déplacement si l'appui est proche d'un point de passage. */
+  /** Amorce la sélection d'un point près de l'appui, sinon un pan si zoomé. */
   protected onPointerDown(event: PointerEvent): void {
     if (this.addMode()) {
       return;
@@ -686,8 +694,6 @@ export class ElevationProfileComponent {
     }
     if (target) {
       this.draggingId.set(target.id);
-      this.dragStartVbX = vbX;
-      this.dragDistance = target.distance;
       this.svgEl().nativeElement.setPointerCapture(event.pointerId);
       return;
     }
@@ -700,7 +706,7 @@ export class ElevationProfileComponent {
     }
   }
 
-  /** Met à jour le survol et, le cas échéant, le déplacement/pan en cours. */
+  /** Met à jour le survol et, le cas échéant, le pan en cours. */
   protected onPointerMove(event: PointerEvent): void {
     if (this.panning()) {
       const vbX = this.clientToVbX(event.clientX);
@@ -716,15 +722,6 @@ export class ElevationProfileComponent {
     if (!nearest) {
       return;
     }
-    if (this.draggingId() != null) {
-      const vbX = this.clientToVbX(event.clientX) ?? nearest.x;
-      if (!this.dragging() && Math.abs(vbX - this.dragStartVbX) > DRAG_THRESHOLD) {
-        this.dragging.set(true);
-      }
-      if (this.dragging()) {
-        this.dragDistance = nearest.distance;
-      }
-    }
     this.hover.set({
       x: nearest.x,
       y: nearest.y,
@@ -734,7 +731,7 @@ export class ElevationProfileComponent {
     });
   }
 
-  /** Termine un déplacement (émet la nouvelle position) ou une sélection. */
+  /** Termine un pan, ou sélectionne le point pressé. */
   protected onPointerUp(event: PointerEvent): void {
     if (this.panning()) {
       this.panning.set(false);
@@ -745,16 +742,10 @@ export class ElevationProfileComponent {
     if (id == null) {
       return;
     }
-    const wasDragging = this.dragging();
     this.svgEl().nativeElement.releasePointerCapture(event.pointerId);
     this.draggingId.set(null);
-    this.dragging.set(false);
     this.suppressClick = true;
-    if (wasDragging) {
-      this.moveMarker.emit({ id, distance: this.dragDistance });
-    } else {
-      this.select.emit(id);
-    }
+    this.select.emit(id);
   }
 
   /** En mode ajout, un clic place un nouveau ravitaillement à la distance pointée. */

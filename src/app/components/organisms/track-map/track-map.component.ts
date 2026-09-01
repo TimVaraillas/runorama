@@ -146,7 +146,7 @@ export class TrackMapComponent {
       }
       const km = Math.round(marker.distanceFromStart * 10) / 10;
       const pin = leaflet.marker([marker.latitude, marker.longitude], {
-        draggable: !addMode,
+        draggable: false,
         interactive: !addMode,
         icon: this.pinIcon(leaflet, routePointKindColor(marker.kind)),
       });
@@ -154,14 +154,6 @@ export class TrackMapComponent {
       pin.on('click', () => {
         if (!addMode) {
           this.select.emit(marker.id);
-        }
-      });
-      // Fin de glisser : accroche au point de trace le plus proche.
-      pin.on('dragend', () => {
-        const ll = pin.getLatLng();
-        const nearest = this.nearestTrackPoint(ll.lat, ll.lng);
-        if (nearest) {
-          this.moveMarker.emit({ id: marker.id, distance: nearest.distance });
         }
       });
       layer.addLayer(pin);

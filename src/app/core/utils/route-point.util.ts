@@ -57,6 +57,7 @@ export function aidStationToMarker(
     latitude: station.latitude ?? point?.lat ?? undefined,
     longitude: station.longitude ?? point?.lon ?? undefined,
     estimatedDurationFromStart: station.estimatedDurationFromStart,
+    aidStationTypes: station.types,
   };
 }
 

@@ -1,5 +1,13 @@
 import type { AidStation, AidStationType, AidStationTypeMeta } from '../models';
 import { AID_STATION_TYPES } from '../models';
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+import {
+  faDroplet,
+  faHandshakeAngle,
+  faSuitcase,
+  faTent,
+  faUtensils,
+} from '@fortawesome/free-solid-svg-icons';
 
 /**
  * Valeurs de segment d'un ravitaillement, relatives au ravitaillement
@@ -77,6 +85,36 @@ export function computeAidStationViews(stations: readonly AidStation[]): AidStat
 /** Métadonnées d'un type de ravitaillement (libellé, tonalité du badge). */
 export function aidStationTypeMeta(type: AidStationType): AidStationTypeMeta | undefined {
   return AID_STATION_TYPES.find((meta) => meta.key === type);
+}
+
+/** Icône représentant un type de ravitaillement. */
+const AID_STATION_TYPE_ICON: Record<AidStationType, IconDefinition> = {
+  WATER_POINT: faDroplet,
+  FOOD: faUtensils,
+  ASSISTANCE: faHandshakeAngle,
+  DROP_BAG: faSuitcase,
+  BASE_LIFE: faTent,
+};
+
+/** Icône d'un type de ravitaillement. */
+export function aidStationTypeIcon(type: AidStationType): IconDefinition {
+  return AID_STATION_TYPE_ICON[type];
+}
+
+/**
+ * Icônes des types d'un ravitaillement, dans l'ordre canonique du catalogue
+ * (`AID_STATION_TYPES`) plutôt que l'ordre de saisie. Un ravitaillement
+ * (`FOOD`) fournit déjà de l'eau : on masque alors l'icône « point d'eau »
+ * redondante.
+ */
+export function aidStationTypeIcons(types: readonly AidStationType[]): IconDefinition[] {
+  const set = new Set(types);
+  if (set.has('FOOD')) {
+    set.delete('WATER_POINT');
+  }
+  return AID_STATION_TYPES.filter((meta) => set.has(meta.key)).map((meta) =>
+    AID_STATION_TYPE_ICON[meta.key],
+  );
 }
 
 /**
