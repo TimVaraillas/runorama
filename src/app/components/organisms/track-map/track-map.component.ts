@@ -72,7 +72,7 @@ export class TrackMapComponent {
       this.leaflet = leaflet;
 
       const map = leaflet.map(this.mapContainer().nativeElement, {
-        scrollWheelZoom: false,
+        scrollWheelZoom: true,
         attributionControl: true,
       });
       leaflet
