@@ -165,6 +165,20 @@ function durationRequiredValidator(group: AbstractControl): ValidationErrors | n
             </p>
           }
         </div>
+        <div>
+          <label [class]="labelClass" for="aid-stop-duration">Temps d'arrêt</label>
+          <div class="flex items-center gap-2">
+            <input
+              id="aid-stop-duration"
+              type="number"
+              min="0"
+              step="1"
+              formControlName="stopDurationMinutes"
+              [class]="inputClass"
+            />
+            <span class="text-slate-400">min</span>
+          </div>
+        </div>
       </section>
 
       <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
@@ -453,6 +467,7 @@ export class AidStationFormComponent {
       elevationGainFromStart: [null as number | null, Validators.min(0)],
       durationHours: [null as number | null, Validators.min(0)],
       durationMinutes: [null as number | null, [Validators.min(0), Validators.max(59)]],
+      stopDurationMinutes: [5, Validators.min(0)],
       note: [''],
       accessInfo: [''],
     },
@@ -471,6 +486,7 @@ export class AidStationFormComponent {
           elevationGainFromStart: station.elevationGainFromStart ?? null,
           durationHours: total > 0 ? Math.floor(total / 60) : null,
           durationMinutes: total > 0 ? total % 60 : null,
+          stopDurationMinutes: station.stopDurationMinutes ?? 5,
           note: station.note ?? '',
           accessInfo: station.accessInfo ?? '',
         });
@@ -487,6 +503,7 @@ export class AidStationFormComponent {
           elevationGainFromStart: null,
           durationHours: null,
           durationMinutes: null,
+          stopDurationMinutes: 5,
           note: '',
           accessInfo: '',
         });
@@ -604,6 +621,7 @@ export class AidStationFormComponent {
       distanceFromStart: v.distanceFromStart ?? undefined,
       elevationGainFromStart: v.elevationGainFromStart ?? undefined,
       estimatedDurationFromStart: totalMinutes,
+      stopDurationMinutes: v.stopDurationMinutes ?? 5,
       pickup: this.logisticActive() ? this.pickup() : [],
       drop: this.logisticActive() ? this.drop() : [],
       logisticVia: this.logisticActive() ? this.effectiveVia() : undefined,

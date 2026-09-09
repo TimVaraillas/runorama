@@ -201,6 +201,8 @@ import {
             <ui-aid-station-table
               [stations]="ev.aidStations ?? []"
               [startTime]="ev.startTime"
+              [targetTimeMinutes]="ev.targetTimeMinutes"
+              [totalDistanceKm]="ev.gpxDistance ?? ev.distance"
               (select)="editAidStation($event)"
               (edit)="editAidStation($event)"
               (delete)="deleteAidStation($event)"
@@ -668,6 +670,7 @@ export class RaceStrategyPage {
       types: [],
       distanceFromStart: rounded,
       estimatedDurationFromStart,
+      stopDurationMinutes: 5,
       pickup: [],
       drop: [],
       todo: [],

@@ -41,6 +41,7 @@ import { faLocationDot, faNoteSticky, faPen, faTrash } from '@fortawesome/free-s
               <th class="px-4 py-3 text-right font-medium">Km</th>
               <th class="px-4 py-3 text-right font-medium">D+</th>
               <th class="px-4 py-3 text-right font-medium">Passage</th>
+              <th class="px-4 py-3 text-right font-medium">Arrêt</th>
               <th class="px-4 py-3 font-medium">Segment</th>
               <th class="px-4 py-3 font-medium">Type</th>
               <th class="px-4 py-3"></th>
@@ -85,7 +86,10 @@ import { faLocationDot, faNoteSticky, faPen, faTrash } from '@fortawesome/free-s
                   }
                 </td>
                 <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">
-                  {{ formatPassageTime(view.station.estimatedDurationFromStart) }}
+                  {{ formatPassageTime(view.arrivalMinutes) }}
+                </td>
+                <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">
+                  {{ view.station.stopDurationMinutes ?? 5 }} min
                 </td>
                 <td class="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
                   {{ segmentLabel(view) }}
@@ -134,6 +138,10 @@ export class AidStationTableComponent {
   readonly stations = input<AidStation[]>([]);
   /** Heure de départ locale de la course, au format `HH:mm`. */
   readonly startTime = input('08:00');
+  /** Chrono cible de la course, qui inclut les arrêts aux ravitaillements. */
+  readonly targetTimeMinutes = input<number | undefined>(undefined);
+  /** Distance totale de la course, nécessaire à la répartition des segments. */
+  readonly totalDistanceKm = input<number | undefined>(undefined);
 
   readonly select = output<AidStation>();
   readonly edit = output<AidStation>();
@@ -145,7 +153,9 @@ export class AidStationTableComponent {
   protected readonly faTrash = faTrash;
 
   /** Vue ordonnée et enrichie (rang + segment calculé). */
-  protected readonly views = computed(() => computeAidStationViews(this.stations()));
+  protected readonly views = computed(() =>
+    computeAidStationViews(this.stations(), this.targetTimeMinutes(), this.totalDistanceKm()),
+  );
 
   /** Libellé du type de ravitaillement. */
   protected typeLabel(type: AidStation['types'][number]): string {

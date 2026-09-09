@@ -137,6 +137,8 @@ const aidStationSchema = new Schema(
     altitude: { type: Number },
     /** Temps estimé de passage depuis le départ (minutes) — clé de tri. */
     estimatedDurationFromStart: { type: Number, min: 0, required: true },
+    /** Temps d'arrêt prévu au ravitaillement (minutes). */
+    stopDurationMinutes: { type: Number, min: 0, required: true, default: 5 },
     /** Éléments à récupérer par le coureur. */
     pickup: { type: [logisticItemSchema], default: [] },
     /** Éléments à déposer par le coureur. */

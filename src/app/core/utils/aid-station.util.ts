@@ -1,5 +1,6 @@
 import type { AidStation, AidStationType, AidStationTypeMeta } from '../models';
 import { AID_STATION_TYPES } from '../models';
+import { estimateArrivalTime } from './passage-time.util';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
   faDroplet,
@@ -33,6 +34,8 @@ export interface AidStationView {
   previous: AidStation | null;
   /** Valeurs relatives au ravitaillement précédent. */
   segment: AidStationSegment;
+  /** Heure d'arrivée estimée, en minutes depuis le départ. */
+  arrivalMinutes: number;
 }
 
 /**
@@ -55,13 +58,25 @@ export function sortAidStations(stations: readonly AidStation[]): AidStation[] {
  * relatif au ravitaillement précédent (delta distance / D+ / durée). Le premier
  * segment est relatif au départ.
  */
-export function computeAidStationViews(stations: readonly AidStation[]): AidStationView[] {
+export function computeAidStationViews(
+  stations: readonly AidStation[],
+  targetTimeMinutes?: number,
+  totalDistanceKm?: number,
+): AidStationView[] {
   const sorted = sortAidStations(stations);
   return sorted.map((station, index) => {
     const previous = index > 0 ? sorted[index - 1]! : null;
     const prevDistance = previous?.distanceFromStart ?? 0;
     const prevElevation = previous?.elevationGainFromStart ?? 0;
-    const prevDuration = previous?.estimatedDurationFromStart ?? 0;
+    const arrivalMinutes =
+      station.distanceFromStart != null && targetTimeMinutes && totalDistanceKm
+        ? estimateArrivalTime(station.distanceFromStart, targetTimeMinutes, totalDistanceKm, sorted)
+        : station.estimatedDurationFromStart;
+    const previousArrival =
+      previous?.distanceFromStart != null && targetTimeMinutes && totalDistanceKm
+        ? estimateArrivalTime(previous.distanceFromStart, targetTimeMinutes, totalDistanceKm, sorted)
+        : previous?.estimatedDurationFromStart ?? 0;
+    const previousStop = previous ? Math.max(0, previous.stopDurationMinutes ?? 5) : 0;
 
     const distance =
       station.distanceFromStart != null
@@ -71,13 +86,14 @@ export function computeAidStationViews(stations: readonly AidStation[]): AidStat
       station.elevationGainFromStart != null
         ? Math.max(0, station.elevationGainFromStart - prevElevation)
         : null;
-    const durationMinutes = Math.max(0, station.estimatedDurationFromStart - prevDuration);
+    const durationMinutes = Math.max(0, arrivalMinutes - previousArrival - previousStop);
 
     return {
       station,
       order: index + 1,
       previous,
       segment: { distance, elevationGain, durationMinutes },
+      arrivalMinutes,
     };
   });
 }

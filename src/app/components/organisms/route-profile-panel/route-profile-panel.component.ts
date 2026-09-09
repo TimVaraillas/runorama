@@ -13,6 +13,7 @@ import type {
   RouteWaypoint,
 } from '../../../core/models';
 import { buildRouteMarkers } from '../../../core/utils/route-point.util';
+import { estimateArrivalTime } from '../../../core/utils/passage-time.util';
 import {
   faArrowUpFromBracket,
   faLocationDot,
@@ -320,9 +321,19 @@ export class RouteProfilePanelComponent {
   protected readonly confirmRemoveOpen = signal(false);
 
   /** Marqueurs unifiés (ravitaillements + points de passage) sur le profil. */
-  protected readonly markers = computed<RoutePointMarker[]>(() =>
-    buildRouteMarkers(this.aidStations(), this.track(), this.waypoints()),
-  );
+  protected readonly markers = computed<RoutePointMarker[]>(() => {
+    const track = this.track();
+    const stations = this.aidStations();
+    const targetTimeMinutes = this.targetTimeMinutes();
+    const totalDistanceKm = track?.distance;
+    return buildRouteMarkers(stations, track, this.waypoints()).map((marker) => ({
+      ...marker,
+      estimatedDurationFromStart:
+        targetTimeMinutes && totalDistanceKm
+          ? estimateArrivalTime(marker.distanceFromStart, targetTimeMinutes, totalDistanceKm, stations)
+          : marker.estimatedDurationFromStart,
+    }));
+  });
 
   /** Place un point du type sélectionné puis quitte le mode ajout (un à la fois). */
   protected onAddAt(distance: number): void {

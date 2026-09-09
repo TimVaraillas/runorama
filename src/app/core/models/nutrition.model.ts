@@ -372,6 +372,8 @@ export interface AidStation {
   altitude?: number;
   /** Temps estimé de passage depuis le départ (minutes) — clé de tri. */
   estimatedDurationFromStart: number;
+  /** Temps d'arrêt prévu au ravitaillement (minutes). */
+  stopDurationMinutes?: number;
   /** Éléments à récupérer par le coureur. */
   pickup: LogisticItem[];
   /** Éléments à déposer par le coureur. */
