@@ -18,7 +18,7 @@ import { routePointKindColor } from '../../../core/utils/route-point.util';
 
 /**
  * Organism : **tracé du parcours sur fond cartographique** (Leaflet + tuiles
- * OpenStreetMap). La carte n'est initialisée que dans le navigateur
+ * OpenTopoMap). La carte n'est initialisée que dans le navigateur
  * (`afterNextRender` + import dynamique de Leaflet) pour rester compatible SSR
  * et ne pas embarquer la librairie dans le bundle serveur.
  *
@@ -76,9 +76,11 @@ export class TrackMapComponent {
         attributionControl: true,
       });
       leaflet
-        .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          attribution: '&copy; OpenStreetMap',
+        .tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+          maxZoom: 17,
+          attribution:
+            'Carte : &copy; <a href="https://opentopomap.org">OpenTopoMap</a> ' +
+            '(&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>)',
         })
         .addTo(map);
       this.layer = leaflet.layerGroup().addTo(map);
