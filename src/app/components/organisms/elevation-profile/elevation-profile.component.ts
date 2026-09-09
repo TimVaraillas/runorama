@@ -566,14 +566,15 @@ export class ElevationProfileComponent {
     }
 
     if (last) {
+      const finishDistance = Math.min(last.distance, maxDistance);
       result.push({
         id: '__finish__',
         name: 'Arrivée',
         kind: 'FINISH',
-        x: xOf(last.distance),
+        x: xOf(finishDistance),
         y: 0,
         altitude: last.ele,
-        distance: last.distance,
+        distance: finishDistance,
         durationLabel: formatPassageTime(this.startTime(), this.targetTimeMinutes()),
         typeIcons: [],
         cumulativeGain: last.elevationGain,
@@ -616,14 +617,15 @@ export class ElevationProfileComponent {
     return ticks;
   }
 
-  /** Graduations de distance (5 paliers) sur la fenêtre visible. */
+  /** Graduations de distance tous les 10 km sur la fenêtre visible. */
   private buildXTicks(viewStart: number, viewEnd: number, xOf: (d: number) => number): AxisTick[] {
-    const ticks: AxisTick[] = [];
-    const steps = 5;
-    const span = viewEnd - viewStart;
-    for (let i = 0; i <= steps; i++) {
-      const distance = viewStart + (span * i) / steps;
+    const ticks: AxisTick[] = [{ pos: xOf(viewStart), label: `${this.formatKm(viewStart)}` }];
+    const firstTick = Math.ceil(viewStart / 10) * 10;
+    for (let distance = firstTick; distance < viewEnd - 1e-6; distance += 10) {
       ticks.push({ pos: xOf(distance), label: `${this.formatKm(distance)}` });
+    }
+    if (Math.abs(viewEnd - Math.round(viewEnd / 10) * 10) > 1e-6) {
+      ticks.push({ pos: xOf(viewEnd), label: `${this.formatKm(viewEnd)}` });
     }
     return ticks;
   }
