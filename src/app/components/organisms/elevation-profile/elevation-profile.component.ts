@@ -13,6 +13,7 @@ import { IconComponent } from '../../atoms/icon/icon.component';
 import type { AidStationType, GpxTrack, RoutePointMarker } from '../../../core/models';
 import { routePointKindColor } from '../../../core/utils/route-point.util';
 import { aidStationTypeIcons } from '../../../core/utils/aid-station.util';
+import { formatPassageTime } from '../../../core/utils/passage-time.util';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
   faFlag,
@@ -330,6 +331,10 @@ export class ElevationProfileComponent {
 
   /** Marqueurs de points de passage (ravitaillements…) à superposer. */
   readonly markers = input<RoutePointMarker[]>([]);
+  /** Heure de départ locale de la course, au format `HH:mm`. */
+  readonly startTime = input('08:00');
+  /** Chrono cible de la course, utilisé pour l'heure d'arrivée. */
+  readonly targetTimeMinutes = input(0);
 
   /** Point de trace survolé, synchronisé avec le tracé cartographique. */
   readonly activePoint = input<GpxTrack['points'][number] | null>(null);
@@ -535,7 +540,7 @@ export class ElevationProfileComponent {
         y: 0,
         altitude: first.ele,
         distance: 0,
-        durationLabel: null,
+        durationLabel: formatPassageTime(this.startTime(), 0),
         typeIcons: [],
         cumulativeGain: 0,
         labelLevel: 0,
@@ -553,7 +558,7 @@ export class ElevationProfileComponent {
         y: 0,
         altitude,
         distance: marker.distanceFromStart,
-        durationLabel: this.formatDuration(marker.estimatedDurationFromStart),
+        durationLabel: formatPassageTime(this.startTime(), marker.estimatedDurationFromStart ?? 0),
         typeIcons: aidStationTypeIcons(marker.aidStationTypes ?? []),
         cumulativeGain: gainAt(distance),
         labelLevel: 0,
@@ -569,7 +574,7 @@ export class ElevationProfileComponent {
         y: 0,
         altitude: last.ele,
         distance: last.distance,
-        durationLabel: null,
+        durationLabel: formatPassageTime(this.startTime(), this.targetTimeMinutes()),
         typeIcons: [],
         cumulativeGain: last.elevationGain,
         labelLevel: 0,
@@ -837,20 +842,4 @@ export class ElevationProfileComponent {
     return (Math.round(distance * 10) / 10).toString();
   }
 
-  /**
-   * Formate un temps de passage de façon indicative (« 2h45 »), arrondi aux
-   * 5 minutes — on évite une fausse précision (« 02:43:17 »).
-   */
-  protected formatDuration(minutes: number | undefined): string | null {
-    if (minutes == null || minutes <= 0) {
-      return null;
-    }
-    const rounded = Math.round(minutes / 5) * 5;
-    const h = Math.floor(rounded / 60);
-    const m = rounded % 60;
-    if (h === 0) {
-      return `${m}min`;
-    }
-    return m === 0 ? `${h}h` : `${h}h${m.toString().padStart(2, '0')}`;
-  }
 }

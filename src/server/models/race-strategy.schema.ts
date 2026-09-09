@@ -223,6 +223,13 @@ const raceStrategySchema = new Schema(
     description: { type: String, trim: true },
     /** Date de l'évènement au format ISO `YYYY-MM-DD`. */
     date: { type: String, required: true },
+    /** Heure de départ locale au format `HH:mm`. */
+    startTime: {
+      type: String,
+      required: true,
+      default: '08:00',
+      match: /^([01]\d|2[0-3]):[0-5]\d$/,
+    },
     /** Étiquette : nature de la sortie/évènement (facultative). */
     category: {
       type: String,

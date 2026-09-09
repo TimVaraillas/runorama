@@ -163,6 +163,8 @@ export interface GpxSelection {
             #profile
             [track]="t"
             [markers]="markers()"
+            [startTime]="startTime()"
+            [targetTimeMinutes]="targetTimeMinutes()"
             [activePoint]="activePoint()"
             [addMode]="addMode()"
             (select)="selectAidStation.emit($event)"
@@ -177,6 +179,8 @@ export interface GpxSelection {
           <ui-track-map
             [track]="t"
             [markers]="markers()"
+            [startTime]="startTime()"
+            [targetTimeMinutes]="targetTimeMinutes()"
             [activePoint]="activePoint()"
             [addMode]="addMode()"
             (select)="selectAidStation.emit($event)"
@@ -267,6 +271,10 @@ export class RouteProfilePanelComponent {
   readonly loading = input(false);
   /** Import en cours (désactive les actions). */
   readonly uploading = input(false);
+  /** Heure de départ locale de la course, au format `HH:mm`. */
+  readonly startTime = input('08:00');
+  /** Chrono cible de la course, utilisé pour l'heure d'arrivée. */
+  readonly targetTimeMinutes = input(0);
 
   /** Émis lorsqu'un fichier GPX est sélectionné (contenu lu + nom). */
   readonly gpxSelected = output<GpxSelection>();

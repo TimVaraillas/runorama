@@ -68,6 +68,15 @@ function chronoRequiredValidator(group: AbstractControl): ValidationErrors | nul
             <input id="event-date" type="date" formControlName="date" [class]="inputClass" />
           </div>
           <div>
+            <label [class]="labelClass" for="event-start-time">Heure de départ</label>
+            <input
+              id="event-start-time"
+              type="time"
+              formControlName="startTime"
+              [class]="inputClass"
+            />
+          </div>
+          <div>
             <label [class]="labelClass" for="event-location">Lieu (facultatif)</label>
             <input
               id="event-location"
@@ -191,6 +200,7 @@ export class RaceStrategyFormComponent {
       name: ['', Validators.required],
       description: [''],
       date: ['', Validators.required],
+      startTime: ['08:00', Validators.required],
       location: [''],
       category: [null as RaceStrategyCategory | null],
       distance: [null as number | null, Validators.min(0)],
@@ -212,6 +222,7 @@ export class RaceStrategyFormComponent {
           name: event.name,
           description: event.description ?? '',
           date: event.date,
+          startTime: event.startTime ?? '08:00',
           location: event.location ?? '',
           category: event.category ?? null,
           distance: event.distance ?? null,
@@ -237,6 +248,7 @@ export class RaceStrategyFormComponent {
       name: v.name!.trim(),
       description: v.description?.trim() || undefined,
       date: v.date!,
+      startTime: v.startTime!,
       location: v.location?.trim() || undefined,
       category: v.category ?? undefined,
       distance: v.distance ?? undefined,

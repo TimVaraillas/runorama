@@ -4,6 +4,7 @@ import { BadgeComponent } from '../../atoms/badge/badge.component';
 import type { AidStation } from '../../../core/models';
 import { AID_STATION_TYPES } from '../../../core/models';
 import { computeAidStationViews, type AidStationView } from '../../../core/utils/aid-station.util';
+import { formatPassageTime } from '../../../core/utils/passage-time.util';
 import { faLocationDot, faNoteSticky, faPen, faTrash } from '@fortawesome/free-solid-svg-icons';
 
 /**
@@ -39,7 +40,7 @@ import { faLocationDot, faNoteSticky, faPen, faTrash } from '@fortawesome/free-s
               <th class="px-4 py-3 font-medium">Ravitaillement</th>
               <th class="px-4 py-3 text-right font-medium">Km</th>
               <th class="px-4 py-3 text-right font-medium">D+</th>
-              <th class="px-4 py-3 text-right font-medium">Temps</th>
+              <th class="px-4 py-3 text-right font-medium">Passage</th>
               <th class="px-4 py-3 font-medium">Segment</th>
               <th class="px-4 py-3 font-medium">Type</th>
               <th class="px-4 py-3"></th>
@@ -84,7 +85,7 @@ import { faLocationDot, faNoteSticky, faPen, faTrash } from '@fortawesome/free-s
                   }
                 </td>
                 <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums text-slate-700">
-                  {{ formatTime(view.station.estimatedDurationFromStart) }}
+                  {{ formatPassageTime(view.station.estimatedDurationFromStart) }}
                 </td>
                 <td class="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
                   {{ segmentLabel(view) }}
@@ -131,6 +132,8 @@ import { faLocationDot, faNoteSticky, faPen, faTrash } from '@fortawesome/free-s
 export class AidStationTableComponent {
   /** Ravitaillements à afficher (triés et enrichis en interne). */
   readonly stations = input<AidStation[]>([]);
+  /** Heure de départ locale de la course, au format `HH:mm`. */
+  readonly startTime = input('08:00');
 
   readonly select = output<AidStation>();
   readonly edit = output<AidStation>();
@@ -159,6 +162,11 @@ export class AidStationTableComponent {
     const hours = Math.floor(total / 60);
     const minutes = Math.round(total % 60);
     return `${hours}h${minutes.toString().padStart(2, '0')}`;
+  }
+
+  /** Formate l'heure réelle d'un passage depuis le départ de la course. */
+  protected formatPassageTime(elapsedMinutes: number): string {
+    return formatPassageTime(this.startTime(), elapsedMinutes);
   }
 
   /** Décrit le segment relatif au ravitaillement précédent (delta km / D+ / durée). */

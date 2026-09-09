@@ -15,6 +15,7 @@ import type * as L from 'leaflet';
 import type { GpxTrack, RoutePointMarker } from '../../../core/models';
 import { haversineMeters } from '../../../core/utils/gpx.util';
 import { routePointKindColor } from '../../../core/utils/route-point.util';
+import { formatPassageTime } from '../../../core/utils/passage-time.util';
 
 /**
  * Organism : **tracé du parcours sur fond cartographique** (Leaflet + tuiles
@@ -41,6 +42,10 @@ export class TrackMapComponent {
   readonly track = input.required<GpxTrack>();
   /** Repères de points de passage (ravitaillements…). */
   readonly markers = input<RoutePointMarker[]>([]);
+  /** Heure de départ locale de la course, au format `HH:mm`. */
+  readonly startTime = input('08:00');
+  /** Chrono cible de la course, utilisé pour l'heure d'arrivée. */
+  readonly targetTimeMinutes = input(0);
   /** Point de trace survolé, synchronisé avec le profil altimétrique. */
   readonly activePoint = input<GpxTrack['points'][number] | null>(null);
   /**
@@ -155,8 +160,18 @@ export class TrackMapComponent {
 
     const first = points[0]!;
     const last = points[points.length - 1]!;
-    layer.addLayer(this.dot(leaflet, first.lat, first.lon, '#10b981', 'Départ'));
-    layer.addLayer(this.dot(leaflet, last.lat, last.lon, '#334155', 'Arrivée'));
+    layer.addLayer(
+      this.dot(leaflet, first.lat, first.lon, '#10b981', `Départ · ${formatPassageTime(this.startTime(), 0)}`),
+    );
+    layer.addLayer(
+      this.dot(
+        leaflet,
+        last.lat,
+        last.lon,
+        '#334155',
+        `Arrivée · ${formatPassageTime(this.startTime(), this.targetTimeMinutes())}`,
+      ),
+    );
 
     for (const marker of this.markers()) {
       if (marker.latitude == null || marker.longitude == null) {
@@ -168,7 +183,13 @@ export class TrackMapComponent {
         interactive: !addMode,
         icon: this.pinIcon(leaflet, routePointKindColor(marker.kind)),
       });
-      pin.bindTooltip(`${marker.name} · km ${km}`, { direction: 'top' });
+      pin.bindTooltip(
+        `${marker.name} · km ${km} · ${formatPassageTime(
+          this.startTime(),
+          marker.estimatedDurationFromStart ?? 0,
+        )}`,
+        { direction: 'top' },
+      );
       pin.on('click', () => {
         if (!addMode) {
           this.select.emit(marker.id);

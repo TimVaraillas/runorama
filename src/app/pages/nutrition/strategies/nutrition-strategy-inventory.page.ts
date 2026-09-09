@@ -200,6 +200,7 @@ import {
             </div>
             <ui-aid-station-table
               [stations]="ev.aidStations ?? []"
+              [startTime]="ev.startTime"
               (select)="editAidStation($event)"
               (edit)="editAidStation($event)"
               (delete)="deleteAidStation($event)"
@@ -210,6 +211,8 @@ import {
             [track]="gpxTrack()"
             [aidStations]="ev.aidStations ?? []"
             [waypoints]="ev.waypoints ?? []"
+            [startTime]="ev.startTime"
+            [targetTimeMinutes]="ev.targetTimeMinutes ?? 0"
             [loading]="gpxLoading()"
             [uploading]="gpxUploading()"
             (gpxSelected)="onGpxSelected($event)"

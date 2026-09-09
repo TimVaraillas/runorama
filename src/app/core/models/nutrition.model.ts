@@ -437,6 +437,8 @@ export interface RaceStrategy {
   description?: string;
   /** Date au format ISO `YYYY-MM-DD`. */
   date: string;
+  /** Heure de départ locale au format `HH:mm`. */
+  startTime: string;
   location?: string;
   /** Étiquette : nature de la sortie/évènement (facultative). */
   category?: RaceStrategyCategory;
