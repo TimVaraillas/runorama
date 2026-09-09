@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/angular';
-import type { NutritionCategory, NutritionEvent, NutritionProduct } from '../../../core/models';
+import type { NutritionCategory, NutritionProduct, RaceStrategy } from '../../../core/models';
 import { createDefaultGoals } from '../../../core/utils/nutrition-goals.util';
 import { NutritionStrategyInventoryComponent } from './nutrition-strategy-inventory.component';
 
@@ -14,7 +14,7 @@ const products: NutritionProduct[] = [
   { id: 'p3', categoryId: 'c1', brand: 'SIS', name: 'GO Isotonic', unitWeight: 60, energy: 87, carbs: 22, fats: 0, proteins: 0, sodium: 10 },
 ];
 
-const event: NutritionEvent = {
+const event: RaceStrategy = {
   id: 'e1',
   name: 'Trail des Templiers',
   date: '2026-10-25',

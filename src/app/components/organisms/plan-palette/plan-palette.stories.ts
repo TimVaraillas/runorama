@@ -16,8 +16,20 @@ const entries: PaletteEntry[] = [
 ];
 
 const recapRows: PlanHourlyRecap[] = [
-  { hour: 1, carbs: 60, targetCarbs: 60, energy: 250, targetEnergy: 250 },
-  { hour: 2, carbs: 40, targetCarbs: 60, energy: 180, targetEnergy: 250 },
+  {
+    hour: 1,
+    nutrients: [
+      { key: 'carbs', label: 'Glucides', unit: 'g', planned: 60, target: 60 },
+      { key: 'energy', label: 'Énergie', unit: 'kcal', planned: 250, target: 250 },
+    ],
+  },
+  {
+    hour: 2,
+    nutrients: [
+      { key: 'carbs', label: 'Glucides', unit: 'g', planned: 40, target: 60 },
+      { key: 'energy', label: 'Énergie', unit: 'kcal', planned: 180, target: 250 },
+    ],
+  },
 ];
 
 const meta: Meta<PlanPaletteComponent> = {

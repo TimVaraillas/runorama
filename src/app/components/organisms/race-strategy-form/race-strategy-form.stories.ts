@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/angular';
-import type { NutritionEvent } from '../../../core/models';
+import type { RaceStrategy } from '../../../core/models';
 import { createDefaultGoals } from '../../../core/utils/nutrition-goals.util';
 import { RaceStrategyFormComponent } from './race-strategy-form.component';
 
-const event: NutritionEvent = {
+const event: RaceStrategy = {
   id: 'e1',
   name: 'Trail des Templiers',
   description: 'Objectif : finir en moins de 10h.',

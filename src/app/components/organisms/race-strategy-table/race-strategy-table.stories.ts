@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/angular';
-import type { NutritionEvent } from '../../../core/models';
+import type { RaceStrategy } from '../../../core/models';
 import { createDefaultGoals } from '../../../core/utils/nutrition-goals.util';
 import { RaceStrategyTableComponent } from './race-strategy-table.component';
 
-const events: NutritionEvent[] = [
+const events: RaceStrategy[] = [
   { id: 'e1', name: 'Trail des Templiers', date: '2026-10-25', location: 'Millau', distance: 76, elevationGain: 3600, targetTimeMinutes: 600, goals: createDefaultGoals(), items: [{ productId: 'p1', quantity: 6 }] },
   { id: 'e2', name: 'Marathon de Paris', date: '2026-04-12', location: 'Paris', distance: 42, elevationGain: 120, targetTimeMinutes: 210, goals: createDefaultGoals(), items: [{ productId: 'p2', quantity: 4 }] },
 ];

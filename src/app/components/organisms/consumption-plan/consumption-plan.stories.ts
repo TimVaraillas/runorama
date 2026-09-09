@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/angular';
-import type { NutritionEvent, NutritionProduct } from '../../../core/models';
+import type { NutritionProduct, RaceStrategy } from '../../../core/models';
 import { createDefaultGoals } from '../../../core/utils/nutrition-goals.util';
 import { ConsumptionPlanComponent } from './consumption-plan.component';
 
@@ -8,7 +8,7 @@ const products: NutritionProduct[] = [
   { id: 'p2', categoryId: 'c2', brand: 'Clif', name: 'Bar Chocolate', unitWeight: 68, energy: 260, carbs: 44, fats: 6, proteins: 9, sodium: 150 },
 ];
 
-const event: NutritionEvent = {
+const event: RaceStrategy = {
   id: 'e1',
   name: 'Trail des Templiers',
   date: '2026-10-25',

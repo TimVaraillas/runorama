@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/angular';
-import type { NutritionEvent } from '../../../core/models';
+import type { RaceStrategy } from '../../../core/models';
 import { createDefaultGoals } from '../../../core/utils/nutrition-goals.util';
 import { RaceStrategyCardComponent } from './race-strategy-card.component';
 
-const sampleEvent: NutritionEvent = {
+const sampleEvent: RaceStrategy = {
   id: 'e1',
   name: 'Trail des Templiers',
   date: '2026-10-25',
@@ -20,7 +20,7 @@ const sampleEvent: NutritionEvent = {
 };
 
 const meta: Meta<RaceStrategyCardComponent> = {
-  title: 'Molecules/NutritionEventCard',
+  title: 'Molecules/RaceStrategyCard',
   component: RaceStrategyCardComponent,
   tags: ['autodocs'],
   argTypes: {
