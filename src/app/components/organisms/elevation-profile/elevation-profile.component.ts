@@ -223,7 +223,7 @@ const ZOOM_STEP = 0.8;
         }
 
         <!-- Curseur de survol -->
-        @if (hover(); as h) {
+        @if (displayHover(); as h) {
           <line
             [attr.x1]="h.x"
             [attr.x2]="h.x"
@@ -311,7 +311,7 @@ const ZOOM_STEP = 0.8;
       </div>
 
       <!-- Infobulle de survol -->
-      @if (hover(); as h) {
+      @if (displayHover(); as h) {
         <div
           class="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] shadow-md"
           [style.left.%]="(h.x / viewWidth) * 100"
@@ -331,6 +331,9 @@ export class ElevationProfileComponent {
   /** Marqueurs de points de passage (ravitaillements…) à superposer. */
   readonly markers = input<RoutePointMarker[]>([]);
 
+  /** Point de trace survolé, synchronisé avec le tracé cartographique. */
+  readonly activePoint = input<GpxTrack['points'][number] | null>(null);
+
   /**
    * Mode ajout : un clic sur le profil place un nouveau ravitaillement à la
    * distance pointée (au lieu de sélectionner/déplacer).
@@ -345,6 +348,9 @@ export class ElevationProfileComponent {
 
   /** Émis à la fin d'un glisser : nouvelle distance (km) d'un ravitaillement. */
   readonly moveMarker = output<{ id: string; distance: number }>();
+
+  /** Émet le point de trace survolé, ou `null` à la sortie du profil. */
+  readonly hoverPoint = output<GpxTrack['points'][number] | null>();
 
   protected readonly faLocationDot = faLocationDot;
   protected readonly faFlag = faFlag;
@@ -361,6 +367,24 @@ export class ElevationProfileComponent {
 
   /** État du curseur de survol. */
   protected readonly hover = signal<HoverState | null>(null);
+  /** Curseur local ou point reçu de la carte, projeté dans la géométrie SVG. */
+  protected readonly displayHover = computed<HoverState | null>(() => {
+    const activePoint = this.activePoint();
+    if (!activePoint) {
+      return this.hover();
+    }
+    const plot = this.geometry().plot;
+    if (plot.length === 0) {
+      return null;
+    }
+    let closest = plot[0]!;
+    for (const point of plot) {
+      if (Math.abs(point.distance - activePoint.distance) < Math.abs(closest.distance - activePoint.distance)) {
+        closest = point;
+      }
+    }
+    return closest;
+  });
 
   /**
    * Fenêtre visible du profil, exprimée en fractions de la distance totale :
@@ -729,6 +753,7 @@ export class ElevationProfileComponent {
       ele: nearest.ele,
       gain: nearest.gain,
     });
+    this.hoverPoint.emit(this.track().points.find((point) => point.distance === nearest.distance) ?? null);
   }
 
   /** Termine un pan, ou sélectionne le point pressé. */
@@ -769,6 +794,7 @@ export class ElevationProfileComponent {
       return;
     }
     this.hover.set(null);
+    this.hoverPoint.emit(null);
   }
 
   /** Convertit une abscisse écran en abscisse viewBox. */

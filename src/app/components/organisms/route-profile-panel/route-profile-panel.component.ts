@@ -163,10 +163,12 @@ export interface GpxSelection {
             #profile
             [track]="t"
             [markers]="markers()"
+            [activePoint]="activePoint()"
             [addMode]="addMode()"
             (select)="selectAidStation.emit($event)"
             (addAt)="onAddAt($event)"
             (moveMarker)="moveAidStation.emit($event)"
+            (hoverPoint)="activePoint.set($event)"
           />
         </div>
 
@@ -175,10 +177,12 @@ export interface GpxSelection {
           <ui-track-map
             [track]="t"
             [markers]="markers()"
+            [activePoint]="activePoint()"
             [addMode]="addMode()"
             (select)="selectAidStation.emit($event)"
             (addAt)="onAddAt($event)"
             (moveMarker)="moveAidStation.emit($event)"
+            (hoverPoint)="activePoint.set($event)"
           />
         </div>
 
@@ -290,6 +294,8 @@ export class RouteProfilePanelComponent {
   protected readonly addMode = signal(false);
   /** Type de point sélectionné pour l'ajout. */
   protected readonly addKind = signal<RoutePointKind>('AID_STATION');
+  /** Point de trace actuellement survolé dans le profil ou sur la carte. */
+  protected readonly activePoint = signal<GpxTrack['points'][number] | null>(null);
   /** Types proposés à l'ajout (libellé + couleur). */
   protected readonly kindOptions: ReadonlyArray<{
     kind: RoutePointKind;

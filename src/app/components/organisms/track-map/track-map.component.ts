@@ -41,6 +41,8 @@ export class TrackMapComponent {
   readonly track = input.required<GpxTrack>();
   /** Repères de points de passage (ravitaillements…). */
   readonly markers = input<RoutePointMarker[]>([]);
+  /** Point de trace survolé, synchronisé avec le profil altimétrique. */
+  readonly activePoint = input<GpxTrack['points'][number] | null>(null);
   /**
    * Mode ajout : un clic sur la carte place un nouveau ravitaillement au point
    * de trace le plus proche (au lieu de sélectionner/déplacer).
@@ -53,6 +55,8 @@ export class TrackMapComponent {
   readonly addAt = output<number>();
   /** Émis à la fin d'un glisser : nouvelle distance (km) d'un ravitaillement. */
   readonly moveMarker = output<{ id: string; distance: number }>();
+  /** Émet le point de trace survolé, ou `null` à la sortie de la carte. */
+  readonly hoverPoint = output<GpxTrack['points'][number] | null>();
 
   private readonly mapContainer = viewChild.required<ElementRef<HTMLDivElement>>('mapContainer');
   private readonly destroyRef = inject(DestroyRef);
@@ -60,6 +64,7 @@ export class TrackMapComponent {
   private leaflet: typeof L | null = null;
   private map: L.Map | null = null;
   private layer: L.LayerGroup | null = null;
+  private hoverMarker: L.CircleMarker | null = null;
   private readonly ready = signal(false);
   /** Nombre de points de la trace déjà cadrée (recadre seulement au changement). */
   private fittedCount = -1;
@@ -94,6 +99,10 @@ export class TrackMapComponent {
           this.addAt.emit(nearest.distance);
         }
       });
+      map.on('mousemove', (event: L.LeafletMouseEvent) => {
+        this.hoverPoint.emit(this.nearestTrackPoint(event.latlng.lat, event.latlng.lng));
+      });
+      map.on('mouseout', () => this.hoverPoint.emit(null));
       this.map = map;
       this.ready.set(true);
       this.draw();
@@ -106,6 +115,13 @@ export class TrackMapComponent {
       this.addMode();
       if (this.ready()) {
         this.draw();
+      }
+    });
+
+    effect(() => {
+      const activePoint = this.activePoint();
+      if (this.ready()) {
+        this.updateHoverMarker(activePoint);
       }
     });
 
@@ -188,6 +204,26 @@ export class TrackMapComponent {
       }
     }
     return nearest;
+  }
+
+  /** Affiche le point de trace actif sans redessiner le parcours. */
+  private updateHoverMarker(point: GpxTrack['points'][number] | null): void {
+    const leaflet = this.leaflet;
+    const map = this.map;
+    if (!leaflet || !map) {
+      return;
+    }
+    this.hoverMarker?.remove();
+    this.hoverMarker = point
+      ? leaflet.circleMarker([point.lat, point.lon], {
+          radius: 7,
+          color: '#ffffff',
+          weight: 3,
+          fillColor: '#f2542d',
+          fillOpacity: 1,
+          interactive: false,
+        }).addTo(map)
+      : null;
   }
 
   /** Icône de repère (pastille HTML colorée) — évite les images par défaut. */
