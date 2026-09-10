@@ -389,6 +389,25 @@ export interface AidStation {
   consumptions: AidConsumption[];
 }
 
+/** Technicité estimée ou corrigée manuellement pour un segment de pacing. */
+export type PacingTerrain = 'ROAD' | 'ROLLING_TRAIL' | 'TECHNICAL_TRAIL' | 'VERY_TECHNICAL' | 'OFF_TRAIL';
+
+/** Réglages et durées de segment d'un plan de pacing propre à une course. */
+export interface PacingPlan {
+  /** Durée de course hors arrêts, par segment identifié. */
+  segmentDurations: Record<string, number>;
+  /** Segments protégés lors du recalcul automatique. */
+  lockedSegmentIds?: string[];
+  /** Technicité choisie pour chaque segment. */
+  terrains?: Record<string, PacingTerrain>;
+  /** Modèle automatique appliqué en dernier. */
+  strategy?: 'CAUTIOUS' | 'BALANCED' | 'AGGRESSIVE' | 'NEGATIVE_SPLIT' | 'CUSTOM';
+  /** Fatigue maximale appliquée progressivement en fin de course (0 à 50 %). */
+  fatiguePercent?: number;
+  /** Intensité du negative split (0 à 30 %). */
+  negativeSplitPercent?: number;
+}
+
 /**
  * Propriétaire d'une stratégie alimentaire, tel qu'exposé aux administrateurs.
  */
@@ -452,6 +471,8 @@ export interface RaceStrategy {
   elevationLoss?: number;
   /** Chrono cible en minutes. */
   targetTimeMinutes?: number;
+  /** Plan de pacing calculé à partir du GPX, des points de passage et des arrêts. */
+  pacingPlan?: PacingPlan;
   /** Objectifs horaires par nutriment (énergie, glucides, lipides, …). */
   goals: NutritionGoals;
   /** Inventaire des produits emportés. */

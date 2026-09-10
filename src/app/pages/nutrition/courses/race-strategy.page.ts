@@ -30,6 +30,7 @@ import {
 } from '../../../components/organisms/route-profile-panel/route-profile-panel.component';
 import { GpxReconciliationModalComponent } from '../../../components/molecules/gpx-reconciliation-modal/gpx-reconciliation-modal.component';
 import { WaypointFormPanelComponent } from '../../../components/organisms/waypoint-form-panel/waypoint-form-panel.component';
+import { PacingPanelComponent } from '../../../components/organisms/pacing-panel/pacing-panel.component';
 import type {
   AidStation,
   GpxDiscrepancies,
@@ -94,6 +95,7 @@ import {
     RouteProfilePanelComponent,
     GpxReconciliationModalComponent,
     WaypointFormPanelComponent,
+    PacingPanelComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -224,6 +226,8 @@ import {
             (moveAidStation)="moveAidStationToDistance($event)"
             (fileError)="onFileError($event)"
           />
+        } @else if (activeTab() === 'pacing') {
+          <ui-pacing-panel [event]="ev" [track]="gpxTrack()" (save)="savePacing($event)" />
         } @else {
           <div class="lg:min-h-0 lg:flex-1">
             @if (productsLoading()) {
@@ -335,11 +339,12 @@ export class RaceStrategyPage {
 
   protected readonly tabs: TabItem[] = [
     { id: 'route', label: 'Parcours', icon: faRoute },
+    { id: 'pacing', label: 'Pacing', icon: faRoute },
     { id: 'aid-stations', label: 'Ravitaillements', icon: faLocationDot },
     { id: 'inventory', label: 'Inventaire', icon: faBasketShopping },
     { id: 'plan', label: 'Plan de nutrition', icon: faUtensils },
   ];
-  protected readonly activeTab = signal<'inventory' | 'aid-stations' | 'route' | 'plan'>('route');
+  protected readonly activeTab = signal<'inventory' | 'aid-stations' | 'route' | 'pacing' | 'plan'>('route');
 
   /** État plein écran du plan de nutrition (piloté depuis l'en-tête). */
   protected readonly planFullscreen = signal(false);
@@ -503,6 +508,15 @@ export class RaceStrategyPage {
         this.closePanel();
       },
       error: () => this.toast.error("Impossible d'enregistrer la course. Veuillez réessayer."),
+    });
+  }
+
+  savePacing(payload: Pick<RaceStrategy, 'pacingPlan' | 'targetTimeMinutes'>): void {
+    const current = this.event();
+    if (!current) return;
+    this.service.updateStrategy(current.id, payload).subscribe({
+      next: (updated) => this.event.set(updated),
+      error: () => this.toast.error("Impossible d'enregistrer le plan de pacing."),
     });
   }
 

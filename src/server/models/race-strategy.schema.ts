@@ -247,6 +247,18 @@ const raceStrategySchema = new Schema(
     elevationLoss: { type: Number, min: 0 },
     /** Chrono cible exprimé en minutes (facultatif). */
     targetTimeMinutes: { type: Number, min: 0 },
+    /** Plan de pacing calculé à partir du parcours et des arrêts. */
+    pacingPlan: {
+      segmentDurations: { type: Map, of: Number, default: () => new Map() },
+      lockedSegmentIds: { type: [String], default: [] },
+      terrains: { type: Map, of: String, default: () => new Map() },
+      strategy: {
+        type: String,
+        enum: ['CAUTIOUS', 'BALANCED', 'AGGRESSIVE', 'NEGATIVE_SPLIT', 'CUSTOM'],
+      },
+      fatiguePercent: { type: Number, min: 0, max: 50 },
+      negativeSplitPercent: { type: Number, min: 0, max: 30 },
+    },
     /** Objectifs horaires par nutriment. */
     goals: { type: goalsSchema, default: () => ({}) },
     /** Produits emportés (inventaire). */
