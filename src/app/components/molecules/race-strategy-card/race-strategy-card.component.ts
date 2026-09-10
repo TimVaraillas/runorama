@@ -29,6 +29,8 @@ import {
       class="flex h-full cursor-pointer flex-col rounded-xl border bg-white shadow-sm transition-colors"
       [class.border-slate-200]="!selected()"
       [class.hover:border-brand-300]="!selected()"
+      [class.bg-slate-100]="isPast()"
+      [class.opacity-50]="isPast()"
       [class.border-brand-500]="selected()"
       [class.ring-2]="selected()"
       [class.ring-brand-200]="selected()"
@@ -128,4 +130,9 @@ export class RaceStrategyCardComponent {
     const minutes = total % 60;
     return `${hours}h${minutes.toString().padStart(2, '0')}`;
   });
+
+  /** Vrai si la date locale de la course est strictement antérieure à aujourd'hui. */
+  protected readonly isPast = computed(
+    () => this.event().date < new Date().toLocaleDateString('en-CA'),
+  );
 }

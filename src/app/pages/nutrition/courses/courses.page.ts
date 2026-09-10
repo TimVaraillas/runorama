@@ -228,14 +228,16 @@ export class CoursesPage {
     const to = this.dateTo();
     const ownerId = this.selectedOwnerId();
     const category = this.selectedCategory();
-    return list.filter((event) => {
-      const matchesTerm = !term || event.name.toLowerCase().includes(term);
-      const matchesFrom = !from || event.date >= from;
-      const matchesTo = !to || event.date <= to;
-      const matchesOwner = !ownerId || event.owner?.id === ownerId;
-      const matchesCategory = !category || event.category === category;
-      return matchesTerm && matchesFrom && matchesTo && matchesOwner && matchesCategory;
-    });
+    return list
+      .filter((event) => {
+        const matchesTerm = !term || event.name.toLowerCase().includes(term);
+        const matchesFrom = !from || event.date >= from;
+        const matchesTo = !to || event.date <= to;
+        const matchesOwner = !ownerId || event.owner?.id === ownerId;
+        const matchesCategory = !category || event.category === category;
+        return matchesTerm && matchesFrom && matchesTo && matchesOwner && matchesCategory;
+      })
+      .sort((a, b) => b.date.localeCompare(a.date));
   });
 
   constructor() {

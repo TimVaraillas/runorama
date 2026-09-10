@@ -96,6 +96,9 @@ type SortDirection = 'asc' | 'desc';
           @for (event of sortedEvents(); track event.id) {
             <tr
               class="cursor-pointer transition-colors hover:bg-slate-50"
+              [class.bg-slate-100]="isPast(event)"
+              [class.text-slate-400]="isPast(event)"
+              [class.opacity-60]="isPast(event)"
               (click)="select.emit(event)"
             >
               <td class="min-w-48 max-w-64 px-4 py-3">
@@ -247,6 +250,11 @@ export class RaceStrategyTableComponent {
   /** Métadonnées d'affichage de l'étiquette d'un évènement. */
   protected categoryMeta(event: RaceStrategy) {
     return raceStrategyCategoryMeta(event.category);
+  }
+
+  /** Vrai si la date locale de la course est strictement antérieure à aujourd'hui. */
+  protected isPast(event: RaceStrategy): boolean {
+    return event.date < new Date().toLocaleDateString('en-CA');
   }
 
   /** Clé de tri d'un évènement pour une colonne donnée. */
