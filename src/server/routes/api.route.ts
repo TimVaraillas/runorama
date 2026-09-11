@@ -16,6 +16,10 @@ import {
   type ProcessedTrackPoint,
 } from '../../app/core/utils/gpx.util';
 import {
+  buildGpxDocument,
+  type GpxExportWaypoint,
+} from '../../app/core/utils/gpx-export.util';
+import {
   sendProductApprovedEmail,
   sendProductRejectedEmail,
   sendProductSubmittedEmail,
@@ -925,6 +929,70 @@ export function createApiRouter(): Router {
     return res.status(204).end();
   });
 
+  // Export GPX : trace pleine résolution enrichie des points d'intérêt
+  // (ravitaillements + points de passage) sous forme de `<wpt>`. Le paramètre
+  // `includeTime=false` retire les temps de passage estimés des descriptions.
+  router.get('/race-strategies/:id/gpx/export', async (req: Request, res: Response) => {
+    const event = await RaceStrategyModel.findOne({
+      _id: req.params['id'],
+      ...eventScope(req),
+    }).lean();
+    if (!event) {
+      return res.status(404).json({ message: 'Course introuvable' });
+    }
+    const track = await GpxTrackModel.findOne({ eventId: req.params['id'] }).lean();
+    if (!track) {
+      return res.status(404).json({ message: 'Aucune trace GPX pour cette stratégie.' });
+    }
+
+    const ev = event as Record<string, unknown>;
+    const points = fromColumns((track as Record<string, unknown>)['full'] as TrackColumns);
+    const includeTime = req.query['includeTime'] !== 'false';
+
+    const aidStations = (ev['aidStations'] as Record<string, unknown>[] | undefined) ?? [];
+    const routeWaypoints = (ev['waypoints'] as Record<string, unknown>[] | undefined) ?? [];
+
+    const waypoints: GpxExportWaypoint[] = [
+      ...aidStations.map((s) => ({
+        name: String(s['name'] ?? 'Ravitaillement'),
+        kind: 'AID_STATION' as const,
+        distanceFromStart: s['distanceFromStart'] as number | undefined,
+        latitude: s['latitude'] as number | undefined,
+        longitude: s['longitude'] as number | undefined,
+        altitude: s['altitude'] as number | undefined,
+        estimatedDurationFromStart: s['estimatedDurationFromStart'] as number | undefined,
+        aidStationTypes: (s['types'] as GpxExportWaypoint['aidStationTypes']) ?? [],
+      })),
+      ...routeWaypoints.map((w) => ({
+        name: String(w['name'] ?? 'Point de passage'),
+        kind: (w['kind'] as GpxExportWaypoint['kind']) ?? 'CUSTOM',
+        distanceFromStart: w['distanceFromStart'] as number | undefined,
+        latitude: w['latitude'] as number | undefined,
+        longitude: w['longitude'] as number | undefined,
+        altitude: w['altitude'] as number | undefined,
+        estimatedDurationFromStart: w['estimatedDurationFromStart'] as number | undefined,
+      })),
+    ];
+
+    const gpx = buildGpxDocument({
+      name: String(ev['name'] ?? 'Parcours'),
+      points,
+      waypoints,
+      includeEstimatedTime: includeTime,
+    });
+
+    const slug =
+      String(ev['name'] ?? 'parcours')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+        .toLowerCase() || 'parcours';
+
+    res.setHeader('Content-Type', 'application/gpx+xml; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${slug}.gpx"`);
+    return res.send(gpx);
+  });
 
   return router;
 }

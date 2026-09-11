@@ -4,6 +4,7 @@ import { IconComponent } from '../../atoms/icon/icon.component';
 import { BadgeComponent } from '../../atoms/badge/badge.component';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { QuantityStepperComponent } from '../../atoms/quantity-stepper/quantity-stepper.component';
+import { TooltipComponent } from '../../atoms/tooltip/tooltip.component';
 import type { RaceStrategy, NutritionProduct } from '../../../core/models';
 import {
   START_LOCATION_ID,
@@ -46,6 +47,7 @@ import {
     BadgeComponent,
     ButtonComponent,
     QuantityStepperComponent,
+    TooltipComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -112,10 +114,17 @@ import {
                     <ui-icon [icon]="faAppleWhole" size="sm" />
                   }
                 </div>
-                <div class="min-w-0 flex-1">
-                  <div class="truncate text-sm font-medium text-slate-900">{{ item.product.name }}</div>
-                  <div class="truncate text-xs text-slate-400">{{ item.product.brand }}</div>
-                </div>
+                <ui-tooltip
+                  class="min-w-0 flex-1"
+                  [text]="nutrientTooltip(item.product)"
+                  position="bottom"
+                  escapeOverflow
+                >
+                  <div class="min-w-0">
+                    <div class="truncate text-sm font-medium text-slate-900">{{ item.product.name }}</div>
+                    <div class="truncate text-xs text-slate-400">{{ item.product.brand }}</div>
+                  </div>
+                </ui-tooltip>
                 <ui-quantity-stepper
                   [value]="item.quantity"
                   [min]="1"
@@ -216,5 +225,10 @@ export class InventoryLocationsComponent {
     const hours = Math.floor(total / 60);
     const minutes = Math.round(total % 60);
     return `${hours}h${minutes.toString().padStart(2, '0')}`;
+  }
+
+  /** Composition nutritionnelle par unité, affichée au survol d'un produit. */
+  protected nutrientTooltip(product: NutritionProduct): string {
+    return `${product.energy} kcal · ${product.carbs} g glucides · ${product.fats} g lipides · ${product.proteins} g protéines · ${product.sodium} mg sodium`;
   }
 }

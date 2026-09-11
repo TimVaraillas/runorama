@@ -8,7 +8,9 @@ import {
   signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
+import { HttpResponse } from '@angular/common/http';
 import { NutritionService } from '../../../features/nutrition/services/nutrition.service';
+import { GpxService } from '../../../features/nutrition/services/gpx.service';
 import { NutritionExportService } from '../../../features/nutrition/services/nutrition-export.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ButtonComponent } from '../../../components/atoms/button/button.component';
@@ -152,8 +154,13 @@ import {
             aria-label="Plus d'actions"
           />
           <ui-dropdown-menu-item [icon]="faFilePdf" (selected)="exportPdf()">
-            Exporter
+            Exporter le roadbook
           </ui-dropdown-menu-item>
+          @if (gpxTrack()) {
+            <ui-dropdown-menu-item [icon]="faRoute" (selected)="exportGpx()">
+              Exporter le tracé GPX
+            </ui-dropdown-menu-item>
+          }
           <ui-dropdown-menu-item [icon]="faTrash" color="danger" (selected)="requestDelete()">
             Supprimer
           </ui-dropdown-menu-item>
@@ -318,6 +325,7 @@ import {
 })
 export class RaceStrategyPage {
   private readonly service = inject(NutritionService);
+  private readonly gpxService = inject(GpxService);
   private readonly exportService = inject(NutritionExportService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
@@ -434,7 +442,7 @@ export class RaceStrategyPage {
 
   /** Charge la trace GPX associée à la stratégie (si elle existe). */
   private loadGpx(): void {
-    this.service.getGpx(this.id()).subscribe({
+    this.gpxService.get(this.id()).subscribe({
       next: (track) => {
         this.gpxTrack.set(track);
         this.gpxLoading.set(false);
@@ -800,7 +808,7 @@ export class RaceStrategyPage {
     const event = this.event();
     if (!event || this.gpxUploading()) return;
     this.gpxUploading.set(true);
-    this.service.uploadGpx(event.id, selection.content, selection.fileName).subscribe({
+    this.gpxService.upload(event.id, selection.content, selection.fileName).subscribe({
       next: (result) => {
         this.gpxUploading.set(false);
         this.gpxTrack.set(result.track);
@@ -830,7 +838,7 @@ export class RaceStrategyPage {
   removeGpx(): void {
     const event = this.event();
     if (!event) return;
-    this.service.removeGpx(event.id).subscribe({
+    this.gpxService.remove(event.id).subscribe({
       next: () => {
         this.gpxTrack.set(null);
         this.event.update((ev) =>
@@ -963,6 +971,39 @@ export class RaceStrategyPage {
     if (!opened) {
       this.toast.error("Autorisez les fenêtres pop-up pour exporter la course en PDF.");
     }
+  }
+
+  /**
+   * Télécharge la trace GPX enrichie des points d'intérêt (ravitaillements +
+   * points de passage). Le fichier est généré côté serveur à partir de la trace
+   * pleine résolution.
+   */
+  exportGpx(): void {
+    const event = this.event();
+    if (!event) return;
+    if (!this.gpxTrack()) {
+      this.toast.error("Importez d'abord une trace GPX pour l'exporter.");
+      return;
+    }
+    this.gpxService.export(event.id).subscribe({
+      next: (response) => this.downloadGpxResponse(response),
+      error: () => this.toast.error("Impossible d'exporter la trace GPX."),
+    });
+  }
+
+  /** Déclenche le téléchargement du blob GPX (nom de fichier via Content-Disposition). */
+  private downloadGpxResponse(response: HttpResponse<Blob>): void {
+    const body = response.body;
+    if (!body || typeof document === 'undefined') return;
+    const disposition = response.headers.get('Content-Disposition') ?? '';
+    const match = /filename="?([^";]+)"?/i.exec(disposition);
+    const fileName = match?.[1] ?? 'parcours.gpx';
+    const url = URL.createObjectURL(body);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
 
   // --- Inventaire (association de produits) ---

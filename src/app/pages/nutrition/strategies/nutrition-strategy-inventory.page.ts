@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { NutritionService } from '../../../features/nutrition/services/nutrition.service';
+import { GpxService } from '../../../features/nutrition/services/gpx.service';
 import { NutritionExportService } from '../../../features/nutrition/services/nutrition-export.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ButtonComponent } from '../../../components/atoms/button/button.component';
@@ -314,6 +315,7 @@ import {
 })
 export class RaceStrategyPage {
   private readonly service = inject(NutritionService);
+  private readonly gpxService = inject(GpxService);
   private readonly exportService = inject(NutritionExportService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
@@ -431,7 +433,7 @@ export class RaceStrategyPage {
 
   /** Charge la trace GPX associée à la stratégie (si elle existe). */
   private loadGpx(): void {
-    this.service.getGpx(this.id()).subscribe({
+    this.gpxService.get(this.id()).subscribe({
       next: (track) => {
         this.gpxTrack.set(track);
         this.gpxLoading.set(false);
@@ -788,7 +790,7 @@ export class RaceStrategyPage {
     const event = this.event();
     if (!event || this.gpxUploading()) return;
     this.gpxUploading.set(true);
-    this.service.uploadGpx(event.id, selection.content, selection.fileName).subscribe({
+    this.gpxService.upload(event.id, selection.content, selection.fileName).subscribe({
       next: (result) => {
         this.gpxUploading.set(false);
         this.gpxTrack.set(result.track);
@@ -818,7 +820,7 @@ export class RaceStrategyPage {
   removeGpx(): void {
     const event = this.event();
     if (!event) return;
-    this.service.removeGpx(event.id).subscribe({
+    this.gpxService.remove(event.id).subscribe({
       next: () => {
         this.gpxTrack.set(null);
         this.event.update((ev) =>
