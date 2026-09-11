@@ -963,11 +963,11 @@ export class RaceStrategyPage {
     });
   }
 
-  /** Exporte la stratégie (inventaire + plan) en PDF via l'aperçu d'impression. */
+  /** Exporte la stratégie (inventaire + plan + parcours) en PDF via l'aperçu d'impression. */
   exportPdf(): void {
     const event = this.event();
     if (!event) return;
-    const opened = this.exportService.exportStrategyToPdf(event, this.products());
+    const opened = this.exportService.exportStrategyToPdf(event, this.products(), this.gpxTrack());
     if (!opened) {
       this.toast.error("Autorisez les fenêtres pop-up pour exporter la course en PDF.");
     }

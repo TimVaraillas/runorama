@@ -1,8 +1,19 @@
-import type { NutrientGoalKey, RaceStrategy, NutritionProduct } from '../models';
+import type {
+  NutrientGoalKey,
+  RaceStrategy,
+  NutritionProduct,
+  GpxTrack,
+  RoutePointKind,
+} from '../models';
 import { enabledGoals, type ResolvedGoal } from './nutrition-goals.util';
 import { resolveIntakeProduct } from './water.util';
 import { formatMinutes } from './plan-layout.util';
 import { buildInventoryLocations } from './inventory-allocation.util';
+import { buildRouteMarkers, routePointKindLabel } from './route-point.util';
+import { buildTrackMapSvg, buildElevationProfileSvg, routeMarkerBadge } from './route-svg.util';
+import { interpolateAtDistance, type ProcessedTrackPoint } from './gpx.util';
+import { formatPassageTime } from './passage-time.util';
+import { buildPacingSegments, PACING_TERRAIN_LABELS } from './pacing.util';
 
 /** Échappe une chaîne pour une insertion sûre dans du HTML. */
 function escapeHtml(value: string): string {
@@ -239,20 +250,131 @@ function buildLogistics(event: RaceStrategy, map: Map<string, NutritionProduct>)
   return bags;
 }
 
+/** Point de passage prêt pour l'assistance (position, relief cumulé, horaire). */
+interface PassagePoint {
+  name: string;
+  typeLabel: string;
+  /** Accès saisi (adresse/GPS pour l'assistance), vide si non renseigné. */
+  address: string;
+  lat?: number;
+  lon?: number;
+  /** Distance depuis le départ (km). */
+  distance: number;
+  altitude?: number;
+  /** Dénivelé positif cumulé depuis le départ (m). */
+  gain: number;
+  /** Dénivelé négatif cumulé depuis le départ (m). */
+  loss: number;
+  /** Temps de passage estimé depuis le départ (minutes). */
+  timeMinutes?: number;
+  /** Nature (pour la pastille), absente pour départ/arrivée. */
+  kind?: RoutePointKind;
+  /** Numéro (1-based) du marqueur sur la carte/profil, pour recoupement. */
+  markerIndex?: number;
+  role: 'start' | 'point' | 'finish';
+}
+
+/**
+ * Construit la liste des points de passage pour la fiche assistance : départ,
+ * ravitaillements, points de passage et arrivée. Position, altitude et D+/D-
+ * cumulés sont interpolés sur la trace quand ils ne sont pas saisis.
+ */
+function buildPassagePoints(event: RaceStrategy, track: GpxTrack): PassagePoint[] {
+  const pts = track.points as unknown as ProcessedTrackPoint[];
+  const first = pts[0];
+  const last = pts[pts.length - 1];
+  const markers = buildRouteMarkers(event.aidStations ?? [], track, event.waypoints ?? []);
+  const indexById = new Map<string, number>();
+  markers.forEach((m, i) => indexById.set(m.id, i + 1));
+
+  const points: PassagePoint[] = [
+    {
+      name: 'Départ',
+      typeLabel: 'Départ',
+      address: event.location ?? '',
+      lat: first?.lat,
+      lon: first?.lon,
+      distance: 0,
+      altitude: first ? Math.round(first.ele) : undefined,
+      gain: 0,
+      loss: 0,
+      timeMinutes: 0,
+      role: 'start',
+    },
+  ];
+
+  for (const s of event.aidStations ?? []) {
+    if (s.distanceFromStart == null) continue;
+    const p = interpolateAtDistance(pts, s.distanceFromStart);
+    points.push({
+      name: s.name,
+      typeLabel: 'Ravitaillement',
+      address: s.accessInfo ?? '',
+      lat: s.latitude ?? p?.lat,
+      lon: s.longitude ?? p?.lon,
+      distance: s.distanceFromStart,
+      altitude: s.altitude ?? (p ? Math.round(p.ele) : undefined),
+      gain: s.elevationGainFromStart ?? (p ? Math.round(p.elevationGain) : 0),
+      loss: p ? Math.round(p.elevationLoss) : 0,
+      timeMinutes: s.estimatedDurationFromStart,
+      kind: 'AID_STATION',
+      markerIndex: indexById.get(s.id),
+      role: 'point',
+    });
+  }
+
+  for (const w of event.waypoints ?? []) {
+    if (w.distanceFromStart == null) continue;
+    const p = interpolateAtDistance(pts, w.distanceFromStart);
+    points.push({
+      name: w.name,
+      typeLabel: routePointKindLabel(w.kind),
+      address: '',
+      lat: w.latitude ?? p?.lat,
+      lon: w.longitude ?? p?.lon,
+      distance: w.distanceFromStart,
+      altitude: w.altitude ?? (p ? Math.round(p.ele) : undefined),
+      gain: w.elevationGainFromStart ?? (p ? Math.round(p.elevationGain) : 0),
+      loss: p ? Math.round(p.elevationLoss) : 0,
+      timeMinutes: w.estimatedDurationFromStart,
+      kind: w.kind,
+      markerIndex: indexById.get(w.id),
+      role: 'point',
+    });
+  }
+
+  points.push({
+    name: 'Arrivée',
+    typeLabel: 'Arrivée',
+    address: '',
+    lat: last?.lat,
+    lon: last?.lon,
+    distance: track.distance,
+    altitude: last ? Math.round(last.ele) : undefined,
+    gain: last ? Math.round(last.elevationGain) : 0,
+    loss: last ? Math.round(last.elevationLoss) : 0,
+    timeMinutes: event.targetTimeMinutes,
+    role: 'finish',
+  });
+
+  return points.sort((a, b) => a.distance - b.distance);
+}
+
 /**
  * Construit un document HTML autonome et imprimable (destiné à « Enregistrer
- * en PDF ») récapitulant une stratégie alimentaire : inventaire des produits
- * emportés et plan de nutrition planifié.
+ * en PDF ») récapitulant une stratégie de course : parcours, points de passage,
+ * inventaire des produits emportés et plan de nutrition planifié.
  */
 export function buildStrategyPdfHtml(
   event: RaceStrategy,
   products: NutritionProduct[],
+  track?: GpxTrack | null,
 ): string {
   const map = buildProductMap(event, products);
   const { rows: inventoryRows, totals } = buildInventory(event, map);
   const goals = enabledGoals(event);
   const hourlyGoals = goals.filter((g) => g.mode === 'hourly');
-  const { rows: planRows, recap } = buildPlan(event, map, hourlyGoals);
+  const { rows: planRows } = buildPlan(event, map, hourlyGoals);
   const logisticBags = buildLogistics(event, map);
   const total = event.targetTimeMinutes ?? 0;
 
@@ -306,22 +428,6 @@ export function buildStrategyPdfHtml(
           .join('')
       : `<tr><td colspan="5" class="muted center">Aucune prise planifiée.</td></tr>`;
 
-  const recapHead = hourlyGoals
-    .map((g) => `<th class="right">${escapeHtml(g.label)}</th>`)
-    .join('');
-
-  const recapBody = recap
-    .map(
-      (r) => `
-      <tr>
-        <td>Heure ${r.hour}</td>
-        ${r.nutrients
-          .map((n) => `<td class="right">${num(n.planned)} / ${num(n.target)} ${n.unit}</td>`)
-          .join('')}
-      </tr>`,
-    )
-    .join('');
-
   /** Items de synthèse pour chaque objectif actif (emporté + couverture). */
   const goalSummary = goals
     .map((g) => {
@@ -331,6 +437,15 @@ export function buildStrategyPdfHtml(
       )} ${g.unit}${coverage(totals[g.key], target)}</div></div>`;
     })
     .join('');
+
+  /** Synthèse des quantités emportées (poids + objectifs), affichée dans la section nutrition. */
+  const nutritionSummary = `
+        <div class="summary">
+          <div class="item"><div class="label">Poids total</div><div class="value">${num(
+            totals.weight,
+          )} g</div></div>
+          ${goalSummary}
+        </div>`;
 
   const bagEntries = (entries: LogisticEntry[]): string =>
     entries
@@ -416,6 +531,7 @@ export function buildStrategyPdfHtml(
       ? `
       <section class="sec sec-plan">
         <h2>Plan de nutrition</h2>
+        ${nutritionSummary}
         <table>
           <thead>
             <tr>
@@ -428,24 +544,180 @@ export function buildStrategyPdfHtml(
           </thead>
           <tbody>${planBody}</tbody>
         </table>
-        ${
-          recap.length > 0
-            ? `
-        <h3>Récapitulatif horaire (planifié / cible)</h3>
-        <table>
-          <thead>
-            <tr><th>Tranche</th>${recapHead}</tr>
-          </thead>
-          <tbody>${recapBody}</tbody>
-        </table>`
-            : ''
-        }
       </section>`
       : `
       <section class="sec sec-plan">
         <h2>Plan de nutrition</h2>
+        ${nutritionSummary}
         <p class="muted">Définissez un chrono cible sur l'évènement pour construire le plan.</p>
       </section>`;
+
+  // Section Parcours : tracé + profil altimétrique + étapes (ravitaillements et
+  // points de passage), uniquement si une trace GPX est disponible.
+  const routeMarkers =
+    track != null
+      ? buildRouteMarkers(event.aidStations ?? [], track, event.waypoints ?? [])
+      : [];
+  const routeSection =
+    track != null
+      ? `
+      <section class="sec sec-route">
+        <h2>Parcours</h2>
+        <div class="route-figs">
+          <figure class="route-fig">
+            <figcaption>Profil altimétrique</figcaption>
+            ${buildElevationProfileSvg(track, routeMarkers)}
+          </figure>
+          <figure class="route-fig">
+            <figcaption>Tracé</figcaption>
+            ${buildTrackMapSvg(track, routeMarkers)}
+          </figure>
+        </div>
+      </section>`
+      : '';
+
+  // Section Points de passage (fiche assistance), sur une nouvelle page.
+  const passageBadge = (p: PassagePoint): string => {
+    if (p.role === 'start') return `<span class="step-badge" style="background:#16a34a">D</span>`;
+    if (p.role === 'finish') return `<span class="step-badge" style="background:#dc2626">A</span>`;
+    return p.kind != null && p.markerIndex != null ? routeMarkerBadge(p.kind, p.markerIndex - 1) : '';
+  };
+  const accessCell = (p: PassagePoint): string => {
+    const address = p.address?.trim();
+    let text: string;
+    let query: string;
+    if (address) {
+      text = escapeHtml(address);
+      query = address;
+    } else if (p.lat != null && p.lon != null) {
+      text = `${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}`;
+      query = `${p.lat},${p.lon}`;
+    } else {
+      return '<span class="muted">—</span>';
+    }
+    return `${text} <a href="https://www.google.com/maps/search/?api=1&amp;query=${encodeURIComponent(
+      query,
+    )}">Maps</a>`;
+  };
+  const passageSection =
+    track != null
+      ? `
+      <section class="sec sec-passages">
+        <h2>Points de passage</h2>
+        <table class="passages">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Point</th>
+              <th>Accès (adresse / GPS)</th>
+              <th class="right">Km</th>
+              <th class="right">Alt.</th>
+              <th class="right">Passage</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${buildPassagePoints(event, track)
+              .map(
+                (p) => `
+            <tr>
+              <td>${passageBadge(p)}</td>
+              <td>${escapeHtml(p.name)}<div class="muted">${escapeHtml(p.typeLabel)}</div></td>
+              <td>${accessCell(p)}</td>
+              <td class="right">${num(p.distance, 1)}</td>
+              <td class="right">${p.altitude != null ? `${num(p.altitude)} m` : '—'}</td>
+              <td class="right">${
+                p.timeMinutes != null ? formatPassageTime(event.startTime, p.timeMinutes) : '—'
+              }</td>
+            </tr>`,
+              )
+              .join('')}
+          </tbody>
+        </table>
+      </section>`
+      : '';
+
+  // Section Pacing : segments départ → repères → arrivée avec allure et vitesse.
+  const paceLabel = (distanceKm: number, durationMin: number): string => {
+    if (distanceKm <= 0 || durationMin <= 0) return '—';
+    const secPerKm = (durationMin * 60) / distanceKm;
+    const m = Math.floor(secPerKm / 60);
+    const s = Math.round(secPerKm % 60);
+    return `${m}:${String(s).padStart(2, '0')}/km`;
+  };
+  const speedLabel = (distanceKm: number, durationMin: number): string => {
+    if (distanceKm <= 0 || durationMin <= 0) return '—';
+    return `${num((distanceKm / durationMin) * 60, 1)} km/h`;
+  };
+  const pacingSegments =
+    track != null
+      ? buildPacingSegments(
+          track,
+          event.aidStations ?? [],
+          event.waypoints ?? [],
+          event.pacingPlan,
+          event.targetTimeMinutes,
+        )
+      : [];
+  const pacingSection =
+    track != null && pacingSegments.length > 0
+      ? `
+      <section class="sec sec-pacing">
+        <h2>Pacing</h2>
+        <table class="pacing">
+          <thead>
+            <tr>
+              <th>Segment</th>
+              <th class="right">Dist.</th>
+              <th class="right">D+</th>
+              <th class="right">D−</th>
+              <th>Terrain</th>
+              <th class="right">Temps</th>
+              <th class="right">Arrivée</th>
+              <th class="right">Allure</th>
+              <th class="right">Vitesse</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pacingSegments
+              .map(
+                (s) => `
+            <tr>
+              <td>${escapeHtml(s.fromLabel)} <span class="muted">→</span> ${escapeHtml(s.toLabel)}</td>
+              <td class="right">${num(s.distance, 1)} km</td>
+              <td class="right">+${num(s.elevationGain)} m</td>
+              <td class="right">−${num(s.elevationLoss)} m</td>
+              <td>${escapeHtml(PACING_TERRAIN_LABELS[s.terrain])}</td>
+              <td class="right">${formatMinutes(s.durationMinutes)}</td>
+              <td class="right">${formatPassageTime(event.startTime, s.arrivalMinutes)}</td>
+              <td class="right">${paceLabel(s.distance, s.durationMinutes)}</td>
+              <td class="right">${speedLabel(s.distance, s.durationMinutes)}</td>
+            </tr>`,
+              )
+              .join('')}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>Total</td>
+              <td class="right">${num(
+                pacingSegments.reduce((sum, s) => sum + s.distance, 0),
+                1,
+              )} km</td>
+              <td class="right">+${num(
+                pacingSegments.reduce((sum, s) => sum + s.elevationGain, 0),
+              )} m</td>
+              <td class="right">−${num(
+                pacingSegments.reduce((sum, s) => sum + s.elevationLoss, 0),
+              )} m</td>
+              <td></td>
+              <td class="right">${formatMinutes(
+                pacingSegments.reduce((sum, s) => sum + s.durationMinutes, 0),
+              )}</td>
+              <td colspan="3"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </section>`
+      : '';
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -454,6 +726,26 @@ export function buildStrategyPdfHtml(
   <title>${escapeHtml(event.name)} — Stratégie de course</title>
   <style>
     * { box-sizing: border-box; }
+    /* Pagination : numéro de page en bas à droite (médias paginés compatibles). */
+    @page {
+      size: A4 portrait;
+      margin: 14mm;
+      @bottom-right {
+        content: "Page " counter(page) " / " counter(pages);
+        font-size: 9px;
+        color: #94a3b8;
+      }
+    }
+    /* Page paysage dédiée au tableau de pacing (plus lisible). */
+    @page landscape {
+      size: A4 landscape;
+      margin: 12mm;
+      @bottom-right {
+        content: "Page " counter(page) " / " counter(pages);
+        font-size: 9px;
+        color: #94a3b8;
+      }
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       color: #0f172a;
@@ -549,10 +841,66 @@ export function buildStrategyPdfHtml(
     .badge-drop { border-left-color: #7c3aed; }
     .badge-drop .bag-badge { background: #7c3aed; }
     footer { margin-top: 28px; color: #94a3b8; font-size: 10px; }
+    /* Parcours : profil altimétrique + tracé (pleine largeur, empilés) + étapes */
+    .route-figs { display: flex; flex-direction: column; gap: 10px; }
+    .route-fig { width: 100%; margin: 0; }
+    .route-fig figcaption {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+    .route-svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+    /* La carte remplit la largeur ; son ratio épouse le cadre de la première page. */
+    .route-map { width: 100%; height: auto; }
+    /* Fiche assistance : la section démarre sur une nouvelle page à l'impression. */
+    .sec-passages { break-before: page; page-break-before: always; }
+    /* Inventaire : sur une nouvelle page. */
+    .sec-inv { break-before: page; page-break-before: always; }
+    /* Pacing : page paysage dédiée pour la lisibilité du tableau. */
+    .sec-pacing { page: landscape; break-before: page; page-break-before: always; }
+    table.pacing { font-size: 11px; }
+    table.pacing tfoot td { font-weight: 600; border-top: 2px solid #cbd5e1; }
+    table.passages td { vertical-align: top; }
+    table.passages .muted { font-size: 10px; }
+    table.steps .step-badge {
+      display: inline-block;
+      min-width: 18px;
+      height: 18px;
+      line-height: 18px;
+      padding: 0 5px;
+      border-radius: 999px;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      text-align: center;
+    }
+    .step-badge {
+      display: inline-block;
+      min-width: 18px;
+      height: 18px;
+      line-height: 18px;
+      padding: 0 5px;
+      border-radius: 999px;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      text-align: center;
+    }
     @media print {
-      body { margin: 12mm; }
+      body { margin: 0; }
       section { break-inside: avoid; }
       .bag { break-inside: avoid; }
+      /* Le parcours (profil + carte) occupe toute la première page sous le titre. */
+      .sec-route h2 { margin: 6px 0 10px; }
     }
   </style>
 </head>
@@ -560,14 +908,11 @@ export function buildStrategyPdfHtml(
   <header>
     <h1>${escapeHtml(event.name)}</h1>
     ${meta.length > 0 ? `<div class="meta">${meta.join(' · ')}</div>` : ''}
-    <div class="summary">
-      <div class="item"><div class="label">Poids total</div><div class="value">${num(
-        totals.weight,
-      )} g</div></div>
-      ${goalSummary}
-    </div>
   </header>
 
+  ${routeSection}
+  ${passageSection}
+  ${pacingSection}
   <section class="sec sec-inv">
     <h2>Inventaire</h2>
     <table>
@@ -597,6 +942,22 @@ export function buildStrategyPdfHtml(
   ${planSection}
 
   <footer>Généré le ${formatDate(new Date().toISOString().slice(0, 10))} · Runorama</footer>
+  <script>
+    (function () {
+      function print() { try { window.focus(); window.print(); } catch (e) {} }
+      var svgImgs = Array.prototype.slice.call(document.querySelectorAll('image'));
+      var htmlImgs = Array.prototype.slice.call(document.images || []);
+      var pending = [];
+      htmlImgs.forEach(function (i) { if (!i.complete) pending.push(i); });
+      svgImgs.forEach(function (i) { pending.push(i); });
+      if (pending.length === 0) { setTimeout(print, 150); return; }
+      var remaining = pending.length, called = false;
+      function done() { if (called) return; remaining--; if (remaining <= 0) { called = true; setTimeout(print, 200); } }
+      pending.forEach(function (i) { i.addEventListener('load', done); i.addEventListener('error', done); });
+      // Filet de sécurité : imprime même si des tuiles n'ont pas signalé leur chargement.
+      setTimeout(function () { if (!called) { called = true; print(); } }, 6000);
+    })();
+  </script>
 </body>
 </html>`;
 }

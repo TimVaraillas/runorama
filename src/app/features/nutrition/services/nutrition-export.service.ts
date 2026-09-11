@@ -1,6 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import { Injectable, inject } from '@angular/core';
-import type { RaceStrategy, NutritionProduct } from '../../../core/models';
+import type { RaceStrategy, NutritionProduct, GpxTrack } from '../../../core/models';
 import { buildStrategyPdfHtml } from '../../../core/utils/nutrition-pdf.util';
 
 /**
@@ -19,21 +19,25 @@ export class NutritionExportService {
    * Ouvre l'aperçu imprimable de la stratégie et déclenche l'impression.
    * @returns `true` si la fenêtre a pu être ouverte, `false` sinon (popup bloquée).
    */
-  exportStrategyToPdf(event: RaceStrategy, products: NutritionProduct[]): boolean {
+  exportStrategyToPdf(
+    event: RaceStrategy,
+    products: NutritionProduct[],
+    track?: GpxTrack | null,
+  ): boolean {
     const win = this.document.defaultView?.open('', '_blank');
     if (!win) return false;
 
-    const html = buildStrategyPdfHtml(event, products);
+    const html = buildStrategyPdfHtml(event, products, track);
     win.document.open();
     win.document.write(html);
     win.document.close();
 
-    // Le contenu est inline (aucune ressource externe) : un court délai suffit
-    // pour laisser le rendu se stabiliser avant d'ouvrir la boîte d'impression.
+    // L'impression est déclenchée par le document lui-même une fois les tuiles de
+    // la carte chargées (voir le script inline généré). On se contente ici de
+    // donner le focus à la fenêtre.
     setTimeout(() => {
       try {
         win.focus();
-        win.print();
       } catch {
         /* la fenêtre a pu être fermée entre-temps */
       }
