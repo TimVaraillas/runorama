@@ -16,6 +16,8 @@ import { buildRouteMarkers } from '../../../core/utils/route-point.util';
 import { estimateArrivalTime } from '../../../core/utils/passage-time.util';
 import {
   faArrowUpFromBracket,
+  faCompress,
+  faExpand,
   faLocationDot,
   faMinus,
   faMountainSun,
@@ -43,6 +45,7 @@ export interface GpxSelection {
 @Component({
   selector: 'ui-route-profile-panel',
   standalone: true,
+  host: { '(document:keydown.escape)': 'onEscape()' },
   imports: [
     ButtonComponent,
     IconComponent,
@@ -54,7 +57,13 @@ export interface GpxSelection {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (track(); as t) {
-      <div class="space-y-4">
+      <div
+        [class]="
+          fullscreen()
+            ? 'fixed inset-0 z-60 flex flex-col gap-3 overflow-hidden bg-slate-50 p-4'
+            : 'space-y-4'
+        "
+      >
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="flex flex-wrap items-center gap-4 text-sm">
             <span class="inline-flex items-center gap-1.5 text-slate-600">
@@ -72,6 +81,16 @@ export interface GpxSelection {
           </div>
 
           <div class="flex items-center gap-2">
+            <ui-button
+              color="default"
+              variant="outlined"
+              size="sm"
+              [icon]="fullscreen() ? faCompress : faExpand"
+              [attr.aria-pressed]="fullscreen()"
+              (clicked)="fullscreen.set(!fullscreen())"
+            >
+              {{ fullscreen() ? 'Quitter le plein écran' : 'Plein écran' }}
+            </ui-button>
             <ui-button
               color="primary"
               variant="full"
@@ -126,9 +145,22 @@ export interface GpxSelection {
           </div>
         }
 
-        <div class="rounded-2xl border border-slate-200 bg-white p-4">
-          <div class="mb-2 flex items-center justify-between gap-2">
-            <p class="text-xs font-medium uppercase tracking-wide text-slate-400">Profil</p>
+        <div [class]="fullscreen() ? 'flex min-h-0 flex-1 flex-col gap-3' : 'contents'">
+        <div
+          [class]="
+            'rounded-2xl border border-slate-200 bg-white ' +
+            (fullscreen() ? 'p-3 shrink-0' : 'p-4')
+          "
+        >
+          <div
+            [class]="
+              'flex items-center gap-2 ' +
+              (fullscreen() ? 'mb-1 justify-end' : 'mb-2 justify-between')
+            "
+          >
+            @if (!fullscreen()) {
+              <p class="text-xs font-medium uppercase tracking-wide text-slate-400">Profil</p>
+            }
             <div class="flex items-center gap-1">
               @if (profile.isZoomed()) {
                 <button
@@ -160,8 +192,12 @@ export interface GpxSelection {
               </button>
             </div>
           </div>
+          <div [class]="fullscreen() ? 'mx-2 h-[20vh] w-auto' : ''">
           <ui-elevation-profile
             #profile
+            [class.block]="fullscreen()"
+            [class.h-full]="fullscreen()"
+            [fillHeight]="fullscreen()"
             [track]="t"
             [markers]="markers()"
             [startTime]="startTime()"
@@ -173,11 +209,23 @@ export interface GpxSelection {
             (moveMarker)="moveAidStation.emit($event)"
             (hoverPoint)="activePoint.set($event)"
           />
+          </div>
         </div>
 
-        <div class="rounded-2xl border border-slate-200 bg-white p-4">
-          <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">Tracé</p>
+        <div
+          [class]="
+            'rounded-2xl border border-slate-200 bg-white ' +
+            (fullscreen() ? 'flex min-h-0 flex-1 flex-col p-0' : 'p-4')
+          "
+        >
+          @if (!fullscreen()) {
+            <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">Tracé</p>
+          }
+          <div [class]="fullscreen() ? 'min-h-0 flex-1' : ''">
           <ui-track-map
+            [class.block]="fullscreen()"
+            [class.h-full]="fullscreen()"
+            [fillHeight]="fullscreen()"
             [track]="t"
             [markers]="markers()"
             [startTime]="startTime()"
@@ -189,12 +237,16 @@ export interface GpxSelection {
             (moveMarker)="moveAidStation.emit($event)"
             (hoverPoint)="activePoint.set($event)"
           />
+          </div>
+        </div>
         </div>
 
-        <p class="text-xs text-slate-400">
-          Les ravitaillements sont positionnés automatiquement d'après leur distance depuis le
-          départ. Cliquez sur un repère pour ouvrir le ravitaillement correspondant.
-        </p>
+        @if (!fullscreen()) {
+          <p class="text-xs text-slate-400">
+            Les ravitaillements sont positionnés automatiquement d'après leur distance depuis le
+            départ. Cliquez sur un repère pour ouvrir le ravitaillement correspondant.
+          </p>
+        }
       </div>
     } @else if (loading()) {
       <div
@@ -298,6 +350,11 @@ export class RouteProfilePanelComponent {
   protected readonly faPlus = faPlus;
   protected readonly faMinus = faMinus;
   protected readonly faXmark = faXmark;
+  protected readonly faExpand = faExpand;
+  protected readonly faCompress = faCompress;
+
+  /** Mode plein écran : profil + carte visibles simultanément sur tout l'écran. */
+  protected readonly fullscreen = signal(false);
 
   /** Mode ajout de point de passage depuis le profil / le tracé. */
   protected readonly addMode = signal(false);
@@ -339,6 +396,13 @@ export class RouteProfilePanelComponent {
   protected onAddAt(distance: number): void {
     this.addPoint.emit({ distance, kind: this.addKind() });
     this.addMode.set(false);
+  }
+
+  /** Ferme le plein écran à la touche Échap. */
+  protected onEscape(): void {
+    if (this.fullscreen()) {
+      this.fullscreen.set(false);
+    }
   }
 
   /** Confirme le retrait : émet l'événement et ferme la modale. */

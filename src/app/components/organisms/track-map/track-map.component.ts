@@ -33,7 +33,10 @@ import { formatPassageTime } from '../../../core/utils/passage-time.util';
   template: `
     <div
       #mapContainer
-      class="z-0 h-160 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100"
+      [class]="
+        'z-0 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100 ' +
+        (fillHeight() ? 'h-full min-h-0' : 'h-160')
+      "
     ></div>
   `,
 })
@@ -53,6 +56,8 @@ export class TrackMapComponent {
    * de trace le plus proche (au lieu de sélectionner/déplacer).
    */
   readonly addMode = input(false);
+  /** Remplit la hauteur du conteneur parent (mode plein écran) au lieu d'une hauteur fixe. */
+  readonly fillHeight = input(false);
 
   /** Émis au clic sur un repère de ravitaillement (identifiant). */
   readonly select = output<string>();
@@ -69,6 +74,7 @@ export class TrackMapComponent {
   private leaflet: typeof L | null = null;
   private map: L.Map | null = null;
   private layer: L.LayerGroup | null = null;
+  private resizeObserver: ResizeObserver | null = null;
   private hoverMarker: L.CircleMarker | null = null;
   private readonly ready = signal(false);
   /** Nombre de points de la trace déjà cadrée (recadre seulement au changement). */
@@ -111,6 +117,12 @@ export class TrackMapComponent {
       this.map = map;
       this.ready.set(true);
       this.draw();
+
+      // Recalcule la taille de la carte quand son conteneur change (plein écran).
+      if (typeof ResizeObserver !== 'undefined') {
+        this.resizeObserver = new ResizeObserver(() => this.map?.invalidateSize());
+        this.resizeObserver.observe(this.mapContainer().nativeElement);
+      }
     });
 
     // Redessine quand la trace, les repères ou le mode changent (carte prête).
@@ -131,6 +143,8 @@ export class TrackMapComponent {
     });
 
     this.destroyRef.onDestroy(() => {
+      this.resizeObserver?.disconnect();
+      this.resizeObserver = null;
       this.map?.remove();
       this.map = null;
     });

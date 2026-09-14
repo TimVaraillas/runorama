@@ -1,9 +1,12 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
+  afterNextRender,
   computed,
   effect,
+  inject,
   input,
   output,
   signal,
@@ -105,12 +108,13 @@ const ZOOM_STEP = 0.8;
   imports: [IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="relative w-full select-none">
+    <div [class]="(fillHeight() ? 'relative h-full ' : 'relative ') + 'w-full select-none'">
       <svg
         #svgEl
         [attr.viewBox]="viewBox"
         [class]="
-          'h-auto w-full touch-none ' +
+          (fillHeight() ? 'h-full ' : 'h-auto ') +
+          'w-full touch-none ' +
           (addMode()
             ? 'cursor-crosshair'
             : panning()
@@ -148,7 +152,7 @@ const ZOOM_STEP = 0.8;
           </clipPath>
         </defs>
 
-        <!-- Lignes horizontales de repère + graduations d'altitude -->
+        <!-- Lignes horizontales de repère d'altitude (graduations en overlay HTML) -->
         @for (tick of geometry().yTicks; track tick.pos) {
           <line
             [attr.x1]="margin.left"
@@ -158,26 +162,6 @@ const ZOOM_STEP = 0.8;
             class="stroke-slate-200"
             stroke-width="1"
           />
-          <text
-            [attr.x]="margin.left - 8"
-            [attr.y]="tick.pos + 3"
-            text-anchor="end"
-            class="fill-slate-400 text-[11px]"
-          >
-            {{ tick.label }}
-          </text>
-        }
-
-        <!-- Graduations de distance -->
-        @for (tick of geometry().xTicks; track tick.pos) {
-          <text
-            [attr.x]="tick.pos"
-            [attr.y]="viewHeight - margin.bottom + 18"
-            text-anchor="middle"
-            class="fill-slate-400 text-[11px]"
-          >
-            {{ tick.label }}
-          </text>
         }
 
         <!-- Aire + ligne du profil -->
@@ -237,6 +221,29 @@ const ZOOM_STEP = 0.8;
           <circle [attr.cx]="h.x" [attr.cy]="h.y" r="4" class="fill-brand-600" />
         }
       </svg>
+
+      <!-- Graduations d'axes (HTML superposé pour un texte net, non déformé) -->
+      <div class="pointer-events-none absolute inset-0">
+        @for (tick of geometry().yTicks; track tick.pos) {
+          <div
+            class="absolute text-[11px] text-slate-400 tabular-nums"
+            [style.left.%]="((margin.left - 8) / viewWidth) * 100"
+            [style.top.%]="(tick.pos / viewHeight) * 100"
+            style="transform: translate(-100%, -50%)"
+          >
+            {{ tick.label }}
+          </div>
+        }
+        @for (tick of geometry().xTicks; track tick.pos) {
+          <div
+            class="absolute -translate-x-1/2 text-[11px] text-slate-400 tabular-nums"
+            [style.left.%]="(tick.pos / viewWidth) * 100"
+            [style.top.%]="((viewHeight - margin.bottom + 14) / viewHeight) * 100"
+          >
+            {{ tick.label }}
+          </div>
+        }
+      </div>
 
       <!-- Étiquettes des repères (HTML superposé pour un texte net) -->
       <div class="pointer-events-none absolute inset-0">
@@ -344,6 +351,8 @@ export class ElevationProfileComponent {
    * distance pointée (au lieu de sélectionner/déplacer).
    */
   readonly addMode = input(false);
+  /** Remplit la hauteur du conteneur parent (mode plein écran). */
+  readonly fillHeight = input(false);
 
   /** Émis au clic sur un repère de point de passage (identifiant). */
   readonly select = output<string>();
@@ -361,10 +370,25 @@ export class ElevationProfileComponent {
   protected readonly faFlag = faFlag;
   protected readonly faFlagCheckered = faFlagCheckered;
 
-  protected readonly viewWidth = VIEW_WIDTH;
+  /** Taille rendue du SVG (px), mesurée pour adapter le viewBox en plein écran. */
+  private readonly measuredSize = signal<{ w: number; h: number } | null>(null);
+  /**
+   * Largeur du viewBox : fixe en mode normal ; en plein écran, calée sur le
+   * ratio réel de la boîte pour que `preserveAspectRatio="none"` applique une
+   * échelle uniforme X/Y (le tracé n'est pas déformé).
+   */
+  protected get viewWidth(): number {
+    const size = this.measuredSize();
+    if (this.fillHeight() && size && size.h > 0) {
+      return Math.max(700, Math.round(VIEW_HEIGHT * (size.w / size.h)));
+    }
+    return VIEW_WIDTH;
+  }
   protected readonly viewHeight = VIEW_HEIGHT;
   protected readonly margin = MARGIN;
-  protected readonly viewBox = `0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`;
+  protected get viewBox(): string {
+    return `0 0 ${this.viewWidth} ${VIEW_HEIGHT}`;
+  }
   /** Écart vertical (unités viewBox) entre deux niveaux de labels échelonnés. */
   protected readonly labelStepUnits = LABEL_STEP_UNITS;
   /** Fraction minimale visible (borne le zoom maximal), exposée au parent. */
@@ -408,8 +432,22 @@ export class ElevationProfileComponent {
 
   /** Référence à l'élément SVG (mesures écran → coordonnées viewBox). */
   private readonly svgEl = viewChild.required<ElementRef<SVGSVGElement>>('svgEl');
+  private readonly destroyRef = inject(DestroyRef);
+  private resizeObserver: ResizeObserver | null = null;
 
   constructor() {
+    // Mesure la taille rendue du SVG pour adapter le viewBox (plein écran).
+    afterNextRender(() => {
+      const el = this.svgEl().nativeElement;
+      const update = () => this.measuredSize.set({ w: el.clientWidth, h: el.clientHeight });
+      update();
+      if (typeof ResizeObserver !== 'undefined') {
+        this.resizeObserver = new ResizeObserver(update);
+        this.resizeObserver.observe(el);
+      }
+    });
+    this.destroyRef.onDestroy(() => this.resizeObserver?.disconnect());
+
     // Réinitialise le zoom/pan à chaque changement de trace.
     let previous: GpxTrack | null = null;
     effect(() => {
@@ -441,7 +479,7 @@ export class ElevationProfileComponent {
   private computeGeometry() {
     const track = this.track();
     const points = track.points;
-    const plotW = VIEW_WIDTH - MARGIN.left - MARGIN.right;
+    const plotW = this.viewWidth - MARGIN.left - MARGIN.right;
 
     const maxDistance = track.distance || points[points.length - 1]?.distance || 1;
     // Fenêtre visible (zoom/pan) exprimée en km.
@@ -660,7 +698,7 @@ export class ElevationProfileComponent {
       return;
     }
     event.preventDefault();
-    const plotW = VIEW_WIDTH - MARGIN.left - MARGIN.right;
+    const plotW = this.viewWidth - MARGIN.left - MARGIN.right;
     const focusPlotFrac = Math.min(1, Math.max(0, (vbX - MARGIN.left) / plotW));
     this.zoomAround(focusPlotFrac, event.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP);
   }
@@ -742,7 +780,7 @@ export class ElevationProfileComponent {
     if (this.panning()) {
       const vbX = this.clientToVbX(event.clientX);
       if (vbX != null) {
-        const plotW = VIEW_WIDTH - MARGIN.left - MARGIN.right;
+        const plotW = this.viewWidth - MARGIN.left - MARGIN.right;
         const deltaFrac = ((vbX - this.panStartVbX) / plotW) * this.viewSpanFrac();
         this.setViewStart(this.panStartFrac - deltaFrac);
         this.suppressClick = true;
@@ -810,7 +848,7 @@ export class ElevationProfileComponent {
     if (rect.width === 0) {
       return null;
     }
-    return ((clientX - rect.left) / rect.width) * VIEW_WIDTH;
+    return ((clientX - rect.left) / rect.width) * this.viewWidth;
   }
 
   /** Point de trace le plus proche (en X) d'une abscisse écran. */
