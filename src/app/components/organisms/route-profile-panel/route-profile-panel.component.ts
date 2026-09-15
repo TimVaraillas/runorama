@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
@@ -8,7 +8,6 @@ import { TrackMapComponent } from '../track-map/track-map.component';
 import type {
   AidStation,
   GpxTrack,
-  RoutePointKind,
   RoutePointMarker,
   RouteWaypoint,
 } from '../../../core/models';
@@ -82,6 +81,16 @@ export interface GpxSelection {
 
           <div class="flex items-center gap-2">
             <ui-button
+              color="primary"
+              variant="full"
+              size="sm"
+              [icon]="faLocationDot"
+              [attr.aria-pressed]="addMode()"
+              (clicked)="addMode.set(!addMode())"
+            >
+              Ajouter un point
+            </ui-button>
+            <ui-button
               color="default"
               variant="outlined"
               size="sm"
@@ -91,56 +100,14 @@ export interface GpxSelection {
             >
               {{ fullscreen() ? 'Quitter le plein écran' : 'Plein écran' }}
             </ui-button>
-            <ui-button
-              color="primary"
-              variant="full"
-              size="sm"
-              [icon]="faLocationDot"
-              [attr.aria-pressed]="addMode()"
-              (clicked)="addMode.set(!addMode())"
-            >
-              Ajouter un point sur le parcours
-            </ui-button>
-            <ui-button
-              color="danger"
-              variant="ghost"
-              size="sm"
-              [icon]="faTrash"
-              [disabled]="uploading()"
-              (clicked)="confirmRemoveOpen.set(true)"
-            >
-              Retirer la trace GPX
-            </ui-button>
           </div>
         </div>
 
         @if (addMode()) {
           <div class="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2">
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="text-sm font-medium text-brand-700">Type de point :</span>
-              @for (option of kindOptions; track option.kind) {
-                <button
-                  type="button"
-                  class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
-                  [class.bg-white]="addKind() !== option.kind"
-                  [class.text-slate-600]="addKind() !== option.kind"
-                  [class.border-slate-300]="addKind() !== option.kind"
-                  [style.background]="addKind() === option.kind ? option.color : null"
-                  [style.border-color]="option.color"
-                  [style.color]="addKind() === option.kind ? '#fff' : null"
-                  (click)="addKind.set(option.kind)"
-                >
-                  <span
-                    class="h-2 w-2 rounded-full"
-                    [style.background]="addKind() === option.kind ? '#fff' : option.color"
-                  ></span>
-                  {{ option.label }}
-                </button>
-              }
-            </div>
             <p class="mt-1.5 text-xs text-brand-700/80">
-              Cliquez sur le profil ou le tracé pour positionner un point (un seul à la fois).
-              Glissez un repère existant pour l'ajuster.
+              Cliquez sur le profil ou le tracé pour positionner un point. Le type se choisit dans
+              le panneau latéral.
             </p>
           </div>
         }
@@ -241,12 +208,6 @@ export interface GpxSelection {
         </div>
         </div>
 
-        @if (!fullscreen()) {
-          <p class="text-xs text-slate-400">
-            Les ravitaillements sont positionnés automatiquement d'après leur distance depuis le
-            départ. Cliquez sur un repère pour ouvrir le ravitaillement correspondant.
-          </p>
-        }
       </div>
     } @else if (loading()) {
       <div
@@ -324,6 +285,8 @@ export class RouteProfilePanelComponent {
   readonly loading = input(false);
   /** Import en cours (désactive les actions). */
   readonly uploading = input(false);
+  /** Compteur permettant d’ouvrir la confirmation depuis le menu de la page. */
+  readonly removeTrackRequest = input(0);
   /** Heure de départ locale de la course, au format `HH:mm`. */
   readonly startTime = input('08:00');
   /** Chrono cible de la course, utilisé pour l'heure d'arrivée. */
@@ -335,8 +298,8 @@ export class RouteProfilePanelComponent {
   readonly removeTrack = output<void>();
   /** Émis au clic sur un repère (identifiant du point de passage). */
   readonly selectAidStation = output<string>();
-  /** Émis pour créer un point de passage à une distance (km), selon son type. */
-  readonly addPoint = output<{ distance: number; kind: RoutePointKind }>();
+  /** Émis pour créer un point de passage à une distance (km). */
+  readonly addPoint = output<{ distance: number }>();
   /** Émis pour repositionner un point de passage à une nouvelle distance (km). */
   readonly moveAidStation = output<{ id: string; distance: number }>();
   /** Émis en cas de fichier illisible. */
@@ -358,24 +321,16 @@ export class RouteProfilePanelComponent {
 
   /** Mode ajout de point de passage depuis le profil / le tracé. */
   protected readonly addMode = signal(false);
-  /** Type de point sélectionné pour l'ajout. */
-  protected readonly addKind = signal<RoutePointKind>('AID_STATION');
   /** Point de trace actuellement survolé dans le profil ou sur la carte. */
   protected readonly activePoint = signal<GpxTrack['points'][number] | null>(null);
-  /** Types proposés à l'ajout (libellé + couleur). */
-  protected readonly kindOptions: ReadonlyArray<{
-    kind: RoutePointKind;
-    label: string;
-    color: string;
-  }> = [
-    { kind: 'AID_STATION', label: 'Ravitaillement', color: '#6366f1' },
-    { kind: 'CHECKPOINT', label: 'Checkpoint', color: '#0ea5e9' },
-    { kind: 'SUMMIT', label: 'Sommet', color: '#f59e0b' },
-    { kind: 'CUSTOM', label: 'Point personnalisé', color: '#a855f7' },
-  ];
-
   /** État d'ouverture de la modale de confirmation de retrait. */
   protected readonly confirmRemoveOpen = signal(false);
+
+  constructor() {
+    effect(() => {
+      if (this.removeTrackRequest() > 0) this.confirmRemoveOpen.set(true);
+    });
+  }
 
   /** Marqueurs unifiés (ravitaillements + points de passage) sur le profil. */
   protected readonly markers = computed<RoutePointMarker[]>(() => {
@@ -394,7 +349,7 @@ export class RouteProfilePanelComponent {
 
   /** Place un point du type sélectionné puis quitte le mode ajout (un à la fois). */
   protected onAddAt(distance: number): void {
-    this.addPoint.emit({ distance, kind: this.addKind() });
+    this.addPoint.emit({ distance });
     this.addMode.set(false);
   }
 

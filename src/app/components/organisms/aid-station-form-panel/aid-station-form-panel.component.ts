@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ButtonComponent } from '../../atoms/button/button.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { SidePanelComponent } from '../../molecules/side-panel/side-panel.component';
 import { AidStationFormComponent } from '../aid-station-form/aid-station-form.component';
 import type { AidStation, RaceStrategyItem, NutritionProduct } from '../../../core/models';
-import { faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
 
 /**
  * Organism : panneau latéral de création/modification d'un ravitaillement.
@@ -14,7 +15,7 @@ import { faXmark } from '@fortawesome/free-solid-svg-icons';
 @Component({
   selector: 'ui-aid-station-form-panel',
   standalone: true,
-  imports: [IconComponent, SidePanelComponent, AidStationFormComponent],
+  imports: [ButtonComponent, IconComponent, SidePanelComponent, AidStationFormComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ui-side-panel [open]="open()" [ariaLabel]="heading()" (close)="close.emit()">
@@ -43,6 +44,13 @@ import { faXmark } from '@fortawesome/free-solid-svg-icons';
               (cancel)="close.emit()"
             />
           </div>
+          @if (station()) {
+            <div class="flex items-center justify-between gap-3 border-t border-slate-200 bg-white px-6 py-4">
+              <ui-button color="danger" variant="ghost" [icon]="faTrash" (clicked)="delete.emit()">
+                Supprimer
+              </ui-button>
+            </div>
+          }
         </div>
       }
     </ui-side-panel>
@@ -64,7 +72,10 @@ export class AidStationFormPanelComponent {
   readonly save = output<Partial<AidStation>>();
   /** Émis lors d'une demande de fermeture. */
   readonly close = output<void>();
+  /** Émis lors d'une demande de suppression en mode édition. */
+  readonly delete = output<void>();
 
+  protected readonly faTrash = faTrash;
   protected readonly faXmark = faXmark;
 
   protected heading(): string {

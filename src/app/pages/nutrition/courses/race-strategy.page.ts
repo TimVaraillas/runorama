@@ -32,6 +32,7 @@ import {
 } from '../../../components/organisms/route-profile-panel/route-profile-panel.component';
 import { GpxReconciliationModalComponent } from '../../../components/molecules/gpx-reconciliation-modal/gpx-reconciliation-modal.component';
 import { WaypointFormPanelComponent } from '../../../components/organisms/waypoint-form-panel/waypoint-form-panel.component';
+import { RoutePointFormPanelComponent } from '../../../components/organisms/route-point-form-panel/route-point-form-panel.component';
 import { PacingPanelComponent } from '../../../components/organisms/pacing-panel/pacing-panel.component';
 import type {
   AidStation,
@@ -97,6 +98,7 @@ import {
     RouteProfilePanelComponent,
     GpxReconciliationModalComponent,
     WaypointFormPanelComponent,
+    RoutePointFormPanelComponent,
     PacingPanelComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -159,6 +161,9 @@ import {
           @if (gpxTrack()) {
             <ui-dropdown-menu-item [icon]="faRoute" (selected)="exportGpx()">
               Exporter le tracé GPX
+            </ui-dropdown-menu-item>
+            <ui-dropdown-menu-item [icon]="faTrash" color="danger" (selected)="requestRemoveGpx()">
+              Supprimer la trace GPX
             </ui-dropdown-menu-item>
           }
           <ui-dropdown-menu-item [icon]="faTrash" color="danger" (selected)="requestDelete()">
@@ -226,6 +231,7 @@ import {
             [targetTimeMinutes]="ev.targetTimeMinutes ?? 0"
             [loading]="gpxLoading()"
             [uploading]="gpxUploading()"
+            [removeTrackRequest]="removeTrackRequest()"
             (gpxSelected)="onGpxSelected($event)"
             (removeTrack)="removeGpx()"
             (selectAidStation)="selectPoint($event)"
@@ -290,6 +296,7 @@ import {
       [inventoryItems]="event()?.items ?? []"
       [pickupElsewhere]="editingPickupElsewhere()"
       (save)="saveAidStation($event)"
+      (delete)="deleteAidStationFromPanel()"
       (close)="closeAidStationPanel()"
     />
 
@@ -320,6 +327,22 @@ import {
       (save)="saveWaypoint($event)"
       (delete)="deleteWaypoint()"
       (close)="closeWaypointModal()"
+    />
+
+    <!-- Panneau : création d'un point du parcours -->
+    <ui-route-point-form-panel
+      [open]="routePointPanelOpen()"
+      [distance]="routePointDistance()"
+      [station]="routePointDraft()"
+      [initialKind]="routePointInitialKind()"
+      [canDelete]="routePointEditingId() !== null"
+      [products]="products()"
+      [inventoryItems]="event()?.items ?? []"
+      [pickupElsewhere]="editingPickupElsewhere()"
+      (aidStationSave)="saveRoutePointAidStation($event)"
+      (waypointSave)="saveRoutePointWaypoint($event)"
+      (delete)="deleteRoutePoint()"
+      (close)="closeRoutePointPanel()"
     />
   `,
 })
@@ -370,6 +393,7 @@ export class RaceStrategyPage {
   protected readonly gpxLoading = signal(true);
   /** Import GPX en cours. */
   protected readonly gpxUploading = signal(false);
+  protected readonly removeTrackRequest = signal(0);
   /** État d'ouverture de la modale de réconciliation des écarts GPX. */
   protected readonly reconcileOpen = signal(false);
   /** Écarts GPX / évènement à réconcilier. */
@@ -378,6 +402,14 @@ export class RaceStrategyPage {
   protected readonly waypointModalOpen = signal(false);
   /** Point de passage en cours d'édition (`null` sinon). */
   protected readonly editingWaypoint = signal<RouteWaypoint | null>(null);
+
+  /** État du panneau unifié de création d'un point du parcours. */
+  protected readonly routePointPanelOpen = signal(false);
+  protected readonly routePointDistance = signal(0);
+  protected readonly routePointDraft = signal<AidStation | null>(null);
+  protected readonly routePointInitialKind = signal<RoutePointKind>('AID_STATION');
+  protected readonly routePointEditingId = signal<string | null>(null);
+  protected readonly routePointOriginalKind = signal<RoutePointKind | null>(null);
 
   /** État d'ouverture du panneau d'édition de l'évènement. */
   protected readonly panelOpen = signal(false);
@@ -612,6 +644,12 @@ export class RaceStrategyPage {
     this.persistAidStations(event.id, aidStations, 'Ravitaillement supprimé.');
   }
 
+  deleteAidStationFromPanel(): void {
+    const station = this.editingAidStation();
+    if (station) this.deleteAidStation(station);
+    this.closeAidStationPanel();
+  }
+
   /** Persiste la liste des ravitaillements et met à jour l'état local. */
   private persistAidStations(eventId: string, aidStations: AidStation[], successMessage: string): void {
     const event = this.event();
@@ -647,25 +685,151 @@ export class RaceStrategyPage {
   }
 
   /** Aiguille l'ajout d'un point selon son type (ravitaillement ou waypoint). */
-  addPoint(payload: { distance: number; kind: RoutePointKind }): void {
-    if (payload.kind === 'AID_STATION') {
-      this.addAidStationAtDistance(payload.distance);
-    } else {
-      this.createWaypointAtDistance(payload.distance, payload.kind);
-    }
+  addPoint(payload: { distance: number }): void {
+    const event = this.event();
+    const track = this.gpxTrack();
+    if (!event || !track) return;
+    const rounded = Math.round(payload.distance * 100) / 100;
+    const estimatedDurationFromStart = estimatePassageTimeByKmRatio(
+      rounded,
+      event.targetTimeMinutes,
+      track.distance,
+    );
+    let station: AidStation = {
+      id: newAidStationId(),
+      name: 'Nouveau ravitaillement',
+      types: [],
+      distanceFromStart: rounded,
+      estimatedDurationFromStart,
+      stopDurationMinutes: 5,
+      pickup: [],
+      drop: [],
+      todo: [],
+      consumptions: [],
+    };
+    station = enrichAidStationFromTrack(station, track, { overwrite: true });
+    this.editingAidStation.set(null);
+    this.routePointDistance.set(rounded);
+    this.routePointDraft.set(station);
+    this.routePointPanelOpen.set(true);
+  }
+
+  saveRoutePointAidStation(payload: Partial<AidStation>): void {
+    const event = this.event();
+    const draft = this.routePointDraft();
+    if (!event || !draft) return;
+    const id = this.routePointEditingId() ?? draft.id;
+    const station: AidStation = { ...draft, ...payload, id };
+    const aidStations = (event.aidStations ?? []).filter((item) => item.id !== id);
+    const waypoints = (event.waypoints ?? []).filter((item) => item.id !== id);
+    this.persistRoutePointLists(
+      event.id,
+      [...aidStations, station],
+      waypoints,
+      this.routePointOriginalKind() ? 'Point mis à jour.' : 'Ravitaillement ajouté.',
+    );
+    this.closeRoutePointPanel();
+  }
+
+  saveRoutePointWaypoint(payload: { name: string; kind: Exclude<RoutePointKind, 'AID_STATION'> }): void {
+    const event = this.event();
+    const track = this.gpxTrack();
+    if (!event || !track) return;
+    const rounded = this.routePointDistance();
+    const id = this.routePointEditingId() ?? newLocalId('wpt');
+    let waypoint: RouteWaypoint = {
+      id,
+      name: payload.name,
+      kind: payload.kind,
+      distanceFromStart: rounded,
+      estimatedDurationFromStart: estimatePassageTimeByKmRatio(
+        rounded,
+        event.targetTimeMinutes,
+        track.distance,
+      ),
+    };
+    waypoint = enrichWaypointFromTrack(waypoint, track, { overwrite: true });
+    const aidStations = (event.aidStations ?? []).filter((item) => item.id !== id);
+    const waypoints = (event.waypoints ?? []).filter((item) => item.id !== id);
+    this.persistRoutePointLists(
+      event.id,
+      aidStations,
+      [...waypoints, waypoint],
+      this.routePointOriginalKind() ? 'Point mis à jour.' : 'Point ajouté.',
+    );
+    this.closeRoutePointPanel();
+  }
+
+  deleteRoutePoint(): void {
+    const event = this.event();
+    const id = this.routePointEditingId();
+    if (!event || !id) return;
+    this.persistRoutePointLists(
+      event.id,
+      (event.aidStations ?? []).filter((item) => item.id !== id),
+      (event.waypoints ?? []).filter((item) => item.id !== id),
+      'Point supprimé.',
+    );
+    this.closeRoutePointPanel();
+  }
+
+  closeRoutePointPanel(): void {
+    this.routePointPanelOpen.set(false);
+    this.routePointDraft.set(null);
+    this.editingAidStation.set(null);
+    this.routePointEditingId.set(null);
+    this.routePointOriginalKind.set(null);
+    this.routePointInitialKind.set('AID_STATION');
+  }
+
+  private persistRoutePointLists(
+    eventId: string,
+    aidStations: AidStation[],
+    waypoints: RouteWaypoint[],
+    successMessage: string,
+  ): void {
+    this.service.updateStrategy(eventId, { aidStations, waypoints }).subscribe({
+      next: (updated) => {
+        this.event.set(updated);
+        this.toast.success(successMessage);
+      },
+      error: () => this.toast.error("Impossible d'enregistrer le point. Veuillez réessayer."),
+    });
   }
 
   /** Ouvre l'éditeur approprié selon la nature du point sélectionné. */
   selectPoint(id: string): void {
     const station = (this.event()?.aidStations ?? []).find((s) => s.id === id);
     if (station) {
-      this.editAidStation(station);
+      this.routePointDistance.set(station.distanceFromStart ?? 0);
+      this.routePointDraft.set(station);
+        this.editingAidStation.set(station);
+      this.routePointInitialKind.set('AID_STATION');
+      this.routePointEditingId.set(station.id);
+      this.routePointOriginalKind.set('AID_STATION');
+      this.routePointPanelOpen.set(true);
       return;
     }
     const waypoint = (this.event()?.waypoints ?? []).find((w) => w.id === id);
     if (waypoint) {
-      this.editingWaypoint.set(waypoint);
-      this.waypointModalOpen.set(true);
+      this.routePointDistance.set(waypoint.distanceFromStart ?? 0);
+      this.routePointDraft.set({
+        id: waypoint.id,
+        name: waypoint.name,
+        types: [],
+        distanceFromStart: waypoint.distanceFromStart,
+        elevationGainFromStart: waypoint.elevationGainFromStart,
+        estimatedDurationFromStart: waypoint.estimatedDurationFromStart ?? 0,
+        pickup: [],
+        drop: [],
+        todo: [],
+        consumptions: [],
+      });
+      this.editingAidStation.set(null);
+      this.routePointInitialKind.set(waypoint.kind);
+      this.routePointEditingId.set(waypoint.id);
+      this.routePointOriginalKind.set(waypoint.kind);
+      this.routePointPanelOpen.set(true);
     }
   }
 
@@ -835,6 +999,10 @@ export class RaceStrategyPage {
   }
 
   /** Supprime la trace GPX de la stratégie. */
+  requestRemoveGpx(): void {
+    this.removeTrackRequest.update((request) => request + 1);
+  }
+
   removeGpx(): void {
     const event = this.event();
     if (!event) return;

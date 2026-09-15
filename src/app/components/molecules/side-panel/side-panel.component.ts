@@ -28,7 +28,7 @@ export type SidePanelSize = 'xs' | 'md' | 'lg' | 'xl';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (open()) {
-      <div class="fixed inset-0 z-40 flex justify-end">
+      <div class="fixed inset-0 z-[70] flex justify-end">
         <div
           class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
           (click)="close.emit()"

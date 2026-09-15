@@ -20,10 +20,11 @@ import { faBolt, faLock, faLockOpen, faWandMagicSparkles } from '@fortawesome/fr
     @if (track(); as route) {
       <div class="space-y-4">
         <div class="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4">
-          <div class="grid gap-3 sm:grid-cols-3">
+          <div class="grid gap-3 sm:grid-cols-4">
             <div><p class="text-xs font-medium uppercase tracking-wide text-slate-400">Chrono cible</p><p class="font-semibold tabular-nums text-slate-900">{{ durationLabel(targetTime()) }}</p></div>
             <div><p class="text-xs font-medium uppercase tracking-wide text-slate-400">En course</p><p class="font-semibold tabular-nums text-slate-900">{{ durationLabel(runningMinutes()) }}</p></div>
             <div><p class="text-xs font-medium uppercase tracking-wide text-slate-400">Arrêts</p><p class="font-semibold tabular-nums text-slate-900">{{ durationLabel(stopMinutes()) }}</p></div>
+            <div><p class="text-xs font-medium uppercase tracking-wide text-slate-400">Allure globale</p><p class="font-semibold tabular-nums text-slate-900">{{ globalPaceLabel(route) }}</p></div>
           </div>
           <div class="flex flex-wrap gap-2">
             @for (option of strategies; track option.value) {
@@ -79,6 +80,12 @@ export class PacingPanelComponent {
   });
   protected readonly stopMinutes = computed(() => this.segments().reduce((sum, segment) => sum + segment.stopMinutes, 0));
   protected readonly runningMinutes = computed(() => this.segments().reduce((sum, segment) => sum + segment.durationMinutes, 0));
+  protected globalPaceLabel(track: GpxTrack): string {
+    const targetTime = this.targetTime();
+    if (track.distance <= 0 || targetTime <= 0) return '—';
+    const totalSeconds = Math.round((targetTime / track.distance) * 60);
+    return `${Math.floor(totalSeconds / 60)}:${(totalSeconds % 60).toString().padStart(2, '0')} /km`;
+  }
   protected applyAutomatic(strategy: NonNullable<PacingPlan['strategy']>): void {
     const track = this.track();
     if (!track || !this.targetTime()) return;
