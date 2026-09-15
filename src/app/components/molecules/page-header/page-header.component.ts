@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, booleanAttribute, computed, input } from '@angular/core';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { IconComponent } from '../../atoms/icon/icon.component';
 
@@ -22,17 +22,17 @@ import { IconComponent } from '../../atoms/icon/icon.component';
   imports: [IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="mb-6 flex items-start justify-between gap-3">
-      <div class="flex min-w-0 flex-1 items-center gap-4">
+    <div [class]="rootClass()">
+      <div class="flex min-w-0 flex-1 items-center gap-3">
         @if (icon(); as ic) {
           <span
-            class="hidden h-14 w-14 shrink-0 place-items-center rounded-2xl bg-linear-to-br from-brand-600 to-secondary-500 text-white shadow-sm sm:grid"
+            class="hidden h-8 w-8 shrink-0 place-items-center rounded-lg bg-linear-to-br from-brand-600 to-secondary-500 text-white shadow-sm sm:grid"
           >
-            <ui-icon [icon]="ic" size="xl" />
+            <ui-icon [icon]="ic" size="md" />
           </span>
         }
         <div class="min-w-0">
-          <h1 class="truncate font-display text-4xl font-bold text-slate-600">{{ title() }}</h1>
+          <h1 class="truncate font-display text-xl font-bold text-slate-600">{{ title() }}</h1>
           @if (subtitle()) {
             <p class="truncate mt-0.5 text-sm text-slate-400 italic">{{ subtitle() }}</p>
           }
@@ -51,4 +51,15 @@ export class PageHeaderComponent {
   readonly subtitle = input('');
   /** Icône optionnelle affichée dans une pastille en dégradé de marque. */
   readonly icon = input<IconDefinition | null>(null);
+  /**
+   * Étend l'en-tête (et sa bordure) sur toute la largeur du parent en annulant
+   * son padding horizontal, tout en gardant le contenu aligné.
+   */
+  readonly flush = input(false, { transform: booleanAttribute });
+
+  protected readonly rootClass = computed(
+    () =>
+      'mb-6 flex items-start justify-between gap-3 border-b border-slate-200 pb-4' +
+      (this.flush() ? ' -mx-4 px-4 lg:-mx-6 lg:px-6' : ''),
+  );
 }

@@ -19,7 +19,9 @@ import { SpinnerComponent } from '../../../components/atoms/spinner/spinner.comp
 import { DropdownMenuComponent } from '../../../components/molecules/dropdown-menu/dropdown-menu.component';
 import { DropdownMenuItemComponent } from '../../../components/atoms/dropdown-menu-item/dropdown-menu-item.component';
 import { PageHeaderComponent } from '../../../components/molecules/page-header/page-header.component';
-import { TabsComponent, type TabItem } from '../../../components/molecules/tabs/tabs.component';
+import { SideNavComponent } from '../../../components/molecules/side-nav/side-nav.component';
+import { DashboardLayoutComponent } from '../../../components/templates/dashboard-layout/dashboard-layout.component';
+import type { TabItem } from '../../../components/molecules/tabs/tabs.component';
 import { ConfirmDeleteModalComponent } from '../../../components/molecules/confirm-delete-modal/confirm-delete-modal.component';
 import { RaceStrategyFormPanelComponent } from '../../../components/organisms/race-strategy-form-panel/race-strategy-form-panel.component';
 import { NutritionStrategyInventoryComponent } from '../../../components/organisms/nutrition-strategy-inventory/nutrition-strategy-inventory.component';
@@ -79,7 +81,7 @@ import {
  * glisser-déposer).
  */
 @Component({
-  selector: 'app-nutrition-strategy-inventory-page',
+  selector: 'race-page',
   standalone: true,
   imports: [
     ButtonComponent,
@@ -88,7 +90,8 @@ import {
     DropdownMenuComponent,
     DropdownMenuItemComponent,
     PageHeaderComponent,
-    TabsComponent,
+    SideNavComponent,
+    DashboardLayoutComponent,
     ConfirmDeleteModalComponent,
     RaceStrategyFormPanelComponent,
     NutritionStrategyInventoryComponent,
@@ -103,16 +106,20 @@ import {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section
-      [class]="
-        activeTab() === 'plan'
-          ? 'lg:flex lg:h-[calc(100vh-186px)] lg:flex-col'
-          : ''
-      "
-    >
+    <ui-dashboard-layout>
+      @if (event()) {
+        <ui-side-nav
+          sidenav
+          class="lg:w-52 lg:shrink-0 lg:border-r lg:border-slate-200"
+          [items]="tabs"
+          [(active)]="activeTab"
+        />
+      }
+
       <ui-page-header
+        header
+        flush
         [title]="event()?.name ?? 'Course'"
-        subtitle="Composez votre stratégie de course : parcours, allures, assistance et nutrition."
         [icon]="faFlag"
       >
 
@@ -175,7 +182,12 @@ import {
       </ui-page-header>
 
       @if (event(); as ev) {
-        <ui-tabs [tabs]="tabs" [(active)]="activeTab" />
+          <div
+            class="min-w-0 flex-1"
+            [class]="
+              activeTab() === 'plan' ? 'lg:flex lg:min-h-0 lg:flex-col' : ''
+            "
+          >
 
         @if (activeTab() === 'inventory') {
           @if (productsLoading()) {
@@ -260,6 +272,7 @@ import {
             }
           </div>
         }
+          </div>
       } @else if (notFound()) {
         <div
           class="flex flex-col items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center"
@@ -278,7 +291,7 @@ import {
           <p class="text-sm text-slate-400">Chargement de la course…</p>
         </div>
       }
-    </section>
+    </ui-dashboard-layout>
 
     <!-- Panneau : formulaire évènement -->
     <ui-race-strategy-form-panel

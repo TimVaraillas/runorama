@@ -75,6 +75,7 @@ export const routes: Routes = [
       ),
     title: 'Course — Runorama',
     canActivate: [authGuard],
+    data: { fullWidth: true },
   },
   {
     path: 'nutrition',
