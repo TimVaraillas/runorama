@@ -9,7 +9,15 @@ import {
   type PacingSegment,
 } from '../../../core/utils/pacing.util';
 import { formatPassageTime } from '../../../core/utils/passage-time.util';
-import { faBolt, faLock, faLockOpen, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
+import {
+  faGaugeHigh,
+  faLock,
+  faLockOpen,
+  faPause,
+  faPersonRunning,
+  faStopwatch,
+  faWandMagicSparkles,
+} from '@fortawesome/free-solid-svg-icons';
 
 @Component({
   selector: 'ui-pacing-panel',
@@ -18,22 +26,43 @@ import { faBolt, faLock, faLockOpen, faWandMagicSparkles } from '@fortawesome/fr
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (track(); as route) {
-      <div class="space-y-4">
-        <div class="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4">
-          <div class="grid gap-3 sm:grid-cols-4">
-            <div><p class="text-xs font-medium uppercase tracking-wide text-slate-400">Chrono cible</p><p class="font-semibold tabular-nums text-slate-900">{{ durationLabel(targetTime()) }}</p></div>
-            <div><p class="text-xs font-medium uppercase tracking-wide text-slate-400">En course</p><p class="font-semibold tabular-nums text-slate-900">{{ durationLabel(runningMinutes()) }}</p></div>
-            <div><p class="text-xs font-medium uppercase tracking-wide text-slate-400">Arrêts</p><p class="font-semibold tabular-nums text-slate-900">{{ durationLabel(stopMinutes()) }}</p></div>
-            <div><p class="text-xs font-medium uppercase tracking-wide text-slate-400">Allure globale</p><p class="font-semibold tabular-nums text-slate-900">{{ globalPaceLabel(route) }}</p></div>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            @for (option of strategies; track option.value) {
-              <ui-button size="sm" color="default" variant="outlined" [icon]="faWandMagicSparkles" (clicked)="applyAutomatic(option.value)">{{ option.label }}</ui-button>
-            }
-          </div>
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-5">
+        <div class="flex flex-wrap items-center gap-6 text-sm">
+          <span class="inline-flex items-center gap-1.5 text-slate-600">
+            <ui-icon [icon]="faStopwatch" size="sm" class="text-brand-500" />
+            <span class="text-slate-400">Chrono cible</span>
+            <span class="tabular-nums text-slate-500 font-medium">{{ durationLabel(targetTime()) }}</span>
+          </span>
+          <span class="inline-flex items-center gap-1.5 text-slate-600">
+            <ui-icon [icon]="faPersonRunning" size="sm" class="text-brand-500" />
+            <span class="text-slate-400">En course</span>
+            <span class="tabular-nums text-slate-500 font-medium">{{ durationLabel(runningMinutes()) }}</span>
+          </span>
+          <span class="inline-flex items-center gap-1.5 text-slate-600">
+            <ui-icon [icon]="faPause" size="sm" class="text-brand-500" />
+            <span class="text-slate-400">Arrêts</span>
+            <span class="tabular-nums text-slate-500 font-medium">{{ durationLabel(stopMinutes()) }}</span>
+          </span>
+          <span class="inline-flex items-center gap-1.5 text-slate-600">
+            <ui-icon [icon]="faGaugeHigh" size="sm" class="text-brand-500" />
+            <span class="text-slate-400">Allure moyenne</span>
+            <span class="tabular-nums text-slate-500 font-medium">{{ globalPaceLabel(route) }}</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="space-y-4 px-3 pt-3">
+        <div class="flex flex-wrap justify-end gap-2">
+          @for (option of strategies; track option.value) {
+            <ui-button size="sm" color="default" variant="outlined" [icon]="faWandMagicSparkles" (clicked)="applyAutomatic(option.value)">{{ option.label }}</ui-button>
+          }
         </div>
 
-        @if (warning()) { <p class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">{{ warning() }}</p> }
+        @if (warning()) {
+          <p class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            {{ warning() }}
+          </p>
+        }
 
         <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table class="min-w-250 w-full text-left text-sm">
@@ -58,7 +87,11 @@ import { faBolt, faLock, faLockOpen, faWandMagicSparkles } from '@fortawesome/fr
           </table>
         </div>
       </div>
-    } @else { <div class="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">Importez une trace GPX pour planifier les allures.</div> }
+    } @else {
+      <div class="m-3 rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
+        Importez une trace GPX pour planifier les allures.
+      </div>
+    }
   `,
 })
 export class PacingPanelComponent {
@@ -66,6 +99,10 @@ export class PacingPanelComponent {
   readonly track = input<GpxTrack | null>(null);
   readonly save = output<Pick<RaceStrategy, 'pacingPlan' | 'targetTimeMinutes'>>();
   protected readonly faWandMagicSparkles = faWandMagicSparkles;
+  protected readonly faStopwatch = faStopwatch;
+  protected readonly faPersonRunning = faPersonRunning;
+  protected readonly faPause = faPause;
+  protected readonly faGaugeHigh = faGaugeHigh;
   protected readonly faLock = faLock;
   protected readonly faLockOpen = faLockOpen;
   protected readonly terrains = Object.keys(PACING_TERRAIN_LABELS) as PacingSegment['terrain'][];

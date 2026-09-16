@@ -295,7 +295,12 @@ import {
             (fileError)="onFileError($event)"
           />
         } @else if (activeTab() === 'pacing') {
-          <ui-pacing-panel [event]="ev" [track]="gpxTrack()" (save)="savePacing($event)" />
+          <ui-pacing-panel
+            class="block -mx-4 -mt-6 lg:-mx-6"
+            [event]="ev"
+            [track]="gpxTrack()"
+            (save)="savePacing($event)"
+          />
         } @else {
           <div class="lg:min-h-0 lg:flex-1">
             @if (productsLoading()) {
