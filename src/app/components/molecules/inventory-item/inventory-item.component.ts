@@ -23,7 +23,7 @@ export type ResolvedInventoryItem = RaceStrategyItem & { product: NutritionProdu
   template: `
     <div class="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3">
       <div
-        class="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-slate-300"
+        class="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-md border border-slate-200 bg-slate-50 text-slate-300"
       >
         @if (item().product.image) {
           <img
@@ -54,7 +54,7 @@ export type ResolvedInventoryItem = RaceStrategyItem & { product: NutritionProdu
 
       <button
         type="button"
-        class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+        class="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
         (click)="remove.emit()"
         aria-label="Retirer le produit"
       >

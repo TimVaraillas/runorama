@@ -104,7 +104,7 @@ import {
               <div
                 cdkDrag
                 [cdkDragData]="item.productId"
-                class="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2"
+                class="flex items-center gap-3 rounded-md border border-slate-200 bg-white px-3 py-2"
               >
                 <ui-icon [icon]="faGripVertical" size="sm" class="shrink-0 cursor-grab text-slate-300" />
                 <div class="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-md border border-slate-200 bg-slate-50 text-slate-300">
@@ -132,7 +132,7 @@ import {
                 />
                 <button
                   type="button"
-                  class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                  class="grid h-8 w-8 shrink-0 place-items-center rounded-md text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
                   (click)="onRemove(location, item)"
                   [attr.aria-label]="'Retirer ' + item.product.name"
                 >
@@ -140,12 +140,12 @@ import {
                 </button>
 
                 <!-- Aperçu de glissement -->
-                <div *cdkDragPreview class="rounded-lg border border-brand-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-800 shadow-lg">
+                <div *cdkDragPreview class="rounded-md border border-brand-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-800 shadow-lg">
                   {{ item.product.name }}
                 </div>
               </div>
             } @empty {
-              <p class="rounded-lg border border-dashed border-slate-300 px-3 py-6 text-center text-xs text-slate-400">
+              <p class="rounded-md border border-dashed border-slate-300 px-3 py-6 text-center text-xs text-slate-400">
                 @if (location.kind === 'start') {
                   Ajoutez des produits pour composer votre sac de départ.
                 } @else {

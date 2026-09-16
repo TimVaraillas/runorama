@@ -12,7 +12,7 @@ const meta: Meta<PageHeaderComponent> = {
   render: (args) => ({
     props: args,
     template: `<ui-page-header [title]="title" [subtitle]="subtitle">
-      <button actions class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white">
+      <button actions class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white">
         Nouvel élément
       </button>
     </ui-page-header>`,

@@ -26,7 +26,7 @@ import { IconComponent } from '../../atoms/icon/icon.component';
       <div class="flex min-w-0 flex-1 items-center gap-3">
         @if (icon(); as ic) {
           <span
-            class="hidden h-8 w-8 shrink-0 place-items-center rounded-lg bg-linear-to-br from-brand-600 to-secondary-500 text-white shadow-sm sm:grid"
+            class="hidden h-8 w-8 shrink-0 place-items-center rounded-md bg-linear-to-br from-brand-600 to-secondary-500 text-white shadow-sm sm:grid"
           >
             <ui-icon [icon]="ic" size="md" />
           </span>

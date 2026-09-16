@@ -15,7 +15,7 @@ export type ProductViewMode = 'table' | 'grid';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="inline-flex items-center gap-0.5 rounded-lg border border-slate-200 bg-white p-0.5"
+      class="inline-flex items-center gap-0.5 rounded-md border border-slate-200 bg-white p-0.5"
       role="group"
       aria-label="Choisir l'affichage"
     >

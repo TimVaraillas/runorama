@@ -31,7 +31,7 @@ import { faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
       } @else {
         <ul class="space-y-1.5">
           @for (item of consumptions(); track item.id) {
-            <li class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+            <li class="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2">
               <ui-badge [tone]="item.source === 'FROM_INVENTORY' ? 'brand' : 'accent'">
                 {{ item.source === 'FROM_INVENTORY' ? 'Inventaire' : 'Sur place' }}
               </ui-badge>
@@ -41,7 +41,7 @@ import { faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
               <span class="shrink-0 text-xs tabular-nums text-slate-500">{{ amount(item) }}</span>
               <button
                 type="button"
-                class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                class="grid h-8 w-8 shrink-0 place-items-center rounded-md text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
                 (click)="removeById(item.id)"
                 aria-label="Retirer la consommation"
               >
@@ -53,8 +53,8 @@ import { faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
       }
 
       <!-- Ligne d'ajout -->
-      <div class="space-y-2.5 rounded-lg border border-dashed border-slate-300 bg-slate-50/60 p-2.5">
-        <div class="inline-flex rounded-lg bg-slate-100 p-0.5 text-xs">
+      <div class="space-y-2.5 rounded-md border border-dashed border-slate-300 bg-slate-50/60 p-2.5">
+        <div class="inline-flex rounded-md bg-slate-100 p-0.5 text-xs">
           <button type="button" [class]="tabClass(source() === 'FROM_INVENTORY')" (click)="source.set('FROM_INVENTORY')">
             Depuis l'inventaire
           </button>
@@ -242,13 +242,13 @@ export class AidConsumptionListComponent {
   protected readonly waterMl = signal<number | null>(null);
 
   protected readonly selectClass =
-    'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
+    'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
   protected readonly inputClass =
-    'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
+    'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
   protected readonly qtyClass =
-    'w-20 rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm tabular-nums text-slate-900 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
+    'w-20 rounded-md border border-slate-300 bg-white px-2 py-2 text-sm tabular-nums text-slate-900 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
   protected readonly addBtnClass =
-    'inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600 disabled:opacity-40';
+    'inline-flex shrink-0 items-center gap-1.5 rounded-md bg-brand-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600 disabled:opacity-40';
 
   private readonly productMap = computed(
     () => new Map(this.products().map((product) => [product.id, product])),

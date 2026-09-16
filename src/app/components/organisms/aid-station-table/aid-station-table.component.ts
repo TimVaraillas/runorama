@@ -109,7 +109,7 @@ import { faLocationDot, faNoteSticky, faPen, faTrash } from '@fortawesome/free-s
                   <div class="flex items-center justify-end gap-1">
                     <button
                       type="button"
-                      class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
+                      class="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
                       (click)="edit.emit(view.station); $event.stopPropagation()"
                       aria-label="Modifier le ravitaillement"
                     >
@@ -117,7 +117,7 @@ import { faLocationDot, faNoteSticky, faPen, faTrash } from '@fortawesome/free-s
                     </button>
                     <button
                       type="button"
-                      class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                      class="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
                       (click)="delete.emit(view.station); $event.stopPropagation()"
                       aria-label="Supprimer le ravitaillement"
                     >

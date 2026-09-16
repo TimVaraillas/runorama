@@ -34,7 +34,7 @@ import { formatPassageTime } from '../../../core/utils/passage-time.util';
     <div
       #mapContainer
       [class]="
-        'z-0 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100 ' +
+        'z-0 w-full overflow-hidden border border-slate-200 bg-slate-100 ' +
         (fillHeight() ? 'h-full min-h-0' : 'h-160')
       "
     ></div>

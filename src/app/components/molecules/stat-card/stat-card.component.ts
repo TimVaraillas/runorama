@@ -14,7 +14,7 @@ import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
   template: `
     <div class="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       @if (icon(); as ic) {
-        <div class="grid h-11 w-11 place-items-center rounded-lg bg-brand-50 text-brand-600">
+        <div class="grid h-11 w-11 place-items-center rounded-md bg-brand-50 text-brand-600">
           <ui-icon [icon]="ic" size="lg" />
         </div>
       }

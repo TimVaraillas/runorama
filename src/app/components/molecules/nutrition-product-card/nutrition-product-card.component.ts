@@ -27,7 +27,7 @@ import { faStar as faStarRegular, faNoteSticky as faNoteRegular } from '@fortawe
     >
       <div class="flex items-start gap-3 p-4">
         <div
-          class="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-slate-300"
+          class="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-md border border-slate-200 bg-slate-50 text-slate-300"
         >
           @if (product().image) {
             <img [src]="product().image" [alt]="product().name" class="h-full w-full object-cover" />
@@ -51,7 +51,7 @@ import { faStar as faStarRegular, faNoteSticky as faNoteRegular } from '@fortawe
           @if (showPersonalActions()) {
             <button
               type="button"
-              class="grid h-8 w-8 place-items-center rounded-lg transition-colors"
+              class="grid h-8 w-8 place-items-center rounded-md transition-colors"
               [class.text-amber-400]="product().favorite"
               [class.hover:bg-amber-50]="true"
               [class.text-slate-300]="!product().favorite"
@@ -65,7 +65,7 @@ import { faStar as faStarRegular, faNoteSticky as faNoteRegular } from '@fortawe
             </button>
             <button
               type="button"
-              class="grid h-8 w-8 place-items-center rounded-lg transition-colors hover:bg-brand-50"
+              class="grid h-8 w-8 place-items-center rounded-md transition-colors hover:bg-brand-50"
               [class.text-brand-500]="product().comment"
               [class.text-slate-300]="!product().comment"
               [class.hover:text-brand-600]="true"
@@ -79,7 +79,7 @@ import { faStar as faStarRegular, faNoteSticky as faNoteRegular } from '@fortawe
           @if (caps().canApprove) {
             <button
               type="button"
-              class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
+              class="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
               (click)="approve.emit(product())"
               aria-label="Valider le produit"
               title="Valider"
@@ -90,7 +90,7 @@ import { faStar as faStarRegular, faNoteSticky as faNoteRegular } from '@fortawe
           @if (caps().canReject) {
             <button
               type="button"
-              class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+              class="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
               (click)="reject.emit(product())"
               aria-label="Refuser le produit"
               title="Refuser"
@@ -101,7 +101,7 @@ import { faStar as faStarRegular, faNoteSticky as faNoteRegular } from '@fortawe
           @if (caps().canArchive) {
             <button
               type="button"
-              class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-amber-50 hover:text-amber-600"
+              class="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-amber-50 hover:text-amber-600"
               (click)="archive.emit(product())"
               aria-label="Archiver le produit"
               title="Archiver"
@@ -112,7 +112,7 @@ import { faStar as faStarRegular, faNoteSticky as faNoteRegular } from '@fortawe
           @if (caps().canEdit) {
             <button
               type="button"
-              class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
+              class="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
               (click)="edit.emit(product())"
               aria-label="Modifier le produit"
             >
@@ -122,7 +122,7 @@ import { faStar as faStarRegular, faNoteSticky as faNoteRegular } from '@fortawe
           @if (caps().canDelete) {
             <button
               type="button"
-              class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+              class="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
               (click)="delete.emit(product())"
               aria-label="Supprimer le produit"
             >

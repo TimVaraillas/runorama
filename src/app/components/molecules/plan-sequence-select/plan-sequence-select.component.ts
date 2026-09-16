@@ -37,5 +37,5 @@ export class PlanSequenceSelectComponent {
   readonly valueChange = output<PlanSequenceMinutes>();
 
   protected readonly selectClass =
-    'shrink-0 rounded-lg bg-slate-100 px-3 py-1.5 text-sm text-slate-900 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-200';
+    'shrink-0 rounded-md bg-slate-100 px-3 py-1.5 text-sm text-slate-900 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-200';
 }

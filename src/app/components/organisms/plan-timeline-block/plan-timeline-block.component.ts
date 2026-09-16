@@ -156,7 +156,7 @@ export class PlanTimelineBlockComponent {
 
   /** Aperçu affiché pendant le glisser-déposer. */
   protected readonly previewClass = computed(() => {
-    const base = 'rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-lg';
+    const base = 'rounded-md border px-3 py-1.5 text-xs font-semibold shadow-lg';
     return this.isWater()
       ? `${base} border-sky-400 bg-sky-100 text-sky-800`
       : `${base} border-secondary-400 bg-secondary-100 text-secondary-800`;

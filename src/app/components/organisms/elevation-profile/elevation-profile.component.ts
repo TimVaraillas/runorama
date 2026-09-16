@@ -321,7 +321,7 @@ const ZOOM_STEP = 0.8;
       <!-- Infobulle de survol -->
       @if (displayHover(); as h) {
         <div
-          class="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] shadow-md"
+          class="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] shadow-md"
           [style.left.%]="(h.x / viewWidth) * 100"
           [style.top.%]="(h.y / viewHeight) * 100"
         >

@@ -23,8 +23,8 @@ const meta: Meta<ModalComponent> = {
     >
       <p>Êtes-vous sûr de vouloir supprimer cet élément ? Cette action est irréversible.</p>
       <div modalFooter>
-        <button class="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100" (click)="close()">Annuler</button>
-        <button class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white">Supprimer</button>
+        <button class="rounded-md px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100" (click)="close()">Annuler</button>
+        <button class="rounded-md bg-rose-600 px-4 py-2 text-sm font-medium text-white">Supprimer</button>
       </div>
     </ui-modal>`,
   }),

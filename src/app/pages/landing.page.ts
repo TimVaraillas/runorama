@@ -65,7 +65,7 @@ interface Feature {
 
     <section class="mx-auto grid max-w-5xl gap-6 px-4 pb-20 sm:grid-cols-3">
       @for (feature of features; track feature.title) {
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm">
+        <div class="rounded-md border border-slate-200 bg-white p-6 text-left shadow-sm">
           <span
             class="grid h-12 w-12 place-items-center rounded-xl bg-secondary-50 text-secondary-500"
           >

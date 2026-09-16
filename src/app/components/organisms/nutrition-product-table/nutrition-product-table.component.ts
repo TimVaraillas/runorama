@@ -161,7 +161,7 @@ export type ProductColumnKey =
               <td class="min-w-52 max-w-64 px-4 py-3">
                 <div class="flex items-center gap-3">
                   <div
-                    class="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-slate-300"
+                    class="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-md border border-slate-200 bg-slate-50 text-slate-300"
                   >
                     @if (product.image) {
                       <img [src]="product.image" [alt]="product.name" class="h-full w-full object-cover" />
@@ -244,7 +244,7 @@ export type ProductColumnKey =
                       @if (showPersonalActions()) {
                         <button
                           type="button"
-                          class="grid h-8 w-8 place-items-center rounded-lg transition-colors hover:bg-amber-50"
+                          class="grid h-8 w-8 place-items-center rounded-md transition-colors hover:bg-amber-50"
                           [class.text-amber-400]="product.favorite"
                           [class.text-slate-300]="!product.favorite"
                           [class.hover:text-amber-400]="!product.favorite"
@@ -257,7 +257,7 @@ export type ProductColumnKey =
                         </button>
                         <button
                           type="button"
-                          class="grid h-8 w-8 place-items-center rounded-lg transition-colors hover:bg-brand-50 hover:text-brand-600"
+                          class="grid h-8 w-8 place-items-center rounded-md transition-colors hover:bg-brand-50 hover:text-brand-600"
                           [class.text-brand-500]="product.comment"
                           [class.text-slate-300]="!product.comment"
                           (click)="editNote.emit(product)"
@@ -270,7 +270,7 @@ export type ProductColumnKey =
                       @if (caps.canApprove) {
                         <button
                           type="button"
-                          class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
+                          class="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
                           (click)="approve.emit(product)"
                           aria-label="Valider le produit"
                           title="Valider"
@@ -281,7 +281,7 @@ export type ProductColumnKey =
                       @if (caps.canReject) {
                         <button
                           type="button"
-                          class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                          class="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
                           (click)="reject.emit(product)"
                           aria-label="Refuser le produit"
                           title="Refuser"
@@ -292,7 +292,7 @@ export type ProductColumnKey =
                       @if (caps.canArchive) {
                         <button
                           type="button"
-                          class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-amber-50 hover:text-amber-600"
+                          class="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-amber-50 hover:text-amber-600"
                           (click)="archive.emit(product)"
                           aria-label="Archiver le produit"
                           title="Archiver"
@@ -303,7 +303,7 @@ export type ProductColumnKey =
                       @if (caps.canEdit) {
                         <button
                           type="button"
-                          class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
+                          class="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
                           (click)="edit.emit(product)"
                           aria-label="Modifier le produit"
                         >
@@ -313,7 +313,7 @@ export type ProductColumnKey =
                       @if (caps.canDelete) {
                         <button
                           type="button"
-                          class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                          class="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
                           (click)="delete.emit(product)"
                           aria-label="Supprimer le produit"
                         >
@@ -328,7 +328,7 @@ export type ProductColumnKey =
                 <td class="px-4 py-3 text-center">
                   <button
                     type="button"
-                    class="grid h-8 w-8 place-items-center rounded-lg transition-colors hover:bg-amber-50 mx-auto"
+                    class="grid h-8 w-8 place-items-center rounded-md transition-colors hover:bg-amber-50 mx-auto"
                     [class.text-amber-400]="product.favorite"
                     [class.text-slate-300]="!product.favorite"
                     [class.hover:text-amber-400]="!product.favorite"

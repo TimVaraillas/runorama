@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, input, model, output, signal } from '@angular/core';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
@@ -14,14 +14,18 @@ import type {
 import { buildRouteMarkers } from '../../../core/utils/route-point.util';
 import { estimateArrivalTime } from '../../../core/utils/passage-time.util';
 import {
+  faArrowTrendDown,
+  faArrowTrendUp,
   faArrowUpFromBracket,
+  faCalendarDay,
   faCompress,
   faExpand,
   faLocationDot,
+  faMountain,
   faMinus,
-  faMountainSun,
   faPlus,
   faRoute,
+  faStopwatch,
   faTrash,
   faXmark,
 } from '@fortawesome/free-solid-svg-icons';
@@ -59,52 +63,65 @@ export interface GpxSelection {
       <div
         [class]="
           fullscreen()
-            ? 'fixed inset-0 z-60 flex flex-col gap-3 overflow-hidden bg-slate-50 p-4'
-            : 'space-y-4'
+            ? 'fixed inset-0 z-60 flex flex-col overflow-hidden bg-slate-50'
+            : ''
         "
       >
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div class="flex flex-wrap items-center gap-4 text-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-5">
+          <div class="flex flex-wrap items-center gap-6 text-sm">
             <span class="inline-flex items-center gap-1.5 text-slate-600">
-              <ui-icon [icon]="faRoute" size="sm" class="text-brand-500" />
-              <strong class="tabular-nums text-slate-900">{{ formatKm(t.distance) }} km</strong>
+              <ui-icon [icon]="faCalendarDay" size="sm" class="text-brand-500" />
+              <span class="tabular-nums text-slate-500 font-medium">{{ formatDate(date()) }}</span>
             </span>
             <span class="inline-flex items-center gap-1.5 text-slate-600">
-              <ui-icon [icon]="faMountainSun" size="sm" class="text-emerald-500" />
-              <strong class="tabular-nums text-slate-900">+{{ round(t.elevationGain) }} m</strong>
-              <span class="tabular-nums text-slate-400">/ -{{ round(t.elevationLoss) }} m</span>
+              <ui-icon [icon]="faStopwatch" size="sm" class="text-brand-500" />
+              <span class="tabular-nums text-slate-500 font-medium">{{ startTime() }}</span>
             </span>
-            <span class="tabular-nums text-slate-500">
-              {{ round(t.minAltitude) }}–{{ round(t.maxAltitude) }} m
+            <span class="inline-flex items-center gap-1.5 text-slate-600">
+              <ui-icon [icon]="faRoute" size="sm" class="text-secondary-400" />
+              <span class="tabular-nums text-slate-500 font-medium">{{ formatKm(t.distance) }} km</span>
+            </span>
+            <span class="inline-flex items-center gap-1.5 text-slate-600">
+              <ui-icon [icon]="faArrowTrendUp" size="sm" class="text-secondary-400" />
+              <span class="tabular-nums text-slate-500 font-medium">+{{ round(t.elevationGain) }} m</span>
+            </span>
+            <span class="inline-flex items-center gap-1.5 text-slate-600">
+              <ui-icon [icon]="faArrowTrendDown" size="sm" class="text-secondary-400" />
+              <span class="tabular-nums text-slate-500 font-medium">-{{ round(t.elevationLoss) }} m</span>
+            </span>
+            <span class="inline-flex items-center gap-1.5 text-slate-600">
+              <ui-icon [icon]="faMountain" size="sm" class="text-secondary-400" />
+              <span class="tabular-nums text-slate-500 font-medium">{{ round(t.minAltitude) }}–{{ round(t.maxAltitude) }} m</span>
             </span>
           </div>
+          @if (fullscreen()) {
+            <div class="flex items-center gap-2">
+              <ui-button
+                size="sm"
+                [color]="'primary'"
+                variant="outlined"
+                [icon]="faLocationDot"
+                [attr.aria-pressed]="addMode()"
+                (clicked)="addMode.set(!addMode())"
+              >
+                Ajouter un point
+              </ui-button>
+              <ui-button
+                size="sm"
+                color="default"
+                variant="outlined"
+                [icon]="faCompress"
+                title="Quitter le plein écran"
+                (clicked)="fullscreen.set(false)"
+              >
+              </ui-button>
+            </div>
+          }
 
-          <div class="flex items-center gap-2">
-            <ui-button
-              color="primary"
-              variant="full"
-              size="sm"
-              [icon]="faLocationDot"
-              [attr.aria-pressed]="addMode()"
-              (clicked)="addMode.set(!addMode())"
-            >
-              Ajouter un point
-            </ui-button>
-            <ui-button
-              color="default"
-              variant="outlined"
-              size="sm"
-              [icon]="fullscreen() ? faCompress : faExpand"
-              [attr.aria-pressed]="fullscreen()"
-              (clicked)="fullscreen.set(!fullscreen())"
-            >
-              {{ fullscreen() ? 'Quitter le plein écran' : 'Plein écran' }}
-            </ui-button>
-          </div>
         </div>
 
         @if (addMode()) {
-          <div class="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2">
+          <div class="border-b border-slate-200 bg-brand-50 px-6 py-3">
             <p class="mt-1.5 text-xs text-brand-700/80">
               Cliquez sur le profil ou le tracé pour positionner un point. Le type se choisit dans
               le panneau latéral.
@@ -112,10 +129,10 @@ export interface GpxSelection {
           </div>
         }
 
-        <div [class]="fullscreen() ? 'flex min-h-0 flex-1 flex-col gap-3' : 'contents'">
+        <div [class]="fullscreen() ? 'flex min-h-0 flex-1 flex-col' : 'contents'">
         <div
           [class]="
-            'rounded-2xl border border-slate-200 bg-white ' +
+            'border-b border-slate-200 bg-white ' +
             (fullscreen() ? 'p-3 shrink-0' : 'p-4')
           "
         >
@@ -159,12 +176,11 @@ export interface GpxSelection {
               </button>
             </div>
           </div>
-          <div [class]="fullscreen() ? 'mx-2 h-[20vh] w-auto' : ''">
+          <div [class]="fullscreen() ? 'mx-2 h-[20vh] w-auto' : 'mt-8 aspect-6/1 w-full'">
           <ui-elevation-profile
             #profile
-            [class.block]="fullscreen()"
-            [class.h-full]="fullscreen()"
-            [fillHeight]="fullscreen()"
+            class="block h-full"
+            [fillHeight]="true"
             [track]="t"
             [markers]="markers()"
             [startTime]="startTime()"
@@ -181,7 +197,7 @@ export interface GpxSelection {
 
         <div
           [class]="
-            'rounded-2xl border border-slate-200 bg-white ' +
+            'bg-white ' +
             (fullscreen() ? 'flex min-h-0 flex-1 flex-col p-0' : 'p-4')
           "
         >
@@ -211,14 +227,14 @@ export interface GpxSelection {
       </div>
     } @else if (loading()) {
       <div
-        class="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white p-12 text-center"
+        class="flex flex-col items-center gap-3 rounded-md border border-slate-200 bg-white p-12 text-center"
       >
         <ui-spinner [size]="32" />
         <p class="text-sm text-slate-500">Chargement du parcours…</p>
       </div>
     } @else {
       <div
-        class="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center"
+        class="flex flex-col items-center gap-4 rounded-md border border-dashed border-slate-300 bg-white p-12 text-center m-4"
       >
         <div class="grid h-14 w-14 place-items-center rounded-full bg-brand-50 text-brand-600">
           <ui-icon [icon]="faRoute" size="xl" />
@@ -289,6 +305,8 @@ export class RouteProfilePanelComponent {
   readonly removeTrackRequest = input(0);
   /** Heure de départ locale de la course, au format `HH:mm`. */
   readonly startTime = input('08:00');
+  /** Date de la course au format ISO `YYYY-MM-DD`. */
+  readonly date = input('');
   /** Chrono cible de la course, utilisé pour l'heure d'arrivée. */
   readonly targetTimeMinutes = input(0);
 
@@ -306,7 +324,11 @@ export class RouteProfilePanelComponent {
   readonly fileError = output<string>();
 
   protected readonly faRoute = faRoute;
-  protected readonly faMountainSun = faMountainSun;
+  protected readonly faCalendarDay = faCalendarDay;
+  protected readonly faStopwatch = faStopwatch;
+  protected readonly faMountain = faMountain;
+  protected readonly faArrowTrendUp = faArrowTrendUp;
+  protected readonly faArrowTrendDown = faArrowTrendDown;
   protected readonly faArrowUpFromBracket = faArrowUpFromBracket;
   protected readonly faLocationDot = faLocationDot;
   protected readonly faTrash = faTrash;
@@ -317,10 +339,10 @@ export class RouteProfilePanelComponent {
   protected readonly faCompress = faCompress;
 
   /** Mode plein écran : profil + carte visibles simultanément sur tout l'écran. */
-  protected readonly fullscreen = signal(false);
+  readonly fullscreen = model(false);
 
   /** Mode ajout de point de passage depuis le profil / le tracé. */
-  protected readonly addMode = signal(false);
+  readonly addMode = model(false);
   /** Point de trace actuellement survolé dans le profil ou sur la carte. */
   protected readonly activePoint = signal<GpxTrack['points'][number] | null>(null);
   /** État d'ouverture de la modale de confirmation de retrait. */
@@ -389,5 +411,10 @@ export class RouteProfilePanelComponent {
 
   protected formatKm(distance: number): string {
     return (Math.round(distance * 10) / 10).toString();
+  }
+
+  protected formatDate(date: string): string {
+    const [year, month, day] = date.split('-');
+    return year && month && day ? `${day}/${month}/${year}` : date;
   }
 }

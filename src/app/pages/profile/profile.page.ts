@@ -20,7 +20,7 @@ import { AuthService } from '../../features/auth/services/auth.service';
       <ui-page-header title="Mon profil" subtitle="Vos informations personnelles" [icon]="faUser" />
 
       @if (auth.currentUser(); as user) {
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div class="rounded-md border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
           <div class="flex items-center gap-4">
             <ui-avatar [initials]="initials()" size="lg" />
             <div class="min-w-0">

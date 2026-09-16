@@ -33,7 +33,7 @@ import { faBolt, faLock, faLockOpen, faWandMagicSparkles } from '@fortawesome/fr
           </div>
         </div>
 
-        @if (warning()) { <p class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">{{ warning() }}</p> }
+        @if (warning()) { <p class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">{{ warning() }}</p> }
 
         <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table class="min-w-250 w-full text-left text-sm">

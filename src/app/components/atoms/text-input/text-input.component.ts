@@ -189,7 +189,7 @@ export class TextInputComponent implements ControlValueAccessor, OnInit {
   /** Classes de l'input, avec état d'erreur. */
   protected readonly inputClasses = computed(() => {
     const base =
-      'w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-1 disabled:cursor-not-allowed disabled:bg-slate-50';
+      'w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 disabled:cursor-not-allowed disabled:bg-slate-50';
     return this.showError()
       ? `${base} border-rose-400 focus:border-rose-500 focus:ring-rose-500`
       : `${base} border-slate-300 focus:border-brand-500 focus:ring-brand-500`;

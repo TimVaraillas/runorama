@@ -11,6 +11,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 @Component({
   selector: 'ui-dashboard-layout',
   standalone: true,
+  host: { class: 'flex flex-1 flex-col' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="flex flex-1 flex-col lg:flex-row lg:items-stretch">

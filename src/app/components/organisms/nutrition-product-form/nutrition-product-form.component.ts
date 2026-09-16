@@ -81,7 +81,7 @@ type SodiumUnit = 'sodium' | 'salt';
           <label [class]="labelClass">Photo (facultative)</label>
           <div class="flex items-center gap-4">
             <div
-              class="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-slate-300"
+              class="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-md border border-slate-200 bg-slate-50 text-slate-300"
             >
               @if (imagePreview()) {
                 <img [src]="imagePreview()!" alt="Aperçu du produit" class="h-full w-full object-cover" />
@@ -223,7 +223,7 @@ export class NutritionProductFormComponent {
 
   protected readonly labelClass = 'mb-1 block text-xs font-medium text-slate-600';
   protected readonly inputClass =
-    'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
+    'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
 
   readonly form = this.fb.group({
     categoryId: ['', Validators.required],

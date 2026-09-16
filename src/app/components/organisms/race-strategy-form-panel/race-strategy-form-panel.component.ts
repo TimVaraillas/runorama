@@ -28,7 +28,7 @@ import { faXmark } from '@fortawesome/free-solid-svg-icons';
             <h2 class="font-display text-lg font-bold text-slate-900">{{ heading() }}</h2>
             <button
               type="button"
-              class="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              class="grid h-9 w-9 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               (click)="close.emit()"
               aria-label="Fermer"
             >

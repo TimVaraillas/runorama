@@ -212,7 +212,7 @@ function durationRequiredValidator(group: AbstractControl): ValidationErrors | n
           <h3 class="text-sm font-semibold text-slate-800">Logistique</h3>
           @if (logisticActive()) {
             @if (viaOptions().length > 1) {
-              <div class="inline-flex rounded-lg bg-slate-100 p-0.5 text-xs">
+              <div class="inline-flex rounded-md bg-slate-100 p-0.5 text-xs">
                 <button
                   type="button"
                   [class]="viaTabClass(effectiveVia() === 'ASSISTANCE')"
@@ -278,11 +278,11 @@ function durationRequiredValidator(group: AbstractControl): ValidationErrors | n
           } @else {
             <ul class="space-y-1.5">
               @for (task of todo(); track $index) {
-                <li class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+                <li class="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2">
                   <span class="min-w-0 flex-1 truncate text-sm text-slate-800">{{ task }}</span>
                   <button
                     type="button"
-                    class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                    class="grid h-8 w-8 shrink-0 place-items-center rounded-md text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
                     (click)="removeTask($index)"
                     aria-label="Retirer la tâche"
                   >
@@ -304,7 +304,7 @@ function durationRequiredValidator(group: AbstractControl): ValidationErrors | n
             />
             <button
               type="button"
-              class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600 disabled:opacity-40"
+              class="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-brand-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600 disabled:opacity-40"
               [disabled]="!taskDraft().trim()"
               (click)="addTask()"
             >
@@ -389,7 +389,7 @@ export class AidStationFormComponent {
   protected readonly faTrash = faTrash;
   protected readonly labelClass = 'mb-1 block text-xs font-medium text-slate-600';
   protected readonly inputClass =
-    'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
+    'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
 
   /** Types sélectionnés (édition locale). */
   protected readonly selectedTypes = signal<Set<AidStationType>>(new Set());

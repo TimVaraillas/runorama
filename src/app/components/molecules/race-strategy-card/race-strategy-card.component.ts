@@ -50,7 +50,7 @@ import {
         <div class="flex shrink-0 items-center gap-1">
           <button
             type="button"
-            class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
+            class="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
             (click)="edit.emit(event()); $event.stopPropagation()"
             aria-label="Modifier la course"
           >
@@ -58,7 +58,7 @@ import {
           </button>
           <button
             type="button"
-            class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+            class="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
             (click)="delete.emit(event()); $event.stopPropagation()"
             aria-label="Supprimer la course"
           >

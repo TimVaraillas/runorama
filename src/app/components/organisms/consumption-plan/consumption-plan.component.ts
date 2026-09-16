@@ -70,11 +70,11 @@ const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
   },
   template: `
     @if (totalMinutes() <= 0) {
-      <p class="rounded-lg bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
+      <p class="rounded-md bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
         Définissez un chrono cible sur l'évènement pour construire le plan de nutrition.
       </p>
     } @else if (paletteEntries().length === 0) {
-      <p class="rounded-lg bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
+      <p class="rounded-md bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
         Ajoutez des produits dans l'inventaire pour pouvoir les répartir sur le parcours.
       </p>
     } @else {

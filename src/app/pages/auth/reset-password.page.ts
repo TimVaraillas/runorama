@@ -34,13 +34,13 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4">
-      <div class="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+      <div class="rounded-md border border-slate-200 bg-white p-8 shadow-sm">
         <h1 class="text-2xl font-bold text-slate-900">Nouveau mot de passe</h1>
         <p class="mt-1 text-sm text-slate-500">Choisissez un nouveau mot de passe sécurisé.</p>
 
         @if (!token()) {
           <div
-            class="mt-6 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"
+            class="mt-6 rounded-md border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"
           >
             Lien de réinitialisation invalide ou incomplet.
           </div>

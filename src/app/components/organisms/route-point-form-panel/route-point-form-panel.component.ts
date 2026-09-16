@@ -19,7 +19,7 @@ import { faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
             <h2 class="font-display text-lg font-bold text-slate-900">{{ heading() }}</h2>
             <button
               type="button"
-              class="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              class="grid h-9 w-9 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               (click)="close.emit()"
               aria-label="Fermer"
             >
@@ -77,12 +77,12 @@ import { faTrash, faXmark } from '@fortawesome/free-solid-svg-icons';
                   Position sur le parcours : <span class="tabular-nums">km {{ distance() }}</span>
                 </div>
                 <div class="flex justify-end gap-3">
-                  <button type="button" class="rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100" (click)="close.emit()">
+                  <button type="button" class="rounded-md px-3 py-2 text-sm text-slate-600 hover:bg-slate-100" (click)="close.emit()">
                     Annuler
                   </button>
                   <button
                     type="submit"
-                    class="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+                    class="rounded-md bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
                     [disabled]="!name().trim()"
                   >
                     Enregistrer

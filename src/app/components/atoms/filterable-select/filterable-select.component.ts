@@ -45,7 +45,7 @@ export interface FilterableSelectOption {
         (focus)="open.set(true)"
         [attr.aria-label]="ariaLabel()"
         [placeholder]="placeholder()"
-        class="w-full rounded-lg border border-slate-300 bg-white py-2 pl-3 pr-16 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+        class="w-full rounded-md border border-slate-300 bg-white py-2 pl-3 pr-16 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
       />
       <div class="absolute inset-y-0 right-2 flex items-center gap-1">
         @if (value() || query()) {
@@ -66,7 +66,7 @@ export interface FilterableSelectOption {
       @if (open()) {
         <ul
           role="listbox"
-          class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+          class="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg"
         >
           @for (option of filtered(); track option.value) {
             <li

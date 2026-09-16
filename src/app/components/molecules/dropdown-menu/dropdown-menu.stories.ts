@@ -7,7 +7,7 @@ const meta: Meta<DropdownMenuComponent> = {
   component: DropdownMenuComponent,
   tags: ['autodocs'],
   decorators: [moduleMetadata({ imports: [DropdownMenuItemComponent] })],
-  render: () => ({ template: `<ui-dropdown-menu><button trigger class="rounded-lg border px-3 py-2 text-sm">Actions</button><ui-dropdown-menu-item>Modifier</ui-dropdown-menu-item><ui-dropdown-menu-item color="danger">Supprimer</ui-dropdown-menu-item></ui-dropdown-menu>` }),
+  render: () => ({ template: `<ui-dropdown-menu><button trigger class="rounded-md border px-3 py-2 text-sm">Actions</button><ui-dropdown-menu-item>Modifier</ui-dropdown-menu-item><ui-dropdown-menu-item color="danger">Supprimer</ui-dropdown-menu-item></ui-dropdown-menu>` }),
 };
 
 export default meta;

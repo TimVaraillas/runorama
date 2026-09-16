@@ -17,7 +17,7 @@ import { faMinus, faPlus } from '@fortawesome/free-solid-svg-icons';
     <div class="flex items-center gap-1">
       <button
         type="button"
-        class="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 disabled:opacity-40"
+        class="grid h-8 w-8 place-items-center rounded-md border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 disabled:opacity-40"
         [disabled]="value() <= min()"
         (click)="decrement()"
         aria-label="Diminuer la quantité"
@@ -27,7 +27,7 @@ import { faMinus, faPlus } from '@fortawesome/free-solid-svg-icons';
       <span class="w-8 text-center text-sm font-semibold tabular-nums text-slate-800">{{ value() }}</span>
       <button
         type="button"
-        class="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 disabled:opacity-40"
+        class="grid h-8 w-8 place-items-center rounded-md border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 disabled:opacity-40"
         [disabled]="value() >= max()"
         (click)="increment()"
         aria-label="Augmenter la quantité"

@@ -18,7 +18,7 @@ import { AuthService } from '../../features/auth/services/auth.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4">
-      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div class="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
         <div class="relative bg-linear-to-br from-brand-600 to-secondary-500 px-8 py-10 text-white">
           <div
             class="pointer-events-none absolute -right-6 -top-8 h-28 w-28 rounded-full bg-white/10"

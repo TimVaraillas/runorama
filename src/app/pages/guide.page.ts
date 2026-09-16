@@ -82,7 +82,7 @@ interface DocSection {
               <a
                 [href]="'#' + section.id"
                 (click)="scrollTo(section.id, $event)"
-                class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+                class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors"
                 [class.bg-brand-50]="activeSection() === section.id"
                 [class.text-brand-700]="activeSection() === section.id"
                 [class.text-slate-600]="activeSection() !== section.id"
@@ -135,14 +135,14 @@ interface DocSection {
                     </ul>
                   }
                   @if (block.tip) {
-                    <p class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                    <p class="mt-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
                       <span class="font-semibold">Bon à savoir&nbsp;:</span> {{ block.tip }}
                     </p>
                   }
                   @if (block.image; as blockImage) {
                     @if (!failedImages().has(blockImage)) {
                       <div
-                        class="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                        class="mt-4 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm"
                       >
                         <img
                           [src]="blockImage"
@@ -157,7 +157,7 @@ interface DocSection {
               }
 
               @if (section.image) {
-                <div class="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div class="mt-6 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
                   @if (!failedImages().has(section.image)) {
                     <img
                       [src]="section.image"
@@ -180,7 +180,7 @@ interface DocSection {
 
           <!-- Appel à l'action (visiteurs non connectés uniquement) -->
           @if (!auth.isAuthenticated()) {
-            <div class="rounded-2xl bg-slate-50 p-8 text-center">
+            <div class="rounded-md bg-slate-50 p-8 text-center">
               <h2 class="font-display text-2xl font-bold text-slate-900">
                 Prêt à préparer ta prochaine course&nbsp;?
               </h2>

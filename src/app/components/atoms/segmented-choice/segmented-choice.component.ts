@@ -32,7 +32,7 @@ export interface SegmentedOption<T extends string = string> {
       @for (option of options(); track option.value) {
         <button
           type="button"
-          class="rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-40"
+          class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-40"
           [class.bg-white]="option.value === value()"
           [class.text-slate-900]="option.value === value()"
           [class.shadow-sm]="option.value === value()"

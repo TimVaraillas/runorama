@@ -139,7 +139,7 @@ type PendingDelete =
         </select>
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+          class="inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors"
           [class.border-amber-300]="favoritesOnly()"
           [class.bg-amber-50]="favoritesOnly()"
           [class.text-amber-700]="favoritesOnly()"
@@ -157,7 +157,7 @@ type PendingDelete =
             <button
               trigger
               type="button"
-              class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+              class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
             >
               <ui-icon [icon]="faTableColumns" size="sm" />
               Colonnes
@@ -165,7 +165,7 @@ type PendingDelete =
             <div class="p-1" (click)="$event.stopPropagation()">
               @for (col of columnOptions; track col.key) {
                 <label
-                  class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                  class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
                 >
                   <input
                     type="checkbox"
@@ -288,7 +288,7 @@ type PendingDelete =
             </h2>
             <button
               type="button"
-              class="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              class="grid h-9 w-9 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               (click)="closeProductPanel()"
               aria-label="Fermer"
             >
@@ -320,7 +320,7 @@ type PendingDelete =
             <h2 class="font-display text-lg font-bold text-slate-900">Catégories de produits</h2>
             <button
               type="button"
-              class="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              class="grid h-9 w-9 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               (click)="closeCategories()"
               aria-label="Fermer"
             >
@@ -348,7 +348,7 @@ type PendingDelete =
               <ul class="space-y-2">
                 @for (category of categories(); track category.id) {
                   <li
-                    class="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5"
+                    class="flex items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-4 py-2.5"
                   >
                     @if (editingCategoryId() === category.id) {
                       <form class="flex flex-1 items-center gap-2" (ngSubmit)="saveCategory(category)">
@@ -362,7 +362,7 @@ type PendingDelete =
                         />
                         <button
                           type="submit"
-                          class="grid h-8 w-8 place-items-center rounded-lg text-emerald-600 transition-colors hover:bg-emerald-50 disabled:opacity-40"
+                          class="grid h-8 w-8 place-items-center rounded-md text-emerald-600 transition-colors hover:bg-emerald-50 disabled:opacity-40"
                           [disabled]="!editingCategoryName().trim()"
                           aria-label="Enregistrer"
                         >
@@ -370,7 +370,7 @@ type PendingDelete =
                         </button>
                         <button
                           type="button"
-                          class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                          class="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
                           (click)="cancelEditCategory()"
                           aria-label="Annuler"
                         >
@@ -382,7 +382,7 @@ type PendingDelete =
                       <div class="flex items-center gap-1">
                         <button
                           type="button"
-                          class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
+                          class="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
                           (click)="startEditCategory(category)"
                           aria-label="Modifier la catégorie"
                         >
@@ -390,7 +390,7 @@ type PendingDelete =
                         </button>
                         <button
                           type="button"
-                          class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                          class="grid h-8 w-8 place-items-center rounded-md text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
                           (click)="requestDeleteCategory(category)"
                           aria-label="Supprimer la catégorie"
                         >
@@ -574,11 +574,11 @@ export class NutritionProductsPage {
   protected readonly visibleColumnKeys = signal<ProductColumnKey[]>(this.loadVisibleColumns());
 
   protected readonly searchClass =
-    'w-full rounded-lg border border-slate-300 bg-white py-2 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
+    'w-full rounded-md border border-slate-300 bg-white py-2 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
   protected readonly selectClass =
-    'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
+    'rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
   protected readonly editInputClass =
-    'w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
+    'w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
 
   protected readonly categories = signal<NutritionCategory[]>([]);
   protected readonly products = signal<NutritionProduct[] | undefined>(undefined);

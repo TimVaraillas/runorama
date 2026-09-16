@@ -20,7 +20,7 @@ type VerificationState = 'loading' | 'success' | 'error' | 'missing';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4">
-      <div class="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <div class="rounded-md border border-slate-200 bg-white p-8 text-center shadow-sm">
         @switch (state()) {
           @case ('loading') {
             <ui-spinner [size]="36" class="mx-auto mb-4 block w-fit" />

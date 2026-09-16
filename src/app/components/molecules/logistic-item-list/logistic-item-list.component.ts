@@ -29,7 +29,7 @@ import { faBoxOpen, faPlus, faScrewdriverWrench, faTrash } from '@fortawesome/fr
       } @else {
         <ul class="space-y-1.5">
           @for (item of items(); track $index) {
-            <li class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+            <li class="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2">
               <div class="min-w-0 flex-1">
                 <div class="truncate text-sm text-slate-800">{{ label(item) }}</div>
                 @if (item.kind === 'product' && brand(item); as b) {
@@ -43,7 +43,7 @@ import { faBoxOpen, faPlus, faScrewdriverWrench, faTrash } from '@fortawesome/fr
               />
               <button
                 type="button"
-                class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                class="grid h-8 w-8 shrink-0 place-items-center rounded-md text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
                 (click)="removeAt($index)"
                 aria-label="Retirer l'élément"
               >
@@ -55,8 +55,8 @@ import { faBoxOpen, faPlus, faScrewdriverWrench, faTrash } from '@fortawesome/fr
       }
 
       <!-- Ligne d'ajout -->
-      <div class="rounded-lg border border-dashed border-slate-300 bg-slate-50/60 p-2.5">
-        <div class="mb-2 inline-flex rounded-lg bg-slate-100 p-0.5 text-xs">
+      <div class="rounded-md border border-dashed border-slate-300 bg-slate-50/60 p-2.5">
+        <div class="mb-2 inline-flex rounded-md bg-slate-100 p-0.5 text-xs">
           <button
             type="button"
             [class]="tabClass(addKind() === 'product')"
@@ -93,7 +93,7 @@ import { faBoxOpen, faPlus, faScrewdriverWrench, faTrash } from '@fortawesome/fr
               </select>
               <button
                 type="button"
-                class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600 disabled:opacity-40"
+                class="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-brand-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600 disabled:opacity-40"
                 [disabled]="!selectedProductId()"
                 (click)="addProduct()"
               >
@@ -114,7 +114,7 @@ import { faBoxOpen, faPlus, faScrewdriverWrench, faTrash } from '@fortawesome/fr
             />
             <button
               type="button"
-              class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600 disabled:opacity-40"
+              class="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-brand-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600 disabled:opacity-40"
               [disabled]="!gearLabel().trim()"
               (click)="addGear()"
             >
@@ -165,9 +165,9 @@ export class LogisticItemListComponent {
   protected readonly gearLabel = signal('');
 
   protected readonly selectClass =
-    'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
+    'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
   protected readonly inputClass =
-    'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
+    'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
 
   private readonly productMap = computed(
     () => new Map(this.products().map((product) => [product.id, product])),

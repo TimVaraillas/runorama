@@ -72,7 +72,7 @@ export class ButtonComponent {
   readonly clicked = output<MouseEvent>();
 
   private readonly base =
-    'inline-flex items-center justify-center gap-2 rounded-lg cursor-pointer font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
+    'inline-flex items-center justify-center gap-2 rounded-md cursor-pointer font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
 
   /**
    * Matrice couleur × style. Les classes sont écrites littéralement pour que

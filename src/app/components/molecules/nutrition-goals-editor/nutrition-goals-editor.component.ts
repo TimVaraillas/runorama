@@ -26,7 +26,7 @@ import { faTrash } from '@fortawesome/free-solid-svg-icons';
   template: `
     <div class="space-y-2">
       @for (goal of added(); track goal.key) {
-        <div class="space-y-2 rounded-lg border border-slate-200 bg-white px-3 py-3">
+        <div class="space-y-2 rounded-md border border-slate-200 bg-white px-3 py-3">
           <div class="flex items-center gap-3">
             <span class="flex-1 text-sm font-medium text-slate-700">{{ goal.label }}</span>
             <span
@@ -41,7 +41,7 @@ import { faTrash } from '@fortawesome/free-solid-svg-icons';
               type="button"
               (click)="removeGoal(goal.key)"
               [attr.aria-label]="'Retirer ' + goal.label"
-              class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+              class="grid h-8 w-8 shrink-0 place-items-center rounded-md text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
             >
               <ui-icon [icon]="faTrash" size="sm" />
             </button>
@@ -110,7 +110,7 @@ import { faTrash } from '@fortawesome/free-solid-svg-icons';
         </div>
       } @empty {
         <p
-          class="rounded-lg border border-dashed border-slate-300 bg-white px-3 py-4 text-center text-xs text-slate-400"
+          class="rounded-md border border-dashed border-slate-300 bg-white px-3 py-4 text-center text-xs text-slate-400"
         >
           Aucun objectif défini. Ajoutez-en un ci-dessous.
         </p>
@@ -121,7 +121,7 @@ import { faTrash } from '@fortawesome/free-solid-svg-icons';
           #goalPicker
           aria-label="Ajouter un objectif de nutriment"
           (change)="addGoal(goalPicker.value); goalPicker.value = ''"
-          class="w-full rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 text-sm text-slate-600 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+          class="w-full rounded-md border border-dashed border-slate-300 bg-white px-3 py-2 text-sm text-slate-600 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
         >
           <option value="" disabled selected>+ Ajouter un objectif…</option>
           @for (goal of available(); track goal.key) {

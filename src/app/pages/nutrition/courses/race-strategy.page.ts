@@ -19,11 +19,13 @@ import { SpinnerComponent } from '../../../components/atoms/spinner/spinner.comp
 import { DropdownMenuComponent } from '../../../components/molecules/dropdown-menu/dropdown-menu.component';
 import { DropdownMenuItemComponent } from '../../../components/atoms/dropdown-menu-item/dropdown-menu-item.component';
 import { PageHeaderComponent } from '../../../components/molecules/page-header/page-header.component';
-import { SideNavComponent } from '../../../components/molecules/side-nav/side-nav.component';
+import {
+  SideNavComponent,
+  type NavSection,
+} from '../../../components/molecules/side-nav/side-nav.component';
 import { DashboardLayoutComponent } from '../../../components/templates/dashboard-layout/dashboard-layout.component';
-import type { TabItem } from '../../../components/molecules/tabs/tabs.component';
 import { ConfirmDeleteModalComponent } from '../../../components/molecules/confirm-delete-modal/confirm-delete-modal.component';
-import { RaceStrategyFormPanelComponent } from '../../../components/organisms/race-strategy-form-panel/race-strategy-form-panel.component';
+import { RaceStrategyFormComponent } from '../../../components/organisms/race-strategy-form/race-strategy-form.component';
 import { NutritionStrategyInventoryComponent } from '../../../components/organisms/nutrition-strategy-inventory/nutrition-strategy-inventory.component';
 import { ConsumptionPlanComponent } from '../../../components/organisms/consumption-plan/consumption-plan.component';
 import { AidStationTableComponent } from '../../../components/organisms/aid-station-table/aid-station-table.component';
@@ -36,6 +38,7 @@ import { GpxReconciliationModalComponent } from '../../../components/molecules/g
 import { WaypointFormPanelComponent } from '../../../components/organisms/waypoint-form-panel/waypoint-form-panel.component';
 import { RoutePointFormPanelComponent } from '../../../components/organisms/route-point-form-panel/route-point-form-panel.component';
 import { PacingPanelComponent } from '../../../components/organisms/pacing-panel/pacing-panel.component';
+import { RaceOverviewPanelComponent } from '../../../components/organisms/race-overview-panel/race-overview-panel.component';
 import type {
   AidStation,
   GpxDiscrepancies,
@@ -66,9 +69,11 @@ import {
   faExpand,
   faFilePdf,
   faFlag,
+  faGear,
+  faGaugeHigh,
   faLocationDot,
-  faPen,
   faRoute,
+  faStopwatch,
   faTrash,
   faUtensils,
 } from '@fortawesome/free-solid-svg-icons';
@@ -83,6 +88,7 @@ import {
 @Component({
   selector: 'race-page',
   standalone: true,
+  host: { class: 'flex flex-1 flex-col' },
   imports: [
     ButtonComponent,
     IconComponent,
@@ -93,7 +99,7 @@ import {
     SideNavComponent,
     DashboardLayoutComponent,
     ConfirmDeleteModalComponent,
-    RaceStrategyFormPanelComponent,
+    RaceStrategyFormComponent,
     NutritionStrategyInventoryComponent,
     ConsumptionPlanComponent,
     AidStationTableComponent,
@@ -103,6 +109,7 @@ import {
     WaypointFormPanelComponent,
     RoutePointFormPanelComponent,
     PacingPanelComponent,
+    RaceOverviewPanelComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -111,7 +118,7 @@ import {
         <ui-side-nav
           sidenav
           class="lg:w-52 lg:shrink-0 lg:border-r lg:border-slate-200"
-          [items]="tabs"
+          [sections]="navSections"
           [(active)]="activeTab"
         />
       }
@@ -123,64 +130,90 @@ import {
         [icon]="faFlag"
       >
 
-        <ui-button
-          actions
-          color="primary"
-          variant="full"
-          size="sm"
-          [icon]="faPen"
-          [disabled]="!event()"
-          (clicked)="editEvent()"
-        >
-          Éditer
-        </ui-button>
-
-        @if (activeTab() === 'plan') {
-          <ui-button
-            actions
-            [class]="planFullscreen() ? 'fixed right-6 top-6 z-60' : ''"
-            color="default"
-            [variant]="planFullscreen() ? 'full' : 'outlined'"
-            size="sm"
-            [icon]="planFullscreen() ? faCompress : faExpand"
-            [attr.aria-pressed]="planFullscreen()"
-            (clicked)="planFullscreen.set(!planFullscreen())"
-          >
-            @if (!planFullscreen()) {
-              Plein écran
-            }
-          </ui-button>
-        }
-
-        <ui-dropdown-menu actions>
-          <ui-button
-            trigger
-            color="default"
-            variant="outlined"
-            size="sm"
-            [icon]="faEllipsisVertical"
-            [disabled]="!event()"
-            aria-label="Plus d'actions"
-          />
-          <ui-dropdown-menu-item [icon]="faFilePdf" (selected)="exportPdf()">
-            Exporter le roadbook
-          </ui-dropdown-menu-item>
-          @if (gpxTrack()) {
-            <ui-dropdown-menu-item [icon]="faRoute" (selected)="exportGpx()">
-              Exporter le tracé GPX
-            </ui-dropdown-menu-item>
-            <ui-dropdown-menu-item [icon]="faTrash" color="danger" (selected)="requestRemoveGpx()">
-              Supprimer la trace GPX
-            </ui-dropdown-menu-item>
+          @if (activeTab() === 'route') {
+            <ng-container actions>
+              <ui-button
+                color="primary"
+                variant="full"
+                size="sm"
+                [icon]="faLocationDot"
+                [attr.aria-pressed]="routeAddMode()"
+                (clicked)="routeAddMode.set(!routeAddMode())"
+              >
+                Ajouter un point
+              </ui-button>
+              <ui-button
+                color="default"
+                variant="outlined"
+                size="sm"
+                [icon]="routeFullscreen() ? faCompress : faExpand"
+                [attr.aria-pressed]="routeFullscreen()"
+                (clicked)="routeFullscreen.set(!routeFullscreen())"
+              >
+                {{ routeFullscreen() ? 'Quitter le plein écran' : 'Plein écran' }}
+              </ui-button>
+            </ng-container>
+          } @else if (activeTab() === 'aid-stations') {
+            <ng-container actions>
+              <ui-button
+                color="primary"
+                variant="full"
+                size="sm"
+                [icon]="faLocationDot"
+                (clicked)="openNewAidStation()"
+              >
+                Ajouter un ravitaillement
+              </ui-button>
+            </ng-container>
           }
-          <ui-dropdown-menu-item [icon]="faTrash" color="danger" (selected)="requestDelete()">
-            Supprimer
-          </ui-dropdown-menu-item>
-        </ui-dropdown-menu>
 
-         <ui-button actions color="default" variant="ghost" size="sm" [icon]="faArrowLeft" (clicked)="goBack()" tooltipContent="Retour aux courses" />
+          @if (activeTab() === 'plan') {
+            <ui-button
+              actions
+              [class]="planFullscreen() ? 'fixed right-6 top-6 z-60' : ''"
+              color="default"
+              [variant]="planFullscreen() ? 'full' : 'outlined'"
+              size="sm"
+              [icon]="planFullscreen() ? faCompress : faExpand"
+              [attr.aria-pressed]="planFullscreen()"
+              (clicked)="planFullscreen.set(!planFullscreen())"
+            >
+              @if (!planFullscreen()) {
+                Plein écran
+              }
+            </ui-button>
+          }
+
+          <ui-dropdown-menu actions>
+            <ui-button
+              trigger
+              color="default"
+              variant="outlined"
+              size="sm"
+              [icon]="faEllipsisVertical"
+              [disabled]="!event()"
+              aria-label="Plus d'actions"
+            />
+            <ui-dropdown-menu-item [icon]="faFilePdf" (selected)="exportPdf()">
+              Exporter le roadbook
+            </ui-dropdown-menu-item>
+            @if (gpxTrack()) {
+              <ui-dropdown-menu-item [icon]="faRoute" (selected)="exportGpx()">
+                Exporter le tracé GPX
+              </ui-dropdown-menu-item>
+              <ui-dropdown-menu-item [icon]="faTrash" color="danger" (selected)="requestRemoveGpx()">
+                Supprimer la trace GPX
+              </ui-dropdown-menu-item>
+            }
+            <ui-dropdown-menu-item [icon]="faTrash" color="danger" (selected)="requestDelete()">
+              Supprimer
+            </ui-dropdown-menu-item>
+          </ui-dropdown-menu>
+
+          <ui-button actions color="default" variant="ghost"  [icon]="faArrowLeft" (clicked)="goBack()">
+            Retour
+          </ui-button>
       </ui-page-header>
-
       @if (event(); as ev) {
           <div
             class="min-w-0 flex-1"
@@ -189,7 +222,21 @@ import {
             "
           >
 
-        @if (activeTab() === 'inventory') {
+        @if (activeTab() === 'overview') {
+          <ui-race-overview-panel
+            class="block -mx-4 -mt-6 lg:-mx-6"
+            [event]="ev"
+            [track]="gpxTrack()"
+          />
+        } @else if (activeTab() === 'configuration') {
+          <div class="mx-auto w-full max-w-4xl">
+            <ui-race-strategy-form
+              [event]="ev"
+              (save)="saveEvent($event)"
+              (cancel)="activeTab.set('route')"
+            />
+          </div>
+        } @else if (activeTab() === 'inventory') {
           @if (productsLoading()) {
             <div class="flex flex-col items-center gap-3 py-16 text-center">
               <ui-spinner [size]="32" />
@@ -208,21 +255,13 @@ import {
               (toggleFavorite)="toggleFavorite($event)"
             />
           }
-        } @else if (activeTab() === 'aid-stations') {
+        }
+        @else if (activeTab() === 'aid-stations') {
           <div class="space-y-4">
-            <div class="flex items-center justify-between gap-3">
+            <div>
               <p class="text-sm text-slate-500">
                 Positionnez vos ravitaillements depuis le départ de la course.
               </p>
-              <ui-button
-                color="primary"
-                variant="full"
-                size="sm"
-                [icon]="faLocationDot"
-                (clicked)="openNewAidStation()"
-              >
-                Ajouter un ravitaillement
-              </ui-button>
             </div>
             <ui-aid-station-table
               [stations]="ev.aidStations ?? []"
@@ -236,13 +275,17 @@ import {
           </div>
         } @else if (activeTab() === 'route') {
           <ui-route-profile-panel
+            [class]="routeFullscreen() ? 'block' : 'block -mx-4 -mt-6 lg:-mx-6'"
             [track]="gpxTrack()"
-            [aidStations]="ev.aidStations ?? []"
+            [aidStations]="ev.aidStations ?? []"x
             [waypoints]="ev.waypoints ?? []"
+            [date]="ev.date"
             [startTime]="ev.startTime"
             [targetTimeMinutes]="ev.targetTimeMinutes ?? 0"
             [loading]="gpxLoading()"
             [uploading]="gpxUploading()"
+            [(fullscreen)]="routeFullscreen"
+            [(addMode)]="routeAddMode"
             [removeTrackRequest]="removeTrackRequest()"
             (gpxSelected)="onGpxSelected($event)"
             (removeTrack)="removeGpx()"
@@ -292,14 +335,6 @@ import {
         </div>
       }
     </ui-dashboard-layout>
-
-    <!-- Panneau : formulaire évènement -->
-    <ui-race-strategy-form-panel
-      [open]="panelOpen()"
-      [event]="event()"
-      (save)="saveEvent($event)"
-      (close)="closePanel()"
-    />
 
     <!-- Panneau : formulaire ravitaillement -->
     <ui-aid-station-form-panel
@@ -372,26 +407,48 @@ export class RaceStrategyPage {
   protected readonly faArrowLeft = faArrowLeft;
   protected readonly faFilePdf = faFilePdf;
   protected readonly faFlag = faFlag;
+  protected readonly faGear = faGear;
   protected readonly faUtensils = faUtensils;
   protected readonly faExpand = faExpand;
   protected readonly faCompress = faCompress;
-  protected readonly faPen = faPen;
   protected readonly faTrash = faTrash;
   protected readonly faEllipsisVertical = faEllipsisVertical;
   protected readonly faLocationDot = faLocationDot;
   protected readonly faRoute = faRoute;
+  protected readonly faStopwatch = faStopwatch;
+  protected readonly faGaugeHigh = faGaugeHigh;
 
-  protected readonly tabs: TabItem[] = [
-    { id: 'route', label: 'Parcours', icon: faRoute },
-    { id: 'pacing', label: 'Pacing', icon: faRoute },
-    { id: 'aid-stations', label: 'Ravitaillements', icon: faLocationDot },
-    { id: 'inventory', label: 'Inventaire', icon: faBasketShopping },
-    { id: 'plan', label: 'Plan de nutrition', icon: faUtensils },
+  protected readonly navSections: NavSection[] = [
+    { items: [{ id: 'overview', label: "Vue d'ensemble", icon: faGaugeHigh }] },
+    {
+      label: 'Parcours',
+      items: [
+        { id: 'route', label: 'Parcours', icon: faRoute },
+        { id: 'pacing', label: 'Pacing', icon: faStopwatch },
+        { id: 'aid-stations', label: 'Ravitaillements', icon: faLocationDot },
+      ],
+    },
+    {
+      label: 'Nutrition',
+      items: [
+        { id: 'inventory', label: 'Inventaire', icon: faBasketShopping },
+        { id: 'plan', label: 'Plan de nutrition', icon: faUtensils },
+      ],
+    },
+    {
+      label: 'Paramètres',
+      items: [{ id: 'configuration', label: 'Configuration', icon: faGear }],
+    },
   ];
-  protected readonly activeTab = signal<'inventory' | 'aid-stations' | 'route' | 'pacing' | 'plan'>('route');
+  protected readonly activeTab = signal<
+    'overview' | 'inventory' | 'aid-stations' | 'route' | 'pacing' | 'plan' | 'configuration'
+  >('overview');
 
   /** État plein écran du plan de nutrition (piloté depuis l'en-tête). */
   protected readonly planFullscreen = signal(false);
+  /** État du parcours plein écran et de son mode d'ajout, pilotés par l'en-tête. */
+  protected readonly routeFullscreen = signal(false);
+  protected readonly routeAddMode = signal(false);
 
   protected readonly event = signal<RaceStrategy | null>(null);
   protected readonly products = signal<NutritionProduct[]>([]);
@@ -423,9 +480,6 @@ export class RaceStrategyPage {
   protected readonly routePointInitialKind = signal<RoutePointKind>('AID_STATION');
   protected readonly routePointEditingId = signal<string | null>(null);
   protected readonly routePointOriginalKind = signal<RoutePointKind | null>(null);
-
-  /** État d'ouverture du panneau d'édition de l'évènement. */
-  protected readonly panelOpen = signal(false);
 
   /** État d'ouverture du panneau d'édition d'un ravitaillement. */
   protected readonly aidStationPanelOpen = signal(false);
@@ -542,23 +596,12 @@ export class RaceStrategyPage {
 
   // --- Édition de l'évènement ---
 
-  /** Ouvre le panneau d'édition de la stratégie courante. */
-  editEvent(): void {
-    if (!this.event()) return;
-    this.panelOpen.set(true);
-  }
-
-  closePanel(): void {
-    this.panelOpen.set(false);
-  }
-
   saveEvent(payload: Partial<RaceStrategy>): void {
     const current = this.event();
     if (!current) return;
     this.service.updateStrategy(current.id, payload).subscribe({
       next: (updated) => {
         this.event.set(updated);
-        this.closePanel();
       },
       error: () => this.toast.error("Impossible d'enregistrer la course. Veuillez réessayer."),
     });

@@ -94,7 +94,7 @@ export class PlanPaletteItemComponent {
 
   protected readonly iconWrapClass = computed(() => {
     const base =
-      'grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg';
+      'grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-md';
     return this.isWater() ? `${base} bg-sky-100 text-sky-500` : `${base} bg-white text-slate-300`;
   });
 

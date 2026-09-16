@@ -18,7 +18,7 @@ import { faCalendarDay, faXmark } from '@fortawesome/free-solid-svg-icons';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="flex items-center gap-2 rounded-lg border border-slate-300 bg-white pl-3 pr-2 text-sm text-slate-900 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-200"
+      class="flex items-center gap-2 rounded-md border border-slate-300 bg-white pl-3 pr-2 text-sm text-slate-900 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-200"
     >
       <ui-icon [icon]="faCalendarDay" size="sm" class="text-slate-400" />
       <input

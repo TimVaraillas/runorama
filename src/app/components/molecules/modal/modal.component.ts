@@ -57,7 +57,7 @@ export type ModalSize = 'sm' | 'md' | 'lg';
               @if (dismissible()) {
                 <button
                   type="button"
-                  class="-mr-2 -mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                  class="-mr-2 -mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
                   (click)="close.emit()"
                   aria-label="Fermer"
                 >
@@ -110,6 +110,6 @@ export class ModalComponent {
   }
 
   protected dialogClasses(): string {
-    return `relative z-10 w-full ${this.widths[this.size()]} overflow-hidden rounded-2xl bg-white shadow-xl`;
+    return `relative z-10 w-full ${this.widths[this.size()]} overflow-hidden rounded-md bg-white shadow-xl`;
   }
 }

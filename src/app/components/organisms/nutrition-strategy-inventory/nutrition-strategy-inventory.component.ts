@@ -70,7 +70,7 @@ interface InventoryTotals {
             <button
               type="button"
               (click)="startEditGoals()"
-              class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
             >
               <ui-icon [icon]="faSliders" size="sm" />
               Ajuster
@@ -112,13 +112,13 @@ interface InventoryTotals {
           </div>
 
           @if (targetHours() === null && hasHourlyGoals()) {
-            <p class="rounded-lg bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
+            <p class="rounded-md bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
               Définissez un chrono cible sur l'évènement pour comparer l'emporté à vos besoins.
             </p>
           }
         } @else {
           <p
-            class="rounded-lg border border-dashed border-slate-300 px-4 py-4 text-center text-sm text-slate-400"
+            class="rounded-md border border-dashed border-slate-300 px-4 py-4 text-center text-sm text-slate-400"
           >
             Aucun objectif défini. Cliquez sur « Ajuster » pour en ajouter un.
           </p>
@@ -161,7 +161,7 @@ interface InventoryTotals {
             <h2 class="font-display text-lg font-bold text-slate-900">Ajouter des produits</h2>
             <button
               type="button"
-              class="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              class="grid h-9 w-9 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               (click)="closePicker()"
               aria-label="Fermer"
             >
@@ -170,7 +170,7 @@ interface InventoryTotals {
           </div>
           <div #pickerScroll class="flex-1 space-y-4 overflow-y-auto p-6">
             @if (products().length === 0) {
-              <p class="rounded-lg bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
+              <p class="rounded-md bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
                 Aucun produit dans votre base. Créez-en dans l'onglet Produits.
               </p>
             } @else {
@@ -193,7 +193,7 @@ interface InventoryTotals {
                 </select>
                 <button
                   type="button"
-                  class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+                  class="inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors"
                   [class.border-amber-300]="pickerFavoritesOnly()"
                   [class.bg-amber-50]="pickerFavoritesOnly()"
                   [class.text-amber-700]="pickerFavoritesOnly()"
@@ -283,7 +283,7 @@ export class NutritionStrategyInventoryComponent {
   protected readonly draftGoals = signal<NutritionGoals | null>(null);
 
   protected readonly selectClass =
-    'min-w-48 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
+    'min-w-48 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
 
   /** Ouverture du panneau de sélection de produits. */
   protected readonly pickerOpen = signal(false);

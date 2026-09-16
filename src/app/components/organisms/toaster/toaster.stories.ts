@@ -12,10 +12,10 @@ import { ToasterComponent } from './toaster.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap gap-2">
-      <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white" (click)="toast.success('Séance enregistrée', { title: 'Succès' })">Succès</button>
-      <button class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white" (click)="toast.error('Une erreur est survenue', { title: 'Erreur' })">Erreur</button>
-      <button class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white" (click)="toast.info('Synchronisation en cours')">Info</button>
-      <button class="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white" (click)="toast.warning('Chrono cible manquant')">Attention</button>
+      <button class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white" (click)="toast.success('Séance enregistrée', { title: 'Succès' })">Succès</button>
+      <button class="rounded-md bg-rose-600 px-4 py-2 text-sm font-medium text-white" (click)="toast.error('Une erreur est survenue', { title: 'Erreur' })">Erreur</button>
+      <button class="rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white" (click)="toast.info('Synchronisation en cours')">Info</button>
+      <button class="rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-white" (click)="toast.warning('Chrono cible manquant')">Attention</button>
     </div>
     <ui-toaster />
   `,
