@@ -181,7 +181,7 @@ export class RaceOverviewPanelComponent {
     return [
       { label: 'Trace GPX importée', done: !!(this.track() || ev.gpxTrackId) },
       { label: 'Ravitaillements positionnés', done: (ev.aidStations?.length ?? 0) > 0 },
-      { label: 'Plan de pacing défini', done: !!ev.pacingPlan },
+      { label: 'Plan de pacing défini', done: (ev.pacingScenarios?.length ?? 0) > 0 || !!ev.pacingPlan },
       { label: 'Objectifs nutritionnels définis', done: this.goals().length > 0 },
       { label: 'Inventaire renseigné', done: (ev.items?.length ?? 0) > 0 },
       { label: 'Plan de nutrition défini', done: (ev.intakes?.length ?? 0) > 0 },

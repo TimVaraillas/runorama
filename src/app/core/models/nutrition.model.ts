@@ -409,6 +409,23 @@ export interface PacingPlan {
 }
 
 /**
+ * Scénario de pacing nommé (ex. « Réaliste », « Optimiste », « Pessimiste »).
+ * Chaque scénario porte son propre plan et son chrono cible dérivé. Le scénario
+ * de référence de la course pilote les heures de passage, le plan de nutrition
+ * et l'export ; les autres servent à comparer.
+ */
+export interface PacingScenario {
+  /** Identifiant unique (généré côté client). */
+  id: string;
+  /** Nom affiché du scénario. */
+  name: string;
+  /** Plan de pacing propre au scénario. */
+  pacingPlan: PacingPlan;
+  /** Chrono cible dérivé du scénario (minutes). */
+  targetTimeMinutes: number;
+}
+
+/**
  * Propriétaire d'une stratégie alimentaire, tel qu'exposé aux administrateurs.
  */
 export interface RaceStrategyOwner {
@@ -473,6 +490,14 @@ export interface RaceStrategy {
   targetTimeMinutes?: number;
   /** Plan de pacing calculé à partir du GPX, des points de passage et des arrêts. */
   pacingPlan?: PacingPlan;
+  /**
+   * Scénarios de pacing (comparaison réaliste/optimiste/pessimiste). Le scénario
+   * de référence est reflété dans `pacingPlan`/`targetTimeMinutes` ci-dessus, qui
+   * restent la source de vérité pour les ravitos, la nutrition et l'export.
+   */
+  pacingScenarios?: PacingScenario[];
+  /** Identifiant du scénario de pacing de référence. */
+  referenceScenarioId?: string;
   /** Objectifs horaires par nutriment (énergie, glucides, lipides, …). */
   goals: NutritionGoals;
   /** Inventaire des produits emportés. */

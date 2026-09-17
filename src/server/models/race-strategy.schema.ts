@@ -218,6 +218,36 @@ const waypointSchema = new Schema(
  * Associe un évènement (course, sortie longue) à une liste de produits emportés
  * et à des objectifs horaires par nutriment.
  */
+const pacingPlanSchema = new Schema(
+  {
+    segmentDurations: { type: Map, of: Number, default: () => new Map() },
+    lockedSegmentIds: { type: [String], default: [] },
+    terrains: { type: Map, of: String, default: () => new Map() },
+    strategy: {
+      type: String,
+      enum: ['CAUTIOUS', 'BALANCED', 'AGGRESSIVE', 'NEGATIVE_SPLIT', 'CUSTOM'],
+    },
+    fatiguePercent: { type: Number, min: 0, max: 50 },
+    negativeSplitPercent: { type: Number, min: 0, max: 30 },
+  },
+  { _id: false },
+);
+
+/** Scénario de pacing nommé (réaliste, optimiste, …), propre à une course. */
+const pacingScenarioSchema = new Schema(
+  {
+    /** Identifiant unique généré côté client. */
+    id: { type: String, required: true },
+    /** Nom affiché du scénario. */
+    name: { type: String, required: true, trim: true },
+    /** Plan de pacing propre au scénario. */
+    pacingPlan: { type: pacingPlanSchema, default: () => ({}) },
+    /** Chrono cible dérivé (minutes). */
+    targetTimeMinutes: { type: Number, min: 0, default: 0 },
+  },
+  { _id: false },
+);
+
 const raceStrategySchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -259,6 +289,10 @@ const raceStrategySchema = new Schema(
       fatiguePercent: { type: Number, min: 0, max: 50 },
       negativeSplitPercent: { type: Number, min: 0, max: 30 },
     },
+    /** Scénarios de pacing (comparaison réaliste/optimiste/pessimiste). */
+    pacingScenarios: { type: [pacingScenarioSchema], default: [] },
+    /** Identifiant du scénario de pacing de référence. */
+    referenceScenarioId: { type: String },
     /** Objectifs horaires par nutriment. */
     goals: { type: goalsSchema, default: () => ({}) },
     /** Produits emportés (inventaire). */

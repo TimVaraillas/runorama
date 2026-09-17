@@ -25,6 +25,7 @@ import {
 } from '../../../components/molecules/side-nav/side-nav.component';
 import { DashboardLayoutComponent } from '../../../components/templates/dashboard-layout/dashboard-layout.component';
 import { ConfirmDeleteModalComponent } from '../../../components/molecules/confirm-delete-modal/confirm-delete-modal.component';
+import { ModalComponent } from '../../../components/molecules/modal/modal.component';
 import { RaceStrategyFormComponent } from '../../../components/organisms/race-strategy-form/race-strategy-form.component';
 import { NutritionStrategyInventoryComponent } from '../../../components/organisms/nutrition-strategy-inventory/nutrition-strategy-inventory.component';
 import { ConsumptionPlanComponent } from '../../../components/organisms/consumption-plan/consumption-plan.component';
@@ -37,7 +38,10 @@ import {
 import { GpxReconciliationModalComponent } from '../../../components/molecules/gpx-reconciliation-modal/gpx-reconciliation-modal.component';
 import { WaypointFormPanelComponent } from '../../../components/organisms/waypoint-form-panel/waypoint-form-panel.component';
 import { RoutePointFormPanelComponent } from '../../../components/organisms/route-point-form-panel/route-point-form-panel.component';
-import { PacingPanelComponent } from '../../../components/organisms/pacing-panel/pacing-panel.component';
+import {
+  PacingPanelComponent,
+  type PacingSavePayload,
+} from '../../../components/organisms/pacing-panel/pacing-panel.component';
 import { RaceOverviewPanelComponent } from '../../../components/organisms/race-overview-panel/race-overview-panel.component';
 import type {
   AidStation,
@@ -99,6 +103,7 @@ import {
     SideNavComponent,
     DashboardLayoutComponent,
     ConfirmDeleteModalComponent,
+    ModalComponent,
     RaceStrategyFormComponent,
     NutritionStrategyInventoryComponent,
     ConsumptionPlanComponent,
@@ -365,6 +370,42 @@ import {
       (cancel)="cancelDelete()"
     />
 
+    <!-- Modale : choix du scénario de pacing à exporter -->
+    <ui-modal
+      [open]="pdfScenarioModalOpen()"
+      title="Exporter le roadbook"
+      (close)="pdfScenarioModalOpen.set(false)"
+    >
+      <p class="text-sm text-slate-500">
+        Choisissez le scénario de pacing à inclure dans le roadbook.
+      </p>
+      <div class="mt-4 space-y-2">
+        @for (scenario of event()?.pacingScenarios ?? []; track scenario.id) {
+          <label
+            class="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50"
+          >
+            <input
+              type="radio"
+              name="pdf-scenario"
+              [value]="scenario.id"
+              [checked]="pdfScenarioId() === scenario.id"
+              (change)="pdfScenarioId.set(scenario.id)"
+            />
+            <span class="flex-1 text-sm font-medium text-slate-700">{{ scenario.name }}</span>
+            <span class="tabular-nums text-xs text-slate-400">{{ pacingScenarioLabel(scenario.targetTimeMinutes) }}</span>
+          </label>
+        }
+      </div>
+      <div modalFooter class="flex items-center justify-end gap-3">
+        <ui-button color="default" variant="ghost" (clicked)="pdfScenarioModalOpen.set(false)">
+          Annuler
+        </ui-button>
+        <ui-button color="primary" [icon]="faFilePdf" (clicked)="confirmExportPdf()">
+          Exporter
+        </ui-button>
+      </div>
+    </ui-modal>
+
     <!-- Modale : réconciliation des écarts GPX / évènement -->
     <ui-gpx-reconciliation-modal
       [open]="reconcileOpen()"
@@ -515,6 +556,11 @@ export class RaceStrategyPage {
   /** Suppression en cours (désactive les actions de la modale). */
   protected readonly deleting = signal(false);
 
+  /** État d'ouverture de la modale de choix du scénario à exporter. */
+  protected readonly pdfScenarioModalOpen = signal(false);
+  /** Identifiant du scénario sélectionné pour l'export PDF. */
+  protected readonly pdfScenarioId = signal<string | null>(null);
+
   constructor() {
     // Chargement navigateur uniquement : le SSR rend les loaders au lieu des
     // états vides / « introuvable » (requêtes non authentifiées côté serveur).
@@ -612,7 +658,7 @@ export class RaceStrategyPage {
     });
   }
 
-  savePacing(payload: Pick<RaceStrategy, 'pacingPlan' | 'targetTimeMinutes'>): void {
+  savePacing(payload: PacingSavePayload): void {
     const current = this.event();
     if (!current) return;
     this.service.updateStrategy(current.id, payload).subscribe({
@@ -1196,6 +1242,33 @@ export class RaceStrategyPage {
   exportPdf(): void {
     const event = this.event();
     if (!event) return;
+    const scenarios = event.pacingScenarios ?? [];
+    if (scenarios.length > 1) {
+      this.pdfScenarioId.set(event.referenceScenarioId ?? scenarios[0]!.id);
+      this.pdfScenarioModalOpen.set(true);
+      return;
+    }
+    this.runPdfExport(event);
+  }
+
+  /** Exporte le roadbook pour le scénario choisi dans la modale. */
+  confirmExportPdf(): void {
+    const event = this.event();
+    if (!event) return;
+    const scenario = event.pacingScenarios?.find((item) => item.id === this.pdfScenarioId());
+    this.pdfScenarioModalOpen.set(false);
+    const exported = scenario
+      ? { ...event, pacingPlan: scenario.pacingPlan, targetTimeMinutes: scenario.targetTimeMinutes }
+      : event;
+    this.runPdfExport(exported);
+  }
+
+  /** Libellé court d'un chrono cible (ex. 10h30). */
+  pacingScenarioLabel(minutes: number): string {
+    return `${Math.floor(minutes / 60)}h${Math.round(minutes % 60).toString().padStart(2, '0')}`;
+  }
+
+  private runPdfExport(event: RaceStrategy): void {
     const opened = this.exportService.exportStrategyToPdf(event, this.products(), this.gpxTrack());
     if (!opened) {
       this.toast.error("Autorisez les fenêtres pop-up pour exporter la course en PDF.");
