@@ -220,15 +220,13 @@ const waypointSchema = new Schema(
  */
 const pacingPlanSchema = new Schema(
   {
-    segmentDurations: { type: Map, of: Number, default: () => new Map() },
+    method: { type: String, enum: ['MINETTI', 'KM_EFFORT', 'NAISMITH'], default: 'MINETTI' },
+    climbCoefficient: { type: Number, min: 1 },
+    fatiguePercent: { type: Number, min: 0, max: 30 },
+    derivedFromScenarioId: { type: String },
+    pacePercent: { type: Number },
     lockedSegmentIds: { type: [String], default: [] },
-    terrains: { type: Map, of: String, default: () => new Map() },
-    strategy: {
-      type: String,
-      enum: ['CAUTIOUS', 'BALANCED', 'AGGRESSIVE', 'NEGATIVE_SPLIT', 'CUSTOM'],
-    },
-    fatiguePercent: { type: Number, min: 0, max: 50 },
-    negativeSplitPercent: { type: Number, min: 0, max: 30 },
+    segmentDurations: { type: Map, of: Number, default: () => new Map() },
   },
   { _id: false },
 );
@@ -277,22 +275,14 @@ const raceStrategySchema = new Schema(
     elevationLoss: { type: Number, min: 0 },
     /** Chrono cible exprimé en minutes (facultatif). */
     targetTimeMinutes: { type: Number, min: 0 },
-    /** Plan de pacing calculé à partir du parcours et des arrêts. */
-    pacingPlan: {
-      segmentDurations: { type: Map, of: Number, default: () => new Map() },
-      lockedSegmentIds: { type: [String], default: [] },
-      terrains: { type: Map, of: String, default: () => new Map() },
-      strategy: {
-        type: String,
-        enum: ['CAUTIOUS', 'BALANCED', 'AGGRESSIVE', 'NEGATIVE_SPLIT', 'CUSTOM'],
-      },
-      fatiguePercent: { type: Number, min: 0, max: 50 },
-      negativeSplitPercent: { type: Number, min: 0, max: 30 },
-    },
+    /** Plan de pacing du scénario de référence (miroir). */
+    pacingPlan: { type: pacingPlanSchema, default: () => ({}) },
     /** Scénarios de pacing (comparaison réaliste/optimiste/pessimiste). */
     pacingScenarios: { type: [pacingScenarioSchema], default: [] },
     /** Identifiant du scénario de pacing de référence. */
     referenceScenarioId: { type: String },
+    /** Difficulté technique /5 par segment, partagée par tous les scénarios. */
+    segmentDifficulties: { type: Map, of: Number, default: () => new Map() },
     /** Objectifs horaires par nutriment. */
     goals: { type: goalsSchema, default: () => ({}) },
     /** Produits emportés (inventaire). */

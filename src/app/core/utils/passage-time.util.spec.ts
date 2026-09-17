@@ -13,6 +13,10 @@ describe('formatPassageTime', () => {
   it('uses the default departure time for missing legacy data', () => {
     expect(formatPassageTime(undefined, 60)).toBe('09:00');
   });
+
+  it('formats decimal elapsed minutes as a classic hour and minute', () => {
+    expect(formatPassageTime('00:00', 527.34626698425859)).toBe('08:47');
+  });
 });
 
 describe('estimateArrivalTime', () => {

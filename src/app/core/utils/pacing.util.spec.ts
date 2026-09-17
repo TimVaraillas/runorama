@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { GpxTrack } from '../models';
-import { buildPacingSegments, createAutomaticPacingPlan } from './pacing.util';
+import type { AidStation, GpxTrack } from '../models';
+import { buildPacingSegments, computePacing } from './pacing.util';
 
 const track: GpxTrack = {
   id: 'track',
@@ -10,7 +10,7 @@ const track: GpxTrack = {
   elevationLoss: 600,
   minAltitude: 100,
   maxAltitude: 700,
-  pointCount: 2,
+  pointCount: 3,
   bbox: { minLat: 0, minLon: 0, maxLat: 1, maxLon: 1 },
   points: [
     { lat: 0, lon: 0, ele: 100, distance: 0, elevationGain: 0, elevationLoss: 0 },
@@ -19,42 +19,64 @@ const track: GpxTrack = {
   ],
 };
 
-describe('pacing', () => {
-  it('allocates the target time between running and aid-station stops', () => {
-    const stations = [
-      {
-        id: 'aid',
-        name: 'Ravito',
-        types: [],
-        distanceFromStart: 10,
-        elevationGainFromStart: 300,
-        estimatedDurationFromStart: 0,
-        stopDurationMinutes: 5,
-        pickup: [],
-        drop: [],
-        todo: [],
-        consumptions: [],
-      },
-    ];
-    const plan = createAutomaticPacingPlan(track, stations, [], 180, undefined, 'BALANCED');
-    expect(plan).not.toBeNull();
-    const segments = buildPacingSegments(track, stations, [], plan!, 180);
-    expect(segments.reduce((sum, segment) => sum + segment.durationMinutes + segment.stopMinutes, 0)).toBe(180);
+const aid: AidStation = {
+  id: 'aid',
+  name: 'Ravito',
+  types: [],
+  distanceFromStart: 10,
+  elevationGainFromStart: 600,
+  estimatedDurationFromStart: 0,
+  stopDurationMinutes: 5,
+  pickup: [],
+  drop: [],
+  todo: [],
+  consumptions: [],
+};
+
+describe('computePacing', () => {
+  it('résout une allure de référence pour atteindre exactement le chrono cible', () => {
+    const result = computePacing(track, [aid], [], {}, undefined, 180);
+    expect(result.feasible).toBe(true);
+    expect(result.totalMinutes).toBeCloseTo(180, 5);
+    expect(result.stopMinutes).toBe(5);
+    expect(result.basePaceMinKm).toBeGreaterThan(0);
   });
 
-  it('calculates elevation loss for each segment from cumulative GPX loss', () => {
-    const segments = buildPacingSegments(
-      track,
-      [
-        {
-          id: 'aid', name: 'Ravito', types: [], distanceFromStart: 10, estimatedDurationFromStart: 0,
-          pickup: [], drop: [], todo: [], consumptions: [],
-        },
-      ],
-      [],
-      undefined,
-      180,
-    );
+  it('respecte la durée forcée d’un segment verrouillé', () => {
+    const plan = { lockedSegmentIds: ['__start__:aid'], segmentDurations: { '__start__:aid': 90 } };
+    const result = computePacing(track, [aid], [], {}, plan, 180);
+    const locked = result.segments.find((segment) => segment.id === '__start__:aid');
+    expect(locked?.durationMinutes).toBe(90);
+    expect(locked?.locked).toBe(true);
+    expect(result.totalMinutes).toBeCloseTo(180, 5);
+  });
+
+  it('fige la durée d’un segment sans le verrouiller', () => {
+    const plan = { segmentDurations: { '__start__:aid': 90 } };
+    const result = computePacing(track, [aid], [], {}, plan, 180);
+    const forced = result.segments.find((segment) => segment.id === '__start__:aid');
+    expect(forced?.durationMinutes).toBe(90);
+    expect(forced?.overridden).toBe(true);
+    expect(forced?.locked).toBe(false);
+    expect(result.totalMinutes).toBeCloseTo(180, 5);
+  });
+
+  it('ralentit un segment plus difficile', () => {
+    const easy = computePacing(track, [aid], [], { '__start__:aid': 1 }, undefined, 180);
+    const hard = computePacing(track, [aid], [], { '__start__:aid': 5 }, undefined, 180);
+    const easyClimb = easy.segments.find((s) => s.id === '__start__:aid')!;
+    const hardClimb = hard.segments.find((s) => s.id === '__start__:aid')!;
+    expect(hardClimb.durationMinutes).toBeGreaterThan(easyClimb.durationMinutes);
+  });
+
+  it('applique le pourcentage d’un scénario dérivé (allure imposée)', () => {
+    const base = computePacing(track, [aid], [], {}, undefined, 180);
+    const slower = computePacing(track, [aid], [], {}, undefined, 0, base.basePaceMinKm * 1.15);
+    expect(slower.runningMinutes).toBeGreaterThan(base.runningMinutes);
+  });
+
+  it('calcule le D- de chaque segment depuis le cumul GPX', () => {
+    const segments = buildPacingSegments(track, [aid], [], undefined, undefined, 180);
     expect(segments.map((segment) => segment.elevationLoss)).toEqual([100, 500]);
   });
 });

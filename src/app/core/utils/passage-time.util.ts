@@ -56,7 +56,7 @@ export function estimateArrivalTime(
 /** Ajoute une durée de course à une heure de départ et retourne une heure locale `HH:mm`. */
 export function formatPassageTime(startTime: string | undefined, elapsedMinutes: number): string {
   const [hours = 8, minutes = 0] = (startTime ?? '08:00').split(':').map(Number);
-  const totalMinutes = ((hours * 60 + minutes + elapsedMinutes) % 1440 + 1440) % 1440;
+  const totalMinutes = ((Math.round(hours * 60 + minutes + elapsedMinutes) % 1440) + 1440) % 1440;
   return `${Math.floor(totalMinutes / 60)
     .toString()
     .padStart(2, '0')}:${(totalMinutes % 60).toString().padStart(2, '0')}`;

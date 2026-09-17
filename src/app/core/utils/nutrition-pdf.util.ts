@@ -13,7 +13,7 @@ import { buildRouteMarkers, routePointKindLabel } from './route-point.util';
 import { buildTrackMapSvg, buildElevationProfileSvg, routeMarkerBadge } from './route-svg.util';
 import { interpolateAtDistance, type ProcessedTrackPoint } from './gpx.util';
 import { formatPassageTime } from './passage-time.util';
-import { buildPacingSegments, PACING_TERRAIN_LABELS } from './pacing.util';
+import { buildPacingSegments, PACING_DIFFICULTY_LABELS } from './pacing.util';
 
 /** Échappe une chaîne pour une insertion sûre dans du HTML. */
 function escapeHtml(value: string): string {
@@ -654,8 +654,9 @@ export function buildStrategyPdfHtml(
           track,
           event.aidStations ?? [],
           event.waypoints ?? [],
+          event.segmentDifficulties,
           event.pacingPlan,
-          event.targetTimeMinutes,
+          event.targetTimeMinutes ?? 0,
         )
       : [];
   const pacingSection =
@@ -670,7 +671,7 @@ export function buildStrategyPdfHtml(
               <th class="right">Dist.</th>
               <th class="right">D+</th>
               <th class="right">D−</th>
-              <th>Terrain</th>
+              <th>Difficulté</th>
               <th class="right">Temps</th>
               <th class="right">Arrivée</th>
               <th class="right">Allure</th>
@@ -686,7 +687,7 @@ export function buildStrategyPdfHtml(
               <td class="right">${num(s.distance, 1)} km</td>
               <td class="right">+${num(s.elevationGain)} m</td>
               <td class="right">−${num(s.elevationLoss)} m</td>
-              <td>${escapeHtml(PACING_TERRAIN_LABELS[s.terrain])}</td>
+              <td>${escapeHtml(PACING_DIFFICULTY_LABELS[s.difficulty] ?? '')}</td>
               <td class="right">${formatMinutes(s.durationMinutes)}</td>
               <td class="right">${formatPassageTime(event.startTime, s.arrivalMinutes)}</td>
               <td class="right">${paceLabel(s.distance, s.durationMinutes)}</td>

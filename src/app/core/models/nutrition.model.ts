@@ -389,23 +389,30 @@ export interface AidStation {
   consumptions: AidConsumption[];
 }
 
-/** Technicité estimée ou corrigée manuellement pour un segment de pacing. */
-export type PacingTerrain = 'ROAD' | 'ROLLING_TRAIL' | 'TECHNICAL_TRAIL' | 'VERY_TECHNICAL' | 'OFF_TRAIL';
+/** Méthode de calcul du coût du dénivelé pour un scénario de pacing. */
+export type PacingMethod = 'MINETTI' | 'KM_EFFORT' | 'NAISMITH';
 
-/** Réglages et durées de segment d'un plan de pacing propre à une course. */
+/**
+ * Réglages d'un plan de pacing propre à un scénario. Le plan ne stocke plus les
+ * durées calculées : elles sont dérivées à la volée d'une allure de référence
+ * sur plat, elle-même déduite du chrono cible. On ne conserve que les réglages
+ * globaux et les éventuels segments verrouillés (durée forcée).
+ */
 export interface PacingPlan {
-  /** Durée de course hors arrêts, par segment identifié. */
-  segmentDurations: Record<string, number>;
-  /** Segments protégés lors du recalcul automatique. */
-  lockedSegmentIds?: string[];
-  /** Technicité choisie pour chaque segment. */
-  terrains?: Record<string, PacingTerrain>;
-  /** Modèle automatique appliqué en dernier. */
-  strategy?: 'CAUTIOUS' | 'BALANCED' | 'AGGRESSIVE' | 'NEGATIVE_SPLIT' | 'CUSTOM';
-  /** Fatigue maximale appliquée progressivement en fin de course (0 à 50 %). */
+  /** Méthode de coût du dénivelé (défaut : Minetti/GAP). */
+  method?: PacingMethod;
+  /** Coefficient de montée (m D+ équivalents à 1 km plat) pour km-effort/Naismith. */
+  climbCoefficient?: number;
+  /** Fatigue maximale appliquée en fin de course (0 à 30 %), selon le km-effort parcouru. */
   fatiguePercent?: number;
-  /** Intensité du negative split (0 à 30 %). */
-  negativeSplitPercent?: number;
+  /** Scénario de base dont ce scénario dérive (lien vivant). */
+  derivedFromScenarioId?: string;
+  /** Pourcentage d'allure appliqué au scénario de base (ex. +15 % = plus lent). */
+  pacePercent?: number;
+  /** Segments dont la durée est forcée (verrouillés lors du calcul). */
+  lockedSegmentIds?: string[];
+  /** Durées forcées (minutes) des segments verrouillés. */
+  segmentDurations?: Record<string, number>;
 }
 
 /**
@@ -498,6 +505,12 @@ export interface RaceStrategy {
   pacingScenarios?: PacingScenario[];
   /** Identifiant du scénario de pacing de référence. */
   referenceScenarioId?: string;
+  /**
+   * Difficulté technique de chaque segment, notée de 1 (roulant) à 5 (très
+   * technique). Partagée par tous les scénarios (propriété du terrain).
+   * Clé = identifiant de segment (`fromId:toId`).
+   */
+  segmentDifficulties?: Record<string, number>;
   /** Objectifs horaires par nutriment (énergie, glucides, lipides, …). */
   goals: NutritionGoals;
   /** Inventaire des produits emportés. */
