@@ -174,10 +174,10 @@ interface ScenarioState {
             <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
               <table class="min-w-250 w-full table-fixed text-left text-sm">
                 <colgroup>
-                  <col style="width: 18%" /><col style="width: 10%" /><col style="width: 9%" /><col style="width: 9%" /><col style="width: 11%" /><col style="width: 11%" /><col style="width: 11%" /><col style="width: 11%" /><col style="width: 10%" />
+                  <col style="width: 16%" /><col style="width: 9%" /><col style="width: 8%" /><col style="width: 8%" /><col style="width: 8%" /><col style="width: 10%" /><col style="width: 10%" /><col style="width: 10%" /><col style="width: 10%" /><col style="width: 11%" />
                 </colgroup>
                 <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr>
-                  <th class="px-3 py-3 font-medium">Segment</th><th class="px-3 py-3 font-medium">Distance</th><th class="px-3 py-3 font-medium">D+</th><th class="px-3 py-3 font-medium">D-</th><th class="px-3 py-3 font-medium">Difficulté</th><th class="px-3 py-3 font-medium">Temps</th><th class="px-3 py-3 font-medium">Allure</th><th class="px-3 py-3 font-medium">Arrivée</th><th class="px-3 py-3"></th>
+                  <th class="px-3 py-3 font-medium">Segment</th><th class="px-3 py-3 font-medium">Distance</th><th class="px-3 py-3 font-medium">D+</th><th class="px-3 py-3 font-medium">D-</th><th class="px-3 py-3 font-medium">Pente</th><th class="px-3 py-3 font-medium">Difficulté</th><th class="px-3 py-3 font-medium">Temps</th><th class="px-3 py-3 font-medium">Allure</th><th class="px-3 py-3 font-medium">Arrivée</th><th class="px-3 py-3"></th>
                 </tr></thead>
                 <tbody class="divide-y divide-slate-100">
                   @for (segment of segments(); track segment.id) {
@@ -186,6 +186,7 @@ interface ScenarioState {
                       <td class="whitespace-nowrap px-3 py-3 tabular-nums text-slate-600">{{ segment.distance.toFixed(1) }} km</td>
                       <td class="whitespace-nowrap px-3 py-3 tabular-nums text-slate-600">+{{ round(segment.elevationGain) }} m</td>
                       <td class="whitespace-nowrap px-3 py-3 tabular-nums text-slate-600">-{{ round(segment.elevationLoss) }} m</td>
+                      <td class="whitespace-nowrap px-3 py-3 tabular-nums" [class]="gradeLabelClass(segment)">{{ gradeLabel(segment) }}</td>
                       <td class="px-3 py-3"><span class="inline-flex items-center gap-1" [title]="difficultyLabel(segment.difficulty) + ' · ' + segment.difficulty + '/5'">@for (dot of difficultyLevels; track dot) { <span class="h-2 w-2 rounded-full" [class]="dot <= segment.difficulty ? 'bg-brand-500' : 'bg-slate-200'"></span> }</span></td>
                       <td class="whitespace-nowrap px-3 py-3"><span class="tabular-nums text-slate-700">{{ formatMinutes(segment.durationMinutes) }}</span>@if (segment.locked) { <ui-icon [icon]="faLock" size="xs" class="ml-1.5 text-brand-500" /> }</td>
                       <td class="whitespace-nowrap px-3 py-3 tabular-nums text-slate-700">{{ paceLabel(segment) }}</td>
@@ -194,7 +195,7 @@ interface ScenarioState {
                     </tr>
                     @if (editingSegmentId() === segment.id) {
                       <tr class="bg-slate-50">
-                        <td colspan="9" class="px-4 py-4">
+                        <td colspan="10" class="px-4 py-4">
                           <div class="flex flex-wrap items-start gap-x-8 gap-y-4">
                             <div>
                               <span class="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-500">Difficulté</span>
@@ -240,13 +241,13 @@ interface ScenarioState {
                     }
                     @if (segmentStopStationId(segment); as stationId) {
                       <tr class="bg-secondary-50/80 text-xs text-secondary-800">
-                        <td class="px-3 py-2 font-medium" colspan="5">Arrêt à {{ segment.toLabel }}</td>
+                        <td class="px-3 py-2 font-medium" colspan="6">Arrêt à {{ segment.toLabel }}</td>
                         <td class="px-3 py-2 tabular-nums" colspan="3">{{ segment.stopMinutes }} min · départ {{ formatTime(segment.arrivalMinutes + segment.stopMinutes) }}</td>
                         <td class="px-3 py-2"><div class="flex items-center justify-end gap-1"><ui-button size="sm" [color]="'default'" variant="ghost" [icon]="faPen" tooltipContent="Modifier l'arrêt" tooltipPosition="left" (clicked)="toggleStopEditor(stationId)" /></div></td>
                       </tr>
                       @if (editingStopId() === stationId) {
                         <tr class="bg-secondary-50/30">
-                          <td colspan="9" class="px-4 py-4">
+                          <td colspan="10" class="px-4 py-4">
                             <div class="flex flex-wrap items-start gap-x-8 gap-y-4">
                               <div>
                                 <span class="mb-1.5 block text-xs font-medium uppercase tracking-wide text-secondary-700">Temps d'arrêt · {{ segment.toLabel }}</span>
@@ -943,6 +944,22 @@ export class PacingPanelComponent {
     return `${minutes}:${seconds.toString().padStart(2, '0')}/km`;
   }
   protected arrivalLabel(segment: { arrivalMinutes: number }): string { return this.formatTime(segment.arrivalMinutes); }
+  /** Pente moyenne du tronçon (dénivelé net / distance horizontale). */
+  protected gradePercent(segment: { distance: number; elevationGain: number; elevationLoss: number }): number {
+    if (segment.distance <= 0) return 0;
+    return ((segment.elevationGain - segment.elevationLoss) / (segment.distance * 1000)) * 100;
+  }
+  protected gradeLabel(segment: { distance: number; elevationGain: number; elevationLoss: number }): string {
+    const grade = this.gradePercent(segment);
+    const sign = grade > 0 ? '+' : '';
+    return `${sign}${grade.toFixed(1)} %`;
+  }
+  protected gradeLabelClass(segment: { distance: number; elevationGain: number; elevationLoss: number }): string {
+    const grade = this.gradePercent(segment);
+    if (grade > 0.5) return 'text-brand-600';
+    if (grade < -0.5) return 'text-secondary-600';
+    return 'text-slate-500';
+  }
   protected formatTime(minutes: number): string { return formatPassageTime(this.event().startTime, minutes); }
   protected formatMinutes(minutes: number): string {
     const total = Math.round(minutes);
