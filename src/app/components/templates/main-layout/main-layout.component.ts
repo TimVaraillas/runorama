@@ -30,7 +30,7 @@ import { ToasterComponent } from '../../organisms/toaster/toaster.component';
         <router-outlet />
       </main>
       <footer class="border-t bg-slate-50 border-slate-200 py-6 text-center text-sm text-slate-400">
-        Runorama — Planifiez votre nutrition sportive.
+        Runorama — Parcours, pacing, ravitaillements et nutrition pour vos trails et ultras.
       </footer>
     </div>
     <ui-toaster />

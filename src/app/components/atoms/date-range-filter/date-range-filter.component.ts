@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, model } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { IconComponent } from '../icon/icon.component';
-import { faCalendarDay, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { DatePickerComponent } from '../date-picker/date-picker.component';
+import { faXmark } from '@fortawesome/free-solid-svg-icons';
 
 /**
  * Atom : filtre par intervalle de dates réutilisable.
@@ -14,34 +14,17 @@ import { faCalendarDay, faXmark } from '@fortawesome/free-solid-svg-icons';
 @Component({
   selector: 'ui-date-range-filter',
   standalone: true,
-  imports: [FormsModule, IconComponent],
+  imports: [IconComponent, DatePickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div
-      class="flex items-center gap-2 rounded-md border border-slate-300 bg-white pl-3 pr-2 text-sm text-slate-900 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-200"
-    >
-      <ui-icon [icon]="faCalendarDay" size="sm" class="text-slate-400" />
-      <input
-        type="date"
-        [ngModel]="from()"
-        (ngModelChange)="from.set($event)"
-        [max]="to() || null"
-        [attr.aria-label]="fromAriaLabel()"
-        class="border-0 bg-transparent py-2 text-sm text-slate-900 focus:outline-none focus:ring-0"
-      />
+    <div class="flex items-center gap-1.5">
+      <ui-date-picker [(value)]="from" [max]="to()" [ariaLabel]="fromAriaLabel()" [triggerClass]="pickerClass" />
       <span class="text-slate-400">→</span>
-      <input
-        type="date"
-        [ngModel]="to()"
-        (ngModelChange)="to.set($event)"
-        [min]="from() || null"
-        [attr.aria-label]="toAriaLabel()"
-        class="border-0 bg-transparent py-2 text-sm text-slate-900 focus:outline-none focus:ring-0"
-      />
+      <ui-date-picker [(value)]="to" [min]="from()" [ariaLabel]="toAriaLabel()" [triggerClass]="pickerClass" />
       @if (hasValue()) {
         <button
           type="button"
-          class="grid h-6 w-6 shrink-0 place-items-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+          class="grid h-8 w-8 shrink-0 place-items-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
           (click)="clear()"
           aria-label="Effacer l'intervalle de dates"
         >
@@ -61,8 +44,9 @@ export class DateRangeFilterComponent {
   /** Libellé accessible du champ de fin. */
   readonly toAriaLabel = input('Date de fin');
 
-  protected readonly faCalendarDay = faCalendarDay;
   protected readonly faXmark = faXmark;
+  protected readonly pickerClass =
+    'rounded-md border border-slate-300 bg-white shadow-sm hover:border-brand-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200';
 
   /** Indique qu'au moins une des deux bornes est renseignée. */
   protected readonly hasValue = computed(() => !!this.from() || !!this.to());
@@ -72,3 +56,4 @@ export class DateRangeFilterComponent {
     this.to.set('');
   }
 }
+

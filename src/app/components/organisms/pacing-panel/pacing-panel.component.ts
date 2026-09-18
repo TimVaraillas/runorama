@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
+import { GaugeComponent } from '../../atoms/gauge/gauge.component';
+import { TimePickerComponent } from '../../atoms/time-picker/time-picker.component';
 import type { AidStation, GpxTrack, PacingMethod, PacingPlan, PacingScenario, RaceStrategy } from '../../../core/models';
 import {
   computePacing,
@@ -47,7 +49,7 @@ interface ScenarioState {
 @Component({
   selector: 'ui-pacing-panel',
   standalone: true,
-  imports: [ButtonComponent, IconComponent],
+  imports: [ButtonComponent, IconComponent, GaugeComponent, TimePickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (track(); as route) {
@@ -86,6 +88,17 @@ interface ScenarioState {
               (clicked)="openEditPanel()"
             >
               Éditer
+            </ui-button>
+
+             <ui-button
+              size="sm"
+              color="secondary"
+              variant="full"
+              [icon]="faCalculator"
+              title="Recalculer les tronçons non verrouillés"
+              (clicked)="recalcPacing()"
+            >
+              Recalculer
             </ui-button>
           }
 
@@ -148,17 +161,6 @@ interface ScenarioState {
                 <span class="tabular-nums text-slate-500 font-medium">{{ round(kmEffort()) }} km</span>
               </span>
             </div>
-
-            <ui-button
-              size="sm"
-              color="secondary"
-              variant="outlined"
-              [icon]="faCalculator"
-              title="Recalculer les tronçons non verrouillés"
-              (clicked)="recalcPacing()"
-            >
-              Recalculer
-            </ui-button>
           </div>
 
           <div class="space-y-4 px-3 pt-3">
@@ -313,19 +315,17 @@ interface ScenarioState {
 
               @if (derivedBaseId()) {
                 <div>
-                  <label class="mb-1 block text-sm font-medium text-slate-700">Écart d'allure</label>
-                  <div class="relative">
-                    <input
-                      type="number"
-                      step="1"
-                      class="w-full rounded-lg border border-slate-300 px-3 py-2 pr-8 text-sm tabular-nums text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                      [value]="pacePercent()"
-                      (input)="setPacePercent($any($event.target).valueAsNumber)"
-                    />
-                    <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-slate-400">%</span>
-                  </div>
+                  <ui-gauge
+                    label="Écart d'allure"
+                    [value]="pacePercent()"
+                    [min]="-30"
+                    [max]="30"
+                    unit="%"
+                    [color]="pacePercent() > 0 ? 'brand' : pacePercent() < 0 ? 'secondary' : 'neutral'"
+                    (valueChange)="setPacePercent($event)"
+                  />
                   <p class="mt-1 text-xs text-slate-400">
-                    Positif = plus lent que le scénario de base. Chrono résultant : {{ durationLabel(targetTime()) }}.
+                    Chrono cible résultant : {{ durationLabel(targetTime()) }}
                   </p>
                 </div>
               } @else {
@@ -337,19 +337,15 @@ interface ScenarioState {
                   </div>
 
                   @if (targetMode() === 'duration') {
-                    <div class="relative">
-                      <input
-                        type="text"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 pr-12 text-sm tabular-nums text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                        [value]="editFormDuration()"
-                        (input)="onEditDurationChange($any($event.target).value)"
-                        placeholder="ex. 10h30 ou 10:30"
-                      />
-                      <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-slate-400">hh:mm</span>
-                    </div>
+                    <ui-time-picker
+                      [hours]="chronoHours()"
+                      (hoursChange)="setChronoHours($event)"
+                      [minutes]="chronoMinutes()"
+                      (minutesChange)="setChronoMinutes($event)"
+                      [maxHours]="99"
+                    />
                     <p class="mt-1 text-xs text-slate-400">
-                      Format : 10h30 ou 10:30
-                      @if (editFormPace()) { · soit ≈ {{ editFormPace() }} /km }
+                      @if (editFormPace()) { ≈ {{ editFormPace() }} /km }
                     </p>
                   } @else {
                     <div class="relative">
@@ -400,18 +396,15 @@ interface ScenarioState {
                 }
 
                 <div>
-                  <label class="mb-1 block text-sm font-medium text-slate-700">Facteur de fatigue</label>
-                  <div class="relative">
-                    <input
-                      type="number"
-                      min="0"
-                      max="30"
-                      class="w-full rounded-lg border border-slate-300 px-3 py-2 pr-8 text-sm tabular-nums text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                      [value]="fatiguePercent()"
-                      (input)="setFatiguePercent($any($event.target).valueAsNumber)"
-                    />
-                    <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-slate-400">%</span>
-                  </div>
+                  <ui-gauge
+                    label="Facteur de fatigue"
+                    [value]="fatiguePercent()"
+                    [min]="0"
+                    [max]="30"
+                    unit="%"
+                    [color]="fatiguePercent() > 15 ? 'danger' : fatiguePercent() > 5 ? 'warning' : 'brand'"
+                    (valueChange)="setFatiguePercent($event)"
+                  />
                   <p class="mt-1 text-xs text-slate-400">
                     Ralentissement progressif en fin de course (selon le km-effort parcouru).
                   </p>
@@ -572,12 +565,35 @@ export class PacingPanelComponent {
       seen.add(scenario.id);
       const base = this.state().scenarios.find((item) => item.id === plan.derivedFromScenarioId);
       if (base) {
-        const baseResult = this.computeFor(base, seen);
-        const override = baseResult.basePaceMinKm * (1 + (plan.pacePercent ?? 0) / 100);
-        return computePacing(track, stations, waypoints, difficulties, base.pacingPlan, 0, override);
+        // Allure de base « pure » (hors durées figées) décalée du pourcentage.
+        const override = this.flatBasePace(base) * (1 + (plan.pacePercent ?? 0) / 100);
+        return computePacing(track, stations, waypoints, difficulties, this.withoutOverrides(base.pacingPlan), 0, override);
       }
     }
     return computePacing(track, stations, waypoints, difficulties, plan, scenario.targetTimeMinutes ?? 0);
+  }
+
+  /** Allure de référence sur plat d'un scénario, en ignorant les durées figées. */
+  private flatBasePace(scenario: PacingScenario, seen = new Set<string>()): number {
+    const plan = scenario.pacingPlan;
+    if (plan?.derivedFromScenarioId && !seen.has(scenario.id)) {
+      seen.add(scenario.id);
+      const base = this.state().scenarios.find((item) => item.id === plan.derivedFromScenarioId);
+      if (base) return this.flatBasePace(base, seen) * (1 + (plan.pacePercent ?? 0) / 100);
+    }
+    return computePacing(
+      this.track(),
+      this.aidStations(),
+      this.event().waypoints ?? [],
+      this.difficulties(),
+      this.withoutOverrides(plan),
+      scenario.targetTimeMinutes ?? 0,
+    ).basePaceMinKm;
+  }
+
+  /** Plan sans durées figées ni verrous (calcul « pur » piloté par l'allure). */
+  private withoutOverrides(plan: PacingPlan): PacingPlan {
+    return { ...plan, segmentDurations: {}, lockedSegmentIds: [] };
   }
 
   private emptyResult(): PacingResult {
@@ -683,6 +699,20 @@ export class PacingPanelComponent {
     if (distance > 0) this.editFormPace.set(this.formatPace(minutes / distance));
     this.editError.set(null);
     this.updateSelected((current) => ({ ...current, targetTimeMinutes: minutes }));
+  }
+
+  /** Heures/minutes du chrono cible, dérivées du champ texte (pilotage par le sélecteur). */
+  protected chronoHours(): number {
+    return Math.floor((this.parseDuration(this.editFormDuration()) ?? 0) / 60);
+  }
+  protected chronoMinutes(): number {
+    return (this.parseDuration(this.editFormDuration()) ?? 0) % 60;
+  }
+  protected setChronoHours(hours: number): void {
+    this.onEditDurationChange(this.durationLabel(hours * 60 + this.chronoMinutes()));
+  }
+  protected setChronoMinutes(minutes: number): void {
+    this.onEditDurationChange(this.durationLabel(this.chronoHours() * 60 + minutes));
   }
 
   protected onEditPaceChange(value: string): void {

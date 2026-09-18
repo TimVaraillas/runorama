@@ -17,6 +17,8 @@ export * from './atoms/segmented-choice/segmented-choice.component';
 export * from './atoms/divider/divider.component';
 export * from './atoms/plan-resize-handle/plan-resize-handle.component';
 export * from './atoms/plan-ghost-block/plan-ghost-block.component';
+export * from './atoms/time-picker/time-picker.component';
+export * from './atoms/date-picker/date-picker.component';
 
 // Molecules
 export * from './molecules/stat-card/stat-card.component';

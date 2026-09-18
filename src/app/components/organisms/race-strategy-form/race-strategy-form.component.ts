@@ -1,12 +1,12 @@
-import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import {
-  AbstractControl,
   FormBuilder,
   ReactiveFormsModule,
-  ValidationErrors,
   Validators,
 } from '@angular/forms';
 import { ButtonComponent } from '../../atoms/button/button.component';
+import { TimePickerComponent } from '../../atoms/time-picker/time-picker.component';
+import { DatePickerComponent } from '../../atoms/date-picker/date-picker.component';
 import { NutritionGoalsEditorComponent } from '../../molecules/nutrition-goals-editor/nutrition-goals-editor.component';
 import {
   RACE_STRATEGY_CATEGORIES,
@@ -17,16 +17,6 @@ import {
 import { createDefaultGoals, resolveGoals } from '../../../core/utils/nutrition-goals.util';
 
 /**
- * Valide qu'un chrono cible strictement positif est renseigné (heures +
- * minutes). Appliqué au groupe pour couvrir les deux champs.
- */
-function chronoRequiredValidator(group: AbstractControl): ValidationErrors | null {
-  const hours = group.get('targetHours')?.value ?? 0;
-  const minutes = group.get('targetMinutes')?.value ?? 0;
-  return hours * 60 + minutes > 0 ? null : { chronoRequired: true };
-}
-
-/**
  * Organism : formulaire de création/modification d'un évènement (stratégie).
  *
  * Émet `save` avec la charge utile prête pour l'API (le chrono cible est
@@ -35,7 +25,7 @@ function chronoRequiredValidator(group: AbstractControl): ValidationErrors | nul
 @Component({
   selector: 'ui-race-strategy-form',
   standalone: true,
-  imports: [ReactiveFormsModule, ButtonComponent, NutritionGoalsEditorComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, TimePickerComponent, DatePickerComponent, NutritionGoalsEditorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-5">
@@ -64,16 +54,20 @@ function chronoRequiredValidator(group: AbstractControl): ValidationErrors | nul
 
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
-            <label [class]="labelClass" for="event-date">Date</label>
-            <input id="event-date" type="date" formControlName="date" [class]="inputClass" />
+            <ui-date-picker
+              label="Date"
+              [labelClass]="labelClass"
+              [triggerClass]="inputClass"
+              [(value)]="dateValue"
+            />
           </div>
           <div>
-            <label [class]="labelClass" for="event-start-time">Heure de départ</label>
-            <input
-              id="event-start-time"
-              type="time"
-              formControlName="startTime"
-              [class]="inputClass"
+            <ui-time-picker
+              label="Heure de départ"
+              [labelClass]="labelClass"
+              [triggerClass]="inputClass"
+              [(hours)]="startHour"
+              [(minutes)]="startMinute"
             />
           </div>
           <div>
@@ -120,31 +114,15 @@ function chronoRequiredValidator(group: AbstractControl): ValidationErrors | nul
       <section class="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
         <h3 class="text-sm font-semibold text-slate-800">Objectifs</h3>
         <div>
-          <label [class]="labelClass">Chrono cible</label>
-          <div class="flex items-center gap-2">
-            <input
-              type="number"
-              min="0"
-              step="1"
-              formControlName="targetHours"
-              [class]="inputClass"
-              placeholder="Heures"
-              aria-label="Heures"
-            />
-            <span class="text-slate-400">h</span>
-            <input
-              type="number"
-              min="0"
-              max="59"
-              step="1"
-              formControlName="targetMinutes"
-              [class]="inputClass"
-              placeholder="Minutes"
-              aria-label="Minutes"
-            />
-            <span class="text-slate-400">min</span>
-          </div>
-          @if (form.hasError('chronoRequired') && form.get('targetHours')?.touched) {
+          <ui-time-picker
+            label="Chrono cible"
+            [labelClass]="labelClass"
+            [triggerClass]="inputClass"
+            [(hours)]="chronoHours"
+            [(minutes)]="chronoMinutes"
+            [maxHours]="99"
+          />
+          @if (chronoInvalid() && submitted()) {
             <p class="mt-1 text-xs text-rose-600">
               Le chrono cible est requis pour établir une stratégie de course.
             </p>
@@ -169,7 +147,7 @@ function chronoRequiredValidator(group: AbstractControl): ValidationErrors | nul
 
       <div class="flex items-center justify-end gap-3">
         <ui-button type="button" color="default" variant="ghost" (clicked)="cancel.emit()">Annuler</ui-button>
-        <ui-button type="submit" [disabled]="form.invalid">
+        <ui-button type="submit" [disabled]="form.invalid || chronoInvalid() || dateInvalid()">
           {{ event() ? 'Enregistrer' : 'Créer la course' }}
         </ui-button>
       </div>
@@ -195,60 +173,71 @@ export class RaceStrategyFormComponent {
   /** Objectifs nutritionnels édités (pilotés par le composant réutilisable). */
   protected readonly goalsDraft = signal<NutritionGoals>(createDefaultGoals());
 
-  readonly form = this.fb.group(
-    {
-      name: ['', Validators.required],
-      description: [''],
-      date: ['', Validators.required],
-      startTime: ['08:00', Validators.required],
-      location: [''],
-      category: [null as RaceStrategyCategory | null],
-      distance: [null as number | null, Validators.min(0)],
-      elevationGain: [null as number | null, Validators.min(0)],
-      elevationLoss: [null as number | null, Validators.min(0)],
-      targetHours: [null as number | null, Validators.min(0)],
-      targetMinutes: [null as number | null, [Validators.min(0), Validators.max(59)]],
-    },
-    { validators: chronoRequiredValidator },
-  );
+  /** Heure de départ (pilotée par le sélecteur, hors FormGroup). */
+  protected readonly startHour = signal(8);
+  protected readonly startMinute = signal(0);
+
+  /** Date de la course (pilotée par le sélecteur, hors FormGroup), ISO `YYYY-MM-DD`. */
+  protected readonly dateValue = signal('');
+  protected readonly dateInvalid = computed(() => !this.dateValue());
+
+  /** Chrono cible (piloté par le sélecteur, hors FormGroup). */
+  protected readonly chronoHours = signal(0);
+  protected readonly chronoMinutes = signal(0);
+  protected readonly chronoInvalid = computed(() => this.chronoHours() * 60 + this.chronoMinutes() <= 0);
+
+  /** Passe à `true` à la première tentative de soumission (affichage des erreurs). */
+  protected readonly submitted = signal(false);
+
+  readonly form = this.fb.group({
+    name: ['', Validators.required],
+    description: [''],
+    location: [''],
+    category: [null as RaceStrategyCategory | null],
+    distance: [null as number | null, Validators.min(0)],
+    elevationGain: [null as number | null, Validators.min(0)],
+    elevationLoss: [null as number | null, Validators.min(0)],
+  });
 
   constructor() {
     // Pré-remplit le formulaire quand un évènement à éditer est fourni.
     effect(() => {
       const event = this.event();
       if (event) {
-        const total = event.targetTimeMinutes ?? null;
+        const total = event.targetTimeMinutes ?? 0;
+        const [startH, startM] = (event.startTime ?? '08:00').split(':').map(Number);
         this.form.reset({
           name: event.name,
           description: event.description ?? '',
-          date: event.date,
-          startTime: event.startTime ?? '08:00',
           location: event.location ?? '',
           category: event.category ?? null,
           distance: event.distance ?? null,
           elevationGain: event.elevationGain ?? null,
           elevationLoss: event.elevationLoss ?? null,
-          targetHours: total !== null ? Math.floor(total / 60) : null,
-          targetMinutes: total !== null ? total % 60 : null,
         });
+        this.dateValue.set(event.date ?? '');
+        this.startHour.set(startH ?? 8);
+        this.startMinute.set(startM ?? 0);
+        this.chronoHours.set(Math.floor(total / 60));
+        this.chronoMinutes.set(total % 60);
         this.goalsDraft.set(resolveGoals(event));
       }
     });
   }
 
   submit(): void {
-    if (this.form.invalid) return;
+    this.submitted.set(true);
+    if (this.form.invalid || this.chronoInvalid() || this.dateInvalid()) return;
     const v = this.form.getRawValue();
 
-    const hours = v.targetHours ?? 0;
-    const minutes = v.targetMinutes ?? 0;
-    const totalMinutes = hours * 60 + minutes;
+    const totalMinutes = this.chronoHours() * 60 + this.chronoMinutes();
+    const startTime = `${this.startHour().toString().padStart(2, '0')}:${this.startMinute().toString().padStart(2, '0')}`;
 
     const payload: Partial<RaceStrategy> = {
       name: v.name!.trim(),
       description: v.description?.trim() || undefined,
-      date: v.date!,
-      startTime: v.startTime!,
+      date: this.dateValue(),
+      startTime,
       location: v.location?.trim() || undefined,
       category: v.category ?? undefined,
       distance: v.distance ?? undefined,

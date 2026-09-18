@@ -63,6 +63,8 @@ import {
   routePointKindLabel,
 } from '../../../core/utils/route-point.util';
 import { estimatePassageTimeByKmRatio } from '../../../core/utils/passage-time.util';
+import { computePacing } from '../../../core/utils/pacing.util';
+import { buildTcxCourse, type TcxCoursePoint, type TcxCoursePointType } from '../../../core/utils/tcx-export.util';
 import { pruneUnavailableIntakes } from '../../../core/utils/product-availability.util';
 import type { AllocationResult } from '../../../core/utils/inventory-allocation.util';
 import {
@@ -205,6 +207,9 @@ import {
             @if (gpxTrack()) {
               <ui-dropdown-menu-item [icon]="faRoute" (selected)="exportGpx()">
                 Exporter le tracé GPX
+              </ui-dropdown-menu-item>
+              <ui-dropdown-menu-item [icon]="faStopwatch" (selected)="exportTcx()">
+                Exporter le pacing (TCX Garmin)
               </ui-dropdown-menu-item>
               <ui-dropdown-menu-item [icon]="faTrash" color="danger" (selected)="requestRemoveGpx()">
                 Supprimer la trace GPX
@@ -1301,6 +1306,81 @@ export class RaceStrategyPage {
     const match = /filename="?([^";]+)"?/i.exec(disposition);
     const fileName = match?.[1] ?? 'parcours.gpx';
     const url = URL.createObjectURL(body);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Exporte la stratégie de pacing du scénario de référence en **TCX Course**
+   * (Partenaire Virtuel Garmin) : chaque point du tracé est horodaté selon les
+   * durées de course planifiées.
+   */
+  exportTcx(): void {
+    const event = this.event();
+    const track = this.gpxTrack();
+    if (!event) return;
+    if (!track) {
+      this.toast.error("Importez d'abord une trace GPX pour exporter le pacing.");
+      return;
+    }
+    const segments = computePacing(
+      track,
+      event.aidStations ?? [],
+      event.waypoints ?? [],
+      event.segmentDifficulties,
+      event.pacingPlan,
+      event.targetTimeMinutes ?? 0,
+    ).segments;
+    if (!segments.length) {
+      this.toast.error('Définissez un plan de pacing avant de l’exporter.');
+      return;
+    }
+    const coursePoints: TcxCoursePoint[] = [
+      ...(event.aidStations ?? [])
+        .filter((station) => station.distanceFromStart != null)
+        .map((station) => ({
+          name: station.name,
+          distanceKm: station.distanceFromStart!,
+          type: this.aidCoursePointType(station.types),
+        })),
+      ...(event.waypoints ?? [])
+        .filter((waypoint) => waypoint.distanceFromStart != null)
+        .map((waypoint) => ({
+          name: waypoint.name,
+          distanceKm: waypoint.distanceFromStart!,
+          type: (waypoint.kind === 'SUMMIT' ? 'Summit' : 'Generic') as TcxCoursePointType,
+        })),
+    ];
+    const tcx = buildTcxCourse({ name: event.name, points: track.points, segments, coursePoints });
+    this.downloadText(tcx, `${this.slugify(event.name)}-pacing.tcx`, 'application/vnd.garmin.tcx+xml');
+  }
+
+  /** Type de `CoursePoint` Garmin déduit des natures d'un ravitaillement. */
+  private aidCoursePointType(types: readonly string[] | undefined): TcxCoursePointType {
+    if (types?.includes('FOOD')) return 'Food';
+    if (types?.includes('WATER_POINT')) return 'Water';
+    return 'Generic';
+  }
+
+  /** Slug ASCII minuscule pour un nom de fichier. */
+  private slugify(name: string): string {
+    return (
+      name
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+        .toLowerCase() || 'parcours'
+    );
+  }
+
+  /** Télécharge un contenu texte sous forme de fichier. */
+  private downloadText(content: string, fileName: string, mime: string): void {
+    if (typeof document === 'undefined') return;
+    const url = URL.createObjectURL(new Blob([content], { type: `${mime};charset=utf-8` }));
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = fileName;

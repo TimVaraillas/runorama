@@ -2,13 +2,20 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import { IconComponent } from '../../atoms/icon/icon.component';
 import type { GpxTrack, NutrientGoalKey, RaceStrategy } from '../../../core/models';
 import { NUTRIENT_GOALS } from '../../../core/models';
+import { computePacing } from '../../../core/utils/pacing.util';
+import { formatPassageTime } from '../../../core/utils/passage-time.util';
 import {
   faArrowTrendDown,
   faArrowTrendUp,
   faCalendarDay,
   faCheck,
+  faFlagCheckered,
   faGaugeHigh,
   faLocationDot,
+  faMountain,
+  faMountainSun,
+  faPause,
+  faPersonRunning,
   faRoute,
   faStopwatch,
   faUtensils,
@@ -31,6 +38,13 @@ interface ReadinessItem {
 
 /** Objectif nutritionnel activé, prêt pour l'affichage. */
 interface OverviewGoal {
+  label: string;
+  value: string;
+}
+
+/** Tuile de synthèse du pacing (scénario de référence). */
+interface PacingTile {
+  icon: IconDefinition;
   label: string;
   value: string;
 }
@@ -68,21 +82,44 @@ interface OverviewGoal {
       </div>
 
       <div class="space-y-3 px-3 pt-3">
-        <!-- Contexte de la course -->
-
-
-        <!-- Indicateurs clés -->
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          @for (metric of metrics(); track metric.label) {
-            <div class="rounded-md border border-slate-200 bg-white p-4">
-              <div class="flex items-center gap-2 text-slate-400">
-                <ui-icon [icon]="metric.icon" size="sm" class="text-brand-500" />
-                <span class="text-xs font-medium uppercase tracking-wide">{{ metric.label }}</span>
+        <!-- Indicateurs clés du parcours -->
+        <section class="rounded-md border border-slate-200 bg-white p-5">
+          <h3 class="text-sm font-semibold text-slate-700">Parcours</h3>
+          <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            @for (metric of metrics(); track metric.label) {
+              <div class="rounded-xl bg-slate-50 px-3 py-2">
+                <div class="flex items-center gap-1.5 text-slate-400">
+                  <ui-icon [icon]="metric.icon" size="xs" class="text-brand-500" />
+                  <span class="text-xs font-medium uppercase tracking-wide">{{ metric.label }}</span>
+                </div>
+                <p class="mt-1 text-sm font-semibold tabular-nums text-slate-800">{{ metric.value }}</p>
               </div>
-              <p class="mt-2 text-lg font-semibold tabular-nums text-slate-900">{{ metric.value }}</p>
+            }
+          </div>
+        </section>
+
+        <!-- Synthèse du pacing (scénario de référence) -->
+        @if (pacingTiles(); as tiles) {
+          <section class="rounded-md border border-slate-200 bg-white p-5">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h3 class="text-sm font-semibold text-slate-700">Stratégie de pacing</h3>
+              @if (pacingScenarioLabel(); as label) {
+                <span class="text-xs text-slate-400">{{ label }}</span>
+              }
             </div>
-          }
-        </div>
+            <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+              @for (tile of tiles; track tile.label) {
+                <div class="rounded-xl bg-slate-50 px-3 py-2">
+                  <div class="flex items-center gap-1.5 text-slate-400">
+                    <ui-icon [icon]="tile.icon" size="xs" class="text-brand-500" />
+                    <span class="text-xs font-medium uppercase tracking-wide">{{ tile.label }}</span>
+                  </div>
+                  <p class="mt-1 text-sm font-semibold tabular-nums text-slate-800">{{ tile.value }}</p>
+                </div>
+              }
+            </div>
+          </section>
+        }
 
         <div class="grid gap-3 lg:grid-cols-2">
           <!-- Préparation -->
@@ -163,16 +200,13 @@ export class RaceOverviewPanelComponent {
   );
 
   protected readonly metrics = computed<OverviewMetric[]>(() => {
-    const ev = this.event();
     const distance = this.distanceKm();
-    const targetTime = ev.targetTimeMinutes ?? 0;
     return [
       { icon: faRoute, label: 'Distance', value: distance ? `${this.round1(distance)} km` : '—' },
       { icon: faArrowTrendUp, label: 'Dénivelé +', value: this.elevationGain() ? `+${Math.round(this.elevationGain())} m` : '—' },
       { icon: faArrowTrendDown, label: 'Dénivelé -', value: this.elevationLoss() ? `-${Math.round(this.elevationLoss())} m` : '—' },
-      { icon: faStopwatch, label: 'Chrono cible', value: targetTime ? this.formatDuration(targetTime) : '—' },
-      { icon: faGaugeHigh, label: 'Allure', value: this.globalPace(distance, targetTime) },
-      { icon: faLocationDot, label: 'Ravitos', value: `${ev.aidStations?.length ?? 0}` },
+      { icon: faMountainSun, label: 'Altitude', value: this.altitudeRange() },
+      { icon: faMountain, label: 'Km-effort', value: this.pacing().segments.length ? `${Math.round(this.pacing().kmEffort)} km` : '—' },
     ];
   });
 
@@ -209,6 +243,50 @@ export class RaceOverviewPanelComponent {
   protected readonly faArrowTrendDown = faArrowTrendDown;
   protected readonly faGaugeHigh = faGaugeHigh;
   protected readonly faUtensils = faUtensils;
+
+  /** Résultat de pacing du scénario de référence (miroir top-level). */
+  private readonly pacing = computed(() => {
+    const ev = this.event();
+    return computePacing(
+      this.track(),
+      ev.aidStations ?? [],
+      ev.waypoints ?? [],
+      ev.segmentDifficulties,
+      ev.pacingPlan,
+      ev.targetTimeMinutes ?? 0,
+    );
+  });
+
+  /** Libellé du scénario de référence (nom + nombre de scénarios). */
+  protected readonly pacingScenarioLabel = computed<string | null>(() => {
+    const ev = this.event();
+    const scenarios = ev.pacingScenarios ?? [];
+    if (!scenarios.length) return null;
+    const ref = scenarios.find((s) => s.id === ev.referenceScenarioId) ?? scenarios[0];
+    const suffix = scenarios.length > 1 ? ` · ${scenarios.length} scénarios` : '';
+    return `Réf. « ${ref?.name ?? '—'} »${suffix}`;
+  });
+
+  /** Tuiles de synthèse du pacing, ou null si le pacing n'est pas calculable. */
+  protected readonly pacingTiles = computed<PacingTile[] | null>(() => {
+    const res = this.pacing();
+    if (!res.segments.length) return null;
+    const ev = this.event();
+    return [
+      { icon: faStopwatch, label: 'Chrono cible', value: this.formatDuration(Math.round(res.totalMinutes)) },
+      { icon: faGaugeHigh, label: 'Allure moyenne', value: this.globalPace(this.distanceKm(), res.runningMinutes) },
+      { icon: faPersonRunning, label: 'En course', value: this.formatDuration(Math.round(res.runningMinutes)) },
+      { icon: faPause, label: 'Arrêts', value: this.formatDuration(Math.round(res.stopMinutes)) },
+      { icon: faFlagCheckered, label: 'Arrivée estimée', value: formatPassageTime(ev.startTime, res.totalMinutes) },
+    ];
+  });
+
+  /** Plage d'altitude (min–max) issue de la trace GPX, si disponible. */
+  private altitudeRange(): string {
+    const track = this.track();
+    if (!track) return '—';
+    return `${Math.round(track.minAltitude)} – ${Math.round(track.maxAltitude)} m`;
+  }
 
   private globalPace(distanceKm: number, targetTimeMinutes: number): string {
     if (distanceKm <= 0 || targetTimeMinutes <= 0) return '—';
