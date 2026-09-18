@@ -17,6 +17,7 @@ import {
 } from '@angular/forms';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
+import { NumberInputComponent } from '../../atoms/number-input/number-input.component';
 import { ModalComponent } from '../../molecules/modal/modal.component';
 import { LogisticItemListComponent } from '../../molecules/logistic-item-list/logistic-item-list.component';
 import { AidConsumptionListComponent } from '../../molecules/aid-consumption-list/aid-consumption-list.component';
@@ -66,6 +67,7 @@ function durationRequiredValidator(group: AbstractControl): ValidationErrors | n
     ReactiveFormsModule,
     ButtonComponent,
     IconComponent,
+    NumberInputComponent,
     ModalComponent,
     LogisticItemListComponent,
     AidConsumptionListComponent,
@@ -110,26 +112,25 @@ function durationRequiredValidator(group: AbstractControl): ValidationErrors | n
         </p>
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
-            <label [class]="labelClass" for="aid-distance">Distance (km)</label>
-            <input
-              id="aid-distance"
-              type="number"
-              min="0"
-              step="0.1"
+            <ui-number-input
+              label="Distance (km)"
+              [labelClass]="labelClass"
+              [wrapperClass]="inputClass"
               formControlName="distanceFromStart"
-              [class]="inputClass"
+              [min]="0"
+              [step]="0.1"
+              unit="km"
               placeholder="Ex : 42.5"
             />
           </div>
           <div>
-            <label [class]="labelClass" for="aid-dplus">D+ cumulé (m)</label>
-            <input
-              id="aid-dplus"
-              type="number"
-              min="0"
-              step="1"
+            <ui-number-input
+              label="D+ cumulé (m)"
+              [labelClass]="labelClass"
+              [wrapperClass]="inputClass"
               formControlName="elevationGainFromStart"
-              [class]="inputClass"
+              [min]="0"
+              unit="m"
               placeholder="Ex : 2150"
             />
           </div>
@@ -166,18 +167,14 @@ function durationRequiredValidator(group: AbstractControl): ValidationErrors | n
           }
         </div>
         <div>
-          <label [class]="labelClass" for="aid-stop-duration">Temps d'arrêt</label>
-          <div class="flex items-center gap-2">
-            <input
-              id="aid-stop-duration"
-              type="number"
-              min="0"
-              step="1"
-              formControlName="stopDurationMinutes"
-              [class]="inputClass"
-            />
-            <span class="text-slate-400">min</span>
-          </div>
+          <ui-number-input
+            label="Temps d'arrêt"
+            [labelClass]="labelClass"
+            [wrapperClass]="inputClass"
+            formControlName="stopDurationMinutes"
+            [min]="0"
+            unit="min"
+          />
         </div>
       </section>
 

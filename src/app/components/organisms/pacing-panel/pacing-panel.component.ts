@@ -3,6 +3,7 @@ import { ButtonComponent } from '../../atoms/button/button.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { GaugeComponent } from '../../atoms/gauge/gauge.component';
 import { TimePickerComponent } from '../../atoms/time-picker/time-picker.component';
+import { NumberInputComponent } from '../../atoms/number-input/number-input.component';
 import type { AidStation, GpxTrack, PacingMethod, PacingPlan, PacingScenario, RaceStrategy } from '../../../core/models';
 import {
   computePacing,
@@ -49,7 +50,7 @@ interface ScenarioState {
 @Component({
   selector: 'ui-pacing-panel',
   standalone: true,
-  imports: [ButtonComponent, IconComponent, GaugeComponent, TimePickerComponent],
+  imports: [ButtonComponent, IconComponent, GaugeComponent, TimePickerComponent, NumberInputComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (track(); as route) {
@@ -380,17 +381,13 @@ interface ScenarioState {
 
                 @if (method() !== 'MINETTI') {
                   <div>
-                    <label class="mb-1 block text-sm font-medium text-slate-700">Coefficient de montée</label>
-                    <div class="relative">
-                      <input
-                        type="number"
-                        min="1"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 pr-16 text-sm tabular-nums text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                        [value]="climbCoefficient()"
-                        (input)="setClimbCoefficient($any($event.target).valueAsNumber)"
-                      />
-                      <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-slate-400">m D+ / km</span>
-                    </div>
+                    <ui-number-input
+                      label="Coefficient de montée"
+                      [value]="climbCoefficient()"
+                      (valueChange)="setClimbCoefficient($event ?? 0)"
+                      [min]="1"
+                      unit="m D+ / km"
+                    />
                     <p class="mt-1 text-xs text-slate-400">Mètres de D+ équivalents à 1 km plat (défaut 100).</p>
                   </div>
                 }

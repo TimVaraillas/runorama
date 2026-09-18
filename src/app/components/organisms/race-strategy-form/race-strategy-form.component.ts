@@ -7,6 +7,7 @@ import {
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { TimePickerComponent } from '../../atoms/time-picker/time-picker.component';
 import { DatePickerComponent } from '../../atoms/date-picker/date-picker.component';
+import { NumberInputComponent } from '../../atoms/number-input/number-input.component';
 import { NutritionGoalsEditorComponent } from '../../molecules/nutrition-goals-editor/nutrition-goals-editor.component';
 import {
   RACE_STRATEGY_CATEGORIES,
@@ -25,7 +26,14 @@ import { createDefaultGoals, resolveGoals } from '../../../core/utils/nutrition-
 @Component({
   selector: 'ui-race-strategy-form',
   standalone: true,
-  imports: [ReactiveFormsModule, ButtonComponent, TimePickerComponent, DatePickerComponent, NutritionGoalsEditorComponent],
+  imports: [
+    ReactiveFormsModule,
+    ButtonComponent,
+    TimePickerComponent,
+    DatePickerComponent,
+    NumberInputComponent,
+    NutritionGoalsEditorComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-5">
@@ -97,16 +105,35 @@ import { createDefaultGoals, resolveGoals } from '../../../core/utils/nutrition-
         <h3 class="text-sm font-semibold text-slate-800">Parcours (facultatif)</h3>
         <div class="grid gap-4 sm:grid-cols-3">
           <div>
-            <label [class]="labelClass" for="event-distance">Distance (km)</label>
-            <input id="event-distance" type="number" min="0" step="0.1" formControlName="distance" [class]="inputClass" />
+            <ui-number-input
+              label="Distance (km)"
+              [labelClass]="labelClass"
+              [wrapperClass]="inputClass"
+              formControlName="distance"
+              [min]="0"
+              [step]="0.1"
+              unit="km"
+            />
           </div>
           <div>
-            <label [class]="labelClass" for="event-dplus">D+ (m)</label>
-            <input id="event-dplus" type="number" min="0" step="1" formControlName="elevationGain" [class]="inputClass" />
+            <ui-number-input
+              label="D+ (m)"
+              [labelClass]="labelClass"
+              [wrapperClass]="inputClass"
+              formControlName="elevationGain"
+              [min]="0"
+              unit="m"
+            />
           </div>
           <div>
-            <label [class]="labelClass" for="event-dminus">D- (m)</label>
-            <input id="event-dminus" type="number" min="0" step="1" formControlName="elevationLoss" [class]="inputClass" />
+            <ui-number-input
+              label="D- (m)"
+              [labelClass]="labelClass"
+              [wrapperClass]="inputClass"
+              formControlName="elevationLoss"
+              [min]="0"
+              unit="m"
+            />
           </div>
         </div>
       </section>
