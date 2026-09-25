@@ -88,7 +88,7 @@ import { faBoxOpen, faPlus, faScrewdriverWrench, faTrash } from '@fortawesome/fr
               >
                 <option value="">Choisir un produit…</option>
                 @for (product of selectableProducts(); track product.id) {
-                  <option [value]="product.id">{{ product.brand }} — {{ product.name }}</option>
+                  <option [value]="product.id">{{ product.brand ? product.brand + ' — ' + product.name : product.name }}</option>
                 }
               </select>
               <button
@@ -176,7 +176,7 @@ export class LogisticItemListComponent {
   /** Produits triés par marque puis nom pour la sélection. */
   protected readonly sortedProducts = computed(() =>
     [...this.products()].sort(
-      (a, b) => a.brand.localeCompare(b.brand) || a.name.localeCompare(b.name),
+      (a, b) => (a.brand ?? '').localeCompare(b.brand ?? '') || a.name.localeCompare(b.name),
     ),
   );
 
@@ -234,7 +234,7 @@ export class LogisticItemListComponent {
   /** Marque du produit (élément « produit » uniquement). */
   protected brand(item: LogisticItem): string | null {
     const product = item.productId ? this.productMap().get(item.productId) : undefined;
-    return product?.brand ?? null;
+    return product?.brand || null;
   }
 
   protected addProduct(): void {

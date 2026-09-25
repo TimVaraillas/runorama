@@ -37,7 +37,9 @@ import { faStar as faStarRegular, faNoteSticky as faNoteRegular } from '@fortawe
         </div>
         <div class="min-w-0 flex-1">
           <h3 class="truncate font-semibold text-slate-900">{{ product().name }}</h3>
-          <p class="truncate text-sm text-slate-500">{{ product().brand }}</p>
+          @if (product().brand) {
+            <p class="truncate text-sm text-slate-500">{{ product().brand }}</p>
+          }
           <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
             @if (categoryLabel()) {
               <ui-badge tone="accent">{{ categoryLabel() }}</ui-badge>

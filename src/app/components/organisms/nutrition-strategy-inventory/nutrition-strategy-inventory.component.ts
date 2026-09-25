@@ -307,7 +307,7 @@ export class NutritionStrategyInventoryComponent {
       const matchesTerm =
         !term ||
         product.name.toLowerCase().includes(term) ||
-        product.brand.toLowerCase().includes(term);
+        (product.brand ?? '').toLowerCase().includes(term);
       return matchesCategory && matchesFavorite && matchesTerm;
     });
   });

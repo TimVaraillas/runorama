@@ -100,7 +100,7 @@ function buildInventory(event: RaceStrategy, map: Map<string, NutritionProduct>)
     const qty = item.quantity;
     rows.push({
       name: product.name,
-      brand: product.brand,
+      brand: product.brand ?? '',
       category: product.category?.name ?? '',
       quantity: qty,
       weight: product.unitWeight * qty,
@@ -208,7 +208,7 @@ function buildLogistics(event: RaceStrategy, map: Map<string, NutritionProduct>)
   const startLocation = buildInventoryLocations(event, map).find((l) => l.kind === 'start');
   const startPickup: LogisticEntry[] = (startLocation?.items ?? []).map((item) => ({
     label: item.product.name,
-    sub: item.product.brand,
+    sub: item.product.brand ?? '',
     quantity: item.quantity,
   }));
   if (startPickup.length > 0) {

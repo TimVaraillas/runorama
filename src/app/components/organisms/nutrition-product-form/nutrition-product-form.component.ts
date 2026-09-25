@@ -57,7 +57,11 @@ type SodiumUnit = 'sodium' | 'salt';
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
-          <ui-text-input formControlName="brand" label="Marque" placeholder="Ex : Maurten" />
+          <ui-text-input
+            formControlName="brand"
+            label="Marque (facultative)"
+            placeholder="Ex : Maurten — laisser vide pour un produit générique"
+          />
           <ui-text-input
             formControlName="name"
             label="Nom du produit"
@@ -227,7 +231,7 @@ export class NutritionProductFormComponent {
 
   readonly form = this.fb.group({
     categoryId: ['', Validators.required],
-    brand: ['', Validators.required],
+    brand: [''],
     name: ['', Validators.required],
     sourceUrl: ['', Validators.pattern(/^https?:\/\/.+/i)],
     unitWeight: [null as number | null, [Validators.required, Validators.min(0)]],
@@ -350,7 +354,7 @@ export class NutritionProductFormComponent {
         : Number(value.sodium);
     this.save.emit({
       categoryId: value.categoryId!,
-      brand: value.brand!.trim(),
+      brand: value.brand?.trim() ?? '',
       name: value.name!.trim(),
       sourceUrl: value.sourceUrl?.trim() || undefined,
       unitWeight: Number(value.unitWeight),

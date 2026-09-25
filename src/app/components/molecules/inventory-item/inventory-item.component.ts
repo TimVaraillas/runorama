@@ -39,7 +39,9 @@ export type ResolvedInventoryItem = RaceStrategyItem & { product: NutritionProdu
       <div class="min-w-0 flex-1">
         <div class="truncate font-medium text-slate-900">{{ item().product.name }}</div>
         <div class="truncate text-xs text-slate-500">
-          {{ item().product.brand }} ·
+          @if (item().product.brand) {
+            {{ item().product.brand }} ·
+          }
           <span class="inline-flex items-center gap-1">{{ item().product.unitWeight }} g</span>
           · {{ item().product.energy }} kcal · {{ item().product.carbs }} g gluc.
         </div>

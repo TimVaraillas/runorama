@@ -113,7 +113,7 @@ import { faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
               >
                 <option value="">Choisir un produit…</option>
                 @for (product of sortedProducts(); track product.id) {
-                  <option [value]="product.id">{{ product.brand }} — {{ product.name }}</option>
+                  <option [value]="product.id">{{ product.brand ? product.brand + ' — ' + product.name : product.name }}</option>
                 }
               </select>
               <input
@@ -256,7 +256,7 @@ export class AidConsumptionListComponent {
 
   protected readonly sortedProducts = computed(() =>
     [...this.products()].sort(
-      (a, b) => a.brand.localeCompare(b.brand) || a.name.localeCompare(b.name),
+      (a, b) => (a.brand ?? '').localeCompare(b.brand ?? '') || a.name.localeCompare(b.name),
     ),
   );
 

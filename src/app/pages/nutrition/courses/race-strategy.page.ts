@@ -267,13 +267,8 @@ import {
           }
         }
         @else if (activeTab() === 'aid-stations') {
-          <div class="space-y-4">
-            <div>
-              <p class="text-sm text-slate-500">
-                Positionnez vos ravitaillements depuis le départ de la course.
-              </p>
-            </div>
             <ui-aid-station-table
+              class="block -mx-3 -my-3"
               [stations]="ev.aidStations ?? []"
               [startTime]="ev.startTime"
               [targetTimeMinutes]="ev.targetTimeMinutes"
@@ -282,12 +277,11 @@ import {
               (edit)="editAidStation($event)"
               (delete)="deleteAidStation($event)"
             />
-          </div>
         } @else if (activeTab() === 'route') {
           <ui-route-profile-panel
             [class]="routeFullscreen() ? 'block' : 'block -mx-4 -mt-6 lg:-mx-6'"
             [track]="gpxTrack()"
-            [aidStations]="ev.aidStations ?? []"x
+            [aidStations]="ev.aidStations ?? []"
             [waypoints]="ev.waypoints ?? []"
             [date]="ev.date"
             [startTime]="ev.startTime"

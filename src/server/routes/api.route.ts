@@ -30,9 +30,11 @@ function appBaseUrl(): string {
   return process.env['APP_BASE_URL'] ?? 'http://localhost:4200';
 }
 
-/** Libellé lisible d'un produit (« Marque — Nom »). */
+/** Libellé lisible d'un produit (« Marque — Nom », ou juste le nom si sans marque). */
 function productLabel(product: { brand?: unknown; name?: unknown }): string {
-  return `${String(product.brand ?? '').trim()} — ${String(product.name ?? '').trim()}`;
+  const brand = String(product.brand ?? '').trim();
+  const name = String(product.name ?? '').trim();
+  return brand ? `${brand} — ${name}` : name;
 }
 
 /** Échappe une chaîne pour une utilisation littérale dans une expression régulière. */

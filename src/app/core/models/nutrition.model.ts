@@ -39,7 +39,8 @@ export interface NutritionProduct {
   categoryId: string;
   /** Catégorie dénormalisée (optionnelle, pour l'affichage). */
   category?: NutritionCategory;
-  brand: string;
+  /** Marque (facultative : vide pour un produit générique). */
+  brand?: string;
   name: string;
   /** Poids unitaire en grammes. */
   unitWeight: number;

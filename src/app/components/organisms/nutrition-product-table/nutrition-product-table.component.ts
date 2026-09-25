@@ -176,7 +176,9 @@ export type ProductColumnKey =
                         <ui-product-status-badge [status]="product.moderationStatus" />
                       }
                     </div>
-                    <div class="truncate text-xs text-slate-500">{{ product.brand }}</div>
+                    @if (product.brand) {
+                      <div class="truncate text-xs text-slate-500">{{ product.brand }}</div>
+                    }
                     @if (mode() !== 'picker' && (product.taste != null || product.tolerance != null)) {
                       <div class="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
                         @if (product.taste != null) {

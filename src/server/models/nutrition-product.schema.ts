@@ -16,7 +16,8 @@ const { Schema, model, models } = mongoose;
 const nutritionProductSchema = new Schema(
   {
     categoryId: { type: Schema.Types.ObjectId, ref: 'NutritionCategory', required: true },
-    brand: { type: String, required: true, trim: true },
+    // Marque facultative : les produits génériques (riz, abricots secs…) n'en ont pas.
+    brand: { type: String, trim: true, default: '' },
     name: { type: String, required: true, trim: true },
     /** Poids unitaire en grammes. */
     unitWeight: { type: Number, required: true, min: 0 },

@@ -88,6 +88,32 @@ function isoAt(baseTime: number, seconds: number): string {
   return new Date(baseTime + Math.round(seconds) * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
+/** Position (lat/lon/alt) interpolée sur la trace à une distance donnée (km). */
+function positionAt(
+  points: readonly GpxTrackPoint[],
+  distanceKm: number,
+): { lat: number; lon: number; ele: number } {
+  const first = points[0];
+  const last = points[points.length - 1];
+  if (!first) return { lat: 0, lon: 0, ele: 0 };
+  if (distanceKm <= first.distance) return { lat: first.lat, lon: first.lon, ele: first.ele };
+  if (!last || distanceKm >= last.distance) return { lat: last!.lat, lon: last!.lon, ele: last!.ele };
+  for (let index = 1; index < points.length; index++) {
+    const current = points[index]!;
+    if (current.distance >= distanceKm) {
+      const previous = points[index - 1]!;
+      const span = current.distance - previous.distance || 1;
+      const ratio = (distanceKm - previous.distance) / span;
+      return {
+        lat: previous.lat + (current.lat - previous.lat) * ratio,
+        lon: previous.lon + (current.lon - previous.lon) * ratio,
+        ele: previous.ele + (current.ele - previous.ele) * ratio,
+      };
+    }
+  }
+  return { lat: last.lat, lon: last.lon, ele: last.ele };
+}
+
 /**
  * Construit le document TCX Course (Partenaire Virtuel) à partir de la trace et
  * des tronçons de pacing. Retourne une chaîne XML prête à télécharger.
@@ -123,13 +149,14 @@ export function buildTcxCourse(options: BuildTcxOptions): string {
     .filter((cp) => Number.isFinite(cp.distanceKm))
     .map((cp) => {
       const time = isoAt(baseTime, timeAt(breakpoints, cp.distanceKm));
+      const position = positionAt(points, cp.distanceKm);
       const lines = [
         '      <CoursePoint>',
         `        <Name>${escapeXml(cp.name.slice(0, 10))}</Name>`,
         `        <Time>${time}</Time>`,
         '        <Position>',
-        `          <LatitudeDegrees>${first?.lat ?? 0}</LatitudeDegrees>`,
-        `          <LongitudeDegrees>${first?.lon ?? 0}</LongitudeDegrees>`,
+        `          <LatitudeDegrees>${position.lat}</LatitudeDegrees>`,
+        `          <LongitudeDegrees>${position.lon}</LongitudeDegrees>`,
         '        </Position>',
         `        <PointType>${cp.type}</PointType>`,
       ];
