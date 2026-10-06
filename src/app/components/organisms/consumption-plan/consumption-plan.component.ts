@@ -49,6 +49,8 @@ const PX_PER_SEQUENCE = 30;
 const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
 /** Tolérance pour comparer des quantités fractionnaires (portions). */
 const QUANTITY_EPSILON = 1e-6;
+/** Rayon d'aimantation (px) autour d'un ravito/point de passage pendant un drag. */
+const MAGNET_RADIUS_PX = 16;
 
 /**
  * Organism : plan de nutrition d'une stratégie alimentaire.
@@ -113,6 +115,7 @@ const QUANTITY_EPSILON = 1e-6;
             [laneCount]="laneCount()"
             [dragging]="dragging()"
             [lockedZoneHeight]="lockedZoneHeight()"
+            [magnetLineTop]="activeMagnetTop()"
             [constrainPosition]="constrainToSequence"
             (timelineDrop)="onTimelineDrop($event)"
             (dragStarted)="dragging.set(true)"
@@ -364,6 +367,22 @@ export class ConsumptionPlanComponent implements OnDestroy {
     }),
   );
 
+  /** Minutes des ravitos/points de passage : cibles d'aimantation du drag. */
+  private readonly magnetMinutes = computed<number[]>(() =>
+    this.aidStationMarks().map((mark) => mark.minute),
+  );
+
+  /** Minute aimantée active pendant un drag (ravito/waypoint le plus proche), sinon null. */
+  private readonly activeMagnetMinute = signal<number | null>(null);
+
+  /** Position (px) du repère d'aimantation à surligner sur la piste (null = aucun). */
+  protected readonly activeMagnetTop = computed<number | null>(() => {
+    const minute = this.activeMagnetMinute();
+    const total = this.totalMinutes();
+    if (minute === null || total <= 0) return null;
+    return (minute / total) * this.trackHeight();
+  });
+
   /** Récapitulatif horaire (apports vs cible). */
   protected readonly hourlyRecap = computed<PlanHourlyRecap[]>(() =>
     buildHourlyRecap({
@@ -482,7 +501,6 @@ export class ConsumptionPlanComponent implements OnDestroy {
     if (!track) return point;
     const rect = track.getBoundingClientRect();
     const total = this.totalMinutes();
-    const seq = this.sequenceMinutes();
     if (total <= 0 || rect.height <= 0) return point;
 
     // Le haut du bloc suit directement le curseur (pas de décalage lié au
@@ -490,8 +508,9 @@ export class ConsumptionPlanComponent implements OnDestroy {
     const minute = ((point.y - rect.top) / rect.height) * total;
     const duration = (dimensions.height / rect.height) * total;
 
-    // Alignement sur la séquence, borné pour rester dans le parcours.
-    const snappedMinute = this.clampStart(Math.round(minute / seq) * seq, duration);
+    // Aimantation vers le ravito/point de passage le plus proche, sinon
+    // alignement sur la séquence ; borné pour rester dans le parcours.
+    const snappedMinute = this.clampStart(this.snapMinute(minute, rect), duration);
     const snappedTop = (snappedMinute / total) * rect.height;
 
     // Avec `constrainPosition`, le CDK interprète le point renvoyé comme le
@@ -526,6 +545,7 @@ export class ConsumptionPlanComponent implements OnDestroy {
     const { x, y } = drag;
     if (y < rect.top || y > rect.bottom || x < rect.left || x > rect.right) {
       this.dragOverPreview.set(null);
+      this.activeMagnetMinute.set(null);
       return;
     }
     const payload = drag.payload;
@@ -543,7 +563,8 @@ export class ConsumptionPlanComponent implements OnDestroy {
     // Le haut du bloc s'aligne directement sous le curseur : l'aperçu
     // (fantôme) coïncide donc avec l'emplacement de dépôt final.
     const pointerMin = ((y - rect.top) / rect.height) * total;
-    const start = this.clampStart(Math.round(pointerMin / seq) * seq, duration);
+    this.activeMagnetMinute.set(this.nearestMagnet(pointerMin, rect));
+    const start = this.clampStart(this.snapMinute(pointerMin, rect), duration);
     this.dragOverPreview.set({ startMinute: start, durationMinutes: duration, excludeId });
   }
 
@@ -551,6 +572,7 @@ export class ConsumptionPlanComponent implements OnDestroy {
   onDragEnded(): void {
     this.dragging.set(false);
     this.dragOverPreview.set(null);
+    this.activeMagnetMinute.set(null);
     this.draggedProductId.set(null);
     this.stopAutoScroll();
     this.lastDrag = null;
@@ -664,12 +686,24 @@ export class ConsumptionPlanComponent implements OnDestroy {
     const deltaMinutes = ((event.clientY - state.startClientY) / rect.height) * total;
 
     if (state.edge === 'bottom') {
-      let duration = Math.round((state.initDuration + deltaMinutes) / seq) * seq;
-      duration = Math.max(seq, Math.min(duration, total - state.initStart));
-      this.resizePreview.set({ id: state.id, startMinute: state.initStart, durationMinutes: duration });
+      // Le bord bas (fin de la prise) s'aimante vers le ravito/point de passage le plus proche.
+      const rawEnd = state.initStart + state.initDuration + deltaMinutes;
+      const magnet = this.nearestMagnet(rawEnd, rect);
+      this.activeMagnetMinute.set(magnet);
+      let end = magnet ?? Math.round(rawEnd / seq) * seq;
+      end = Math.max(state.initStart + seq, Math.min(end, total));
+      this.resizePreview.set({
+        id: state.id,
+        startMinute: state.initStart,
+        durationMinutes: end - state.initStart,
+      });
     } else {
+      // Le bord haut (début de la prise) s'aimante vers le ravito/point de passage le plus proche.
       const end = state.initStart + state.initDuration;
-      let start = Math.round((state.initStart + deltaMinutes) / seq) * seq;
+      const rawStart = state.initStart + deltaMinutes;
+      const magnet = this.nearestMagnet(rawStart, rect);
+      this.activeMagnetMinute.set(magnet);
+      let start = magnet ?? Math.round(rawStart / seq) * seq;
       start = Math.max(0, Math.min(start, end - seq));
       this.resizePreview.set({ id: state.id, startMinute: start, durationMinutes: end - start });
     }
@@ -691,6 +725,7 @@ export class ConsumptionPlanComponent implements OnDestroy {
 
   private cleanupResize(): void {
     this.resizeState = null;
+    this.activeMagnetMinute.set(null);
     window.removeEventListener('pointermove', this.onMove);
     window.removeEventListener('pointerup', this.onUp);
   }
@@ -717,7 +752,35 @@ export class ConsumptionPlanComponent implements OnDestroy {
     return Math.min(max, Math.max(0, minute));
   }
 
-  /** Déduit la minute (alignée sur la séquence) du point de dépôt. */
+  /**
+   * Ravito/point de passage le plus proche d'une minute donnée, dans le rayon
+   * d'aimantation ({@link MAGNET_RADIUS_PX}). `null` si aucun n'est assez proche.
+   */
+  private nearestMagnet(rawMinute: number, rect: DOMRect): number | null {
+    const total = this.totalMinutes();
+    if (total <= 0 || rect.height <= 0) return null;
+    const radiusMin = (MAGNET_RADIUS_PX / rect.height) * total;
+    let best: number | null = null;
+    let bestDist = Infinity;
+    for (const minute of this.magnetMinutes()) {
+      const dist = Math.abs(minute - rawMinute);
+      if (dist <= radiusMin && dist < bestDist) {
+        best = minute;
+        bestDist = dist;
+      }
+    }
+    return best;
+  }
+
+  /** Aimante vers le ravito/point de passage le plus proche, sinon aligne sur la séquence. */
+  private snapMinute(rawMinute: number, rect: DOMRect): number {
+    const magnet = this.nearestMagnet(rawMinute, rect);
+    if (magnet !== null) return magnet;
+    const seq = this.sequenceMinutes();
+    return Math.round(rawMinute / seq) * seq;
+  }
+
+  /** Déduit la minute (aimantée ou alignée séquence) du point de dépôt. */
   private minuteFromDrop(event: CdkDragDrop<string>): number | null {
     const track = this.trackElement();
     if (!track) return null;
@@ -728,8 +791,7 @@ export class ConsumptionPlanComponent implements OnDestroy {
     if (clientY == null) return null;
     const ratio = (clientY - rect.top) / rect.height;
     const raw = ratio * this.totalMinutes();
-    const seq = this.sequenceMinutes();
-    return Math.round(raw / seq) * seq;
+    return this.snapMinute(raw, rect);
   }
 
   private newId(): string {

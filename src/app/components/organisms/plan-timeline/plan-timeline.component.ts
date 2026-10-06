@@ -61,6 +61,16 @@ import type {
           ></div>
         }
 
+        <!-- Repère d'aimantation : surligne le ravito/point de passage ciblé pendant un drag. -->
+        @if (magnetLineTop() !== null) {
+          <div
+            class="pointer-events-none absolute inset-x-0 z-20 -translate-y-1/2"
+            [style.top.px]="magnetLineTop()"
+          >
+            <div class="h-0.5 w-full bg-brand-500/80 shadow-[0_0_6px_1px] shadow-brand-400/60"></div>
+          </div>
+        }
+
         <!-- Blocs de prises -->
         @for (intake of intakes(); track intake.id) {
           <!--
@@ -133,6 +143,8 @@ export class PlanTimelineComponent {
    * glissement (0 = aucune restriction à afficher).
    */
   readonly lockedZoneHeight = input(0);
+  /** Position (px) du repère d'aimantation à surligner (null = aucun). */
+  readonly magnetLineTop = input<number | null>(null);
   /** Fonction contraignant la position d'un bloc glissé sur la grille. */
   readonly constrainPosition = input.required<PlanConstrainPosition>();
 
