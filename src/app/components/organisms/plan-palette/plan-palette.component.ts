@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { CdkDrag, CdkDragDrop, CdkDragMove, CdkDropList } from '@angular/cdk/drag-drop';
 import { PlanPaletteItemComponent } from '../../molecules/plan-palette-item/plan-palette-item.component';
 import { PlanSequenceSelectComponent } from '../../molecules/plan-sequence-select/plan-sequence-select.component';
@@ -21,6 +22,7 @@ import type { PaletteEntry, PlanHourlyRecap, PlanSequenceMinutes } from '../../.
     PlanPaletteItemComponent,
     PlanSequenceSelectComponent,
     PlanHourlyRecapComponent,
+    DecimalPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -42,7 +44,7 @@ import type { PaletteEntry, PlanHourlyRecap, PlanSequenceMinutes } from '../../.
       <div class="mb-3 flex items-center justify-between">
         <h3 class="text-sm font-semibold text-slate-700">Produits à placer</h3>
         <span [class]="unplacedBadgeClass()">
-          {{ unplacedUnits() }} restant{{ unplacedUnits() > 1 ? 's' : '' }}
+          {{ unplacedUnits() | number: '1.0-2' }} restant{{ unplacedUnits() > 1 ? 's' : '' }}
         </span>
       </div>
       <div

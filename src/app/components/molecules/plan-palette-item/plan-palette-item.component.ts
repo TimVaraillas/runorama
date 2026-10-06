@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { TooltipComponent } from '../../atoms/tooltip/tooltip.component';
 import { faAppleWhole, faGripVertical, faDroplet, faLock } from '@fortawesome/free-solid-svg-icons';
@@ -15,7 +16,7 @@ import { formatMinutes } from '../../../core/utils/plan-layout.util';
 @Component({
   selector: 'ui-plan-palette-item',
   standalone: true,
-  imports: [IconComponent, TooltipComponent],
+  imports: [IconComponent, TooltipComponent, DecimalPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
@@ -46,7 +47,7 @@ import { formatMinutes } from '../../../core/utils/plan-layout.util';
         @if (unlimited()) {
           &infin;
         } @else {
-          {{ remaining() }}/{{ carried() }}
+          {{ remaining() | number: '1.0-2' }}/{{ carried() }}
         }
       </span>
     </div>
