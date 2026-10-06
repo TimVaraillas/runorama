@@ -38,7 +38,7 @@ import {
 import type { DragOverState, ResizePreviewState } from '../../../core/utils/plan-layout.util';
 import { enabledHourlyGoals } from '../../../core/utils/nutrition-goals.util';
 import { portionUnits } from '../../../core/utils/portion.util';
-import { WATER_PRODUCT, WATER_PRODUCT_ID } from '../../../core/utils/water.util';
+import { WATER_DEFAULT_ML, WATER_PRODUCT, WATER_PRODUCT_ID } from '../../../core/utils/water.util';
 import {
   availableQuantityAt,
   buildAvailabilitySchedules,
@@ -119,6 +119,7 @@ const QUANTITY_EPSILON = 1e-6;
             (dragMoved)="onDragMoved($event)"
             (dragEnded)="onDragEnded()"
             (removeIntake)="removeIntake($event)"
+            (setWaterMl)="onWaterMl($event)"
             (resizeStart)="startResize($event.event, $event.intake, $event.edge)"
             (selectAidStation)="selectAidStation.emit($event)"
           />
@@ -459,6 +460,12 @@ export class ConsumptionPlanComponent implements OnDestroy {
 
   removeIntake(id: string): void {
     this.emit((this.event().intakes ?? []).filter((intake) => intake.id !== id));
+  }
+
+  /** Fixe le volume d'eau (mL) d'une prise d'eau (stocké en unités de prise). */
+  protected onWaterMl(change: { id: string; ml: number }): void {
+    const quantity = Math.max(0, change.ml) / WATER_DEFAULT_ML;
+    this.updateIntake(change.id, (intake) => ({ ...intake, quantity }));
   }
 
   /**

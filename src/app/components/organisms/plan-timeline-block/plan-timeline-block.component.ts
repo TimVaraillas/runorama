@@ -58,9 +58,28 @@ import { isWaterProduct } from '../../../core/utils/water.util';
             <ui-icon [icon]="isWater() ? faDroplet : faAppleWhole" size="xs" />
           }
         </div>
-        <p [class]="nameClass()">
-          {{ intake().product.name }}
-        </p>
+        @if (isWater()) {
+          <div
+            class="flex min-w-0 items-center gap-1"
+            (pointerdown)="$event.stopPropagation()"
+            (click)="$event.stopPropagation()"
+          >
+            <input
+              type="number"
+              min="0"
+              step="50"
+              [value]="waterMl()"
+              (change)="onWaterMlInput($any($event.target).value)"
+              class="w-12 rounded border border-sky-300 bg-white px-1 py-0.5 text-right text-[11px] tabular-nums text-sky-700 focus:outline-none focus:ring-1 focus:ring-sky-400"
+              aria-label="Quantité d'eau en millilitres"
+            />
+            <span class="text-[11px] font-medium text-sky-600">mL</span>
+          </div>
+        } @else {
+          <p [class]="nameClass()">
+            {{ intake().product.name }}
+          </p>
+        }
       </div>
 
       @if (intake().height >= 52) {
@@ -105,6 +124,8 @@ export class PlanTimelineBlockComponent {
   readonly remove = output<void>();
   /** Émis quand une poignée de redimensionnement est saisie. */
   readonly resizeStart = output<ResizeStartEvent>();
+  /** Émis quand le volume d'eau (mL) d'une prise d'eau est modifié. */
+  readonly waterMlChange = output<number>();
 
   protected readonly faAppleWhole = faAppleWhole;
   protected readonly faDroplet = faDroplet;
@@ -120,6 +141,16 @@ export class PlanTimelineBlockComponent {
     const grams = Math.round(this.intake().quantity * this.intake().product.unitWeight);
     return grams > 0 ? `${grams} g` : null;
   });
+
+  /** Volume d'eau (mL) de la prise = quantité × volume d'une prise d'eau. */
+  protected readonly waterMl = computed(() =>
+    Math.round(this.intake().quantity * this.intake().product.unitWeight),
+  );
+
+  /** Relaye la saisie d'un nouveau volume d'eau (mL). */
+  protected onWaterMlInput(raw: string): void {
+    this.waterMlChange.emit(Math.max(0, Math.round(Number(raw))));
+  }
 
   protected readonly hostClass = computed(() => {
     const base =

@@ -141,7 +141,7 @@ export interface NutritionIntake {
  * correspondent aux champs numériques d'un {@link NutritionProduct}, ce qui
  * permet un calcul générique des apports planifiés.
  */
-export type NutrientGoalKey = 'energy' | 'carbs' | 'fats' | 'proteins' | 'sodium' | 'weight';
+export type NutrientGoalKey = 'energy' | 'carbs' | 'fats' | 'proteins' | 'sodium' | 'weight' | 'water';
 
 /** Objectif horaire pour un nutriment donné. */
 export interface NutritionGoal {
@@ -229,6 +229,20 @@ export const NUTRIENT_GOALS: readonly NutrientGoalMeta[] = [
     defaultHourly: 500,
     defaultEnabled: true,
     hint: '300 à 600 mg/h en conditions tempérées ; 700 à 1000+ mg/h par forte chaleur ou si vous transpirez beaucoup (sueur salée, traces blanches sur la peau).',
+  },
+  {
+    key: 'water',
+    label: 'Hydratation',
+    unit: 'mL',
+    mode: 'hourly',
+    step: 50,
+    max: 1500,
+    tickStep: 250,
+    recommendedMin: 400,
+    recommendedMax: 800,
+    defaultHourly: 500,
+    defaultEnabled: true,
+    hint: '400 à 800 mL/h selon la chaleur et l’intensité. Fractionnez en gorgées régulières plutôt que de gros volumes ; augmentez par forte chaleur.',
   },
   {
     key: 'energy',

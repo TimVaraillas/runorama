@@ -1,4 +1,4 @@
-import type { NutritionIntake, NutritionProduct } from '../models';
+import type { NutritionIntake, NutritionProduct, NutrientGoalKey } from '../models';
 
 /** Identifiant réservé au produit virtuel « Eau » (palette illimitée). */
 export const WATER_PRODUCT_ID = '__water__';
@@ -29,6 +29,22 @@ export const WATER_PRODUCT: NutritionProduct = {
 /** Vrai si le produit est le produit virtuel « Eau ». */
 export function isWaterProduct(product: Pick<NutritionProduct, 'id'>): boolean {
   return product.id === WATER_PRODUCT_ID;
+}
+
+/**
+ * Apport unitaire d'un produit pour un objectif donné. Gère les clés dérivées :
+ * `weight` = poids d'un paquet ; `water` = volume (mL) pour l'eau uniquement.
+ * Les autres clés lisent directement le champ nutritionnel du produit.
+ */
+export function goalAmountPerUnit(product: NutritionProduct, key: NutrientGoalKey): number {
+  switch (key) {
+    case 'weight':
+      return product.unitWeight;
+    case 'water':
+      return isWaterProduct(product) ? product.unitWeight : 0;
+    default:
+      return product[key];
+  }
 }
 
 /** Vrai si la prise correspond à de l'eau (illimitée, sans produit réel). */

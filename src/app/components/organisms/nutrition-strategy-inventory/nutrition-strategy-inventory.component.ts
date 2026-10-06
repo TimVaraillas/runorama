@@ -16,10 +16,12 @@ import {
   type NutritionCategory,
   type RaceStrategy,
   type RaceStrategyItem,
+  type NutrientGoalKey,
   type NutritionGoals,
   type NutritionProduct,
 } from '../../../core/models';
 import { enabledGoals, resolveGoals } from '../../../core/utils/nutrition-goals.util';
+import { WATER_DEFAULT_ML } from '../../../core/utils/water.util';
 import type { AllocationResult } from '../../../core/utils/inventory-allocation.util';
 import { faPlus, faWeightHanging, faXmark, faCheck, faSliders, faStar as faStarSolid } from '@fortawesome/free-solid-svg-icons';
 import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons';
@@ -374,6 +376,19 @@ export class NutritionStrategyInventoryComponent {
     return minutes && minutes > 0 ? minutes / 60 : null;
   });
 
+  /** Volume d'eau (mL) planifié sur le plan (l'eau n'est pas emportée en inventaire). */
+  protected readonly plannedWaterMl = computed(() =>
+    (this.event().intakes ?? [])
+      .filter((intake) => intake.kind === 'water')
+      .reduce((sum, intake) => sum + intake.quantity * WATER_DEFAULT_ML, 0),
+  );
+
+  /** Quantité « emportée » pour un objectif : eau = planifié au plan, sinon total inventaire. */
+  private carriedFor(key: NutrientGoalKey): number {
+    if (key === 'water') return this.plannedWaterMl();
+    return this.totals()[key];
+  }
+
   /**
    * Jauges à afficher : une par objectif actif. Pour un objectif horaire, la
    * cible vaut le besoin horaire × chrono (ou null sans chrono) ; pour un
@@ -381,12 +396,11 @@ export class NutritionStrategyInventoryComponent {
    */
   protected readonly goalGauges = computed(() => {
     const hours = this.targetHours();
-    const totals = this.totals();
     return enabledGoals(this.event()).map((goal) => ({
       key: goal.key,
       label: goal.label,
       unit: goal.unit,
-      carried: totals[goal.key],
+      carried: this.carriedFor(goal.key),
       target:
         goal.mode === 'total' ? goal.hourly : hours === null ? null : goal.hourly * hours,
     }));

@@ -11,7 +11,7 @@ import type {
   SequenceMark,
 } from '../models';
 import type { ResolvedGoal } from './nutrition-goals.util';
-import { resolveIntakeProduct } from './water.util';
+import { goalAmountPerUnit, resolveIntakeProduct } from './water.util';
 
 /** Aperçu live d'une prise en cours de redimensionnement. */
 export interface ResizePreviewState {
@@ -236,7 +236,8 @@ export function buildHourlyRecap(params: {
       if (overlap <= 0) continue;
       for (const nutrient of rows[h].nutrients) {
         if (nutrient.key === 'weight') continue;
-        const perMin = (intake.product[nutrient.key] * intake.quantity) / intake.durationMinutes;
+        const perUnit = goalAmountPerUnit(intake.product, nutrient.key);
+        const perMin = (perUnit * intake.quantity) / intake.durationMinutes;
         nutrient.planned += perMin * overlap;
       }
     }

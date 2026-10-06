@@ -6,7 +6,7 @@ import type {
   RoutePointKind,
 } from '../models';
 import { enabledGoals, type ResolvedGoal } from './nutrition-goals.util';
-import { resolveIntakeProduct } from './water.util';
+import { goalAmountPerUnit, resolveIntakeProduct, WATER_DEFAULT_ML } from './water.util';
 import { formatMinutes } from './plan-layout.util';
 import { buildInventoryLocations } from './inventory-allocation.util';
 import { buildRouteMarkers, routePointKindLabel } from './route-point.util';
@@ -94,7 +94,11 @@ function buildProductMap(
 /** Compose les données de l'inventaire (lignes + totaux). */
 function buildInventory(event: RaceStrategy, map: Map<string, NutritionProduct>) {
   const rows: InventoryRow[] = [];
-  const totals = { weight: 0, energy: 0, carbs: 0, fats: 0, proteins: 0, sodium: 0 };
+  // `water` = volume planifié (mL) issu des prises d'eau (l'eau n'est pas emportée en inventaire).
+  const totals = { weight: 0, energy: 0, carbs: 0, fats: 0, proteins: 0, sodium: 0, water: 0 };
+  for (const intake of event.intakes ?? []) {
+    if (intake.kind === 'water') totals.water += intake.quantity * WATER_DEFAULT_ML;
+  }
   for (const item of event.items) {
     const product = item.product ?? map.get(item.productId);
     if (!product) continue;
@@ -168,7 +172,7 @@ function buildPlan(
         if (overlap <= 0) continue;
         for (const nutrient of recap[h].nutrients) {
           if (nutrient.key === 'weight') continue;
-          const perMin = (product[nutrient.key] * intake.quantity) / intake.durationMinutes;
+          const perMin = (goalAmountPerUnit(product, nutrient.key) * intake.quantity) / intake.durationMinutes;
           nutrient.planned += perMin * overlap;
         }
       }
