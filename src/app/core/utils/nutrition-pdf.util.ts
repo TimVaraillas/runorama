@@ -58,6 +58,7 @@ interface PlanRow {
   end: number;
   name: string;
   quantity: number;
+  grams: number;
   energy: number;
   carbs: number;
 }
@@ -134,6 +135,7 @@ function buildPlan(
       end: intake.startMinute + intake.durationMinutes,
       name: product.name,
       quantity: intake.quantity,
+      grams: product.unitWeight * intake.quantity,
       energy: product.energy * intake.quantity,
       carbs: product.carbs * intake.quantity,
     });
@@ -420,7 +422,7 @@ export function buildStrategyPdfHtml(
                 r.end,
               )}</span></td>
               <td>${escapeHtml(r.name)}</td>
-              <td class="right">${num(r.quantity)}</td>
+              <td class="right">${num(r.grams)} g</td>
               <td class="right">${num(r.energy)} kcal</td>
               <td class="right">${num(r.carbs)} g</td>
             </tr>`,
@@ -537,7 +539,7 @@ export function buildStrategyPdfHtml(
             <tr>
               <th>Créneau</th>
               <th>Produit</th>
-              <th class="right">Qté</th>
+              <th class="right">Portion</th>
               <th class="right">Énergie</th>
               <th class="right">Glucides</th>
             </tr>

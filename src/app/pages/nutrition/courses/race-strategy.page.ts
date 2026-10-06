@@ -49,6 +49,7 @@ import type {
   GpxTrack,
   NutritionCategory,
   RaceStrategy,
+  RaceStrategyItem,
   NutritionGoals,
   NutritionIntake,
   NutritionProduct,
@@ -1410,7 +1411,7 @@ export class RaceStrategyPage {
     if (!event) return;
     const items = event.items.map((item) =>
       item.productId === change.productId
-        ? { productId: change.productId, quantity: change.quantity }
+        ? { productId: change.productId, quantity: change.quantity, portionWeight: item.portionWeight }
         : this.toPayloadItem(item),
     );
     this.persistItems(event.id, items);
@@ -1426,14 +1427,11 @@ export class RaceStrategyPage {
   }
 
   /** Réduit une ligne d'inventaire à sa charge utile API (`productId` + `quantity`). */
-  private toPayloadItem(item: { productId: string; quantity: number }): {
-    productId: string;
-    quantity: number;
-  } {
-    return { productId: item.productId, quantity: item.quantity };
+  private toPayloadItem(item: RaceStrategyItem): RaceStrategyItem {
+    return { productId: item.productId, quantity: item.quantity, portionWeight: item.portionWeight };
   }
 
-  private persistItems(eventId: string, items: { productId: string; quantity: number }[]): void {
+  private persistItems(eventId: string, items: RaceStrategyItem[]): void {
     this.service.updateStrategy(eventId, { items }).subscribe({
       next: (updated) => this.event.set(updated),
       error: () => this.toast.error("Impossible de mettre à jour l'inventaire."),

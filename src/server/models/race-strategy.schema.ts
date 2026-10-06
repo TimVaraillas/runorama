@@ -8,8 +8,10 @@ const { Schema, model, models } = mongoose;
 const eventItemSchema = new Schema(
   {
     productId: { type: Schema.Types.ObjectId, ref: 'NutritionProduct', required: true },
-    /** Nombre d'unités emportées. */
+    /** Nombre de paquets (unités entières) emportés. */
     quantity: { type: Number, required: true, min: 1, default: 1 },
+    /** Taille d'une portion en grammes (propre à la stratégie). Absente = un paquet entier. */
+    portionWeight: { type: Number, min: 0 },
   },
   { _id: false },
 );
@@ -36,8 +38,8 @@ const intakeSchema = new Schema(
     startMinute: { type: Number, required: true, min: 0 },
     /** Durée de consommation en minutes. */
     durationMinutes: { type: Number, required: true, min: 1 },
-    /** Nombre d'unités consommées sur cette prise. */
-    quantity: { type: Number, required: true, min: 1, default: 1 },
+    /** Quantité consommée en unités (fraction possible pour une portion). */
+    quantity: { type: Number, required: true, min: 0, default: 1 },
   },
   { _id: false },
 );

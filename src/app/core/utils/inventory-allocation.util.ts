@@ -18,6 +18,8 @@ export interface InventoryLocationItem {
   productId: string;
   product: NutritionProduct;
   quantity: number;
+  /** Taille de portion (g) définie pour ce produit dans la stratégie, si présente. */
+  portionWeight?: number;
 }
 
 /**
@@ -68,9 +70,13 @@ function hasLogistics(station: AidStation): boolean {
   return station.logisticVia != null;
 }
 
-/** Réduit l'inventaire à sa charge utile API (`productId` + `quantity`). */
+/** Réduit l'inventaire à sa charge utile API (`productId` + `quantity` + `portionWeight`). */
 function toItems(items: readonly RaceStrategyItem[]): RaceStrategyItem[] {
-  return items.map((item) => ({ productId: item.productId, quantity: item.quantity }));
+  return items.map((item) => ({
+    productId: item.productId,
+    quantity: item.quantity,
+    portionWeight: item.portionWeight,
+  }));
 }
 
 /**
@@ -84,6 +90,8 @@ export function buildInventoryLocations(
 ): InventoryLocation[] {
   const resolve = (productId: string, fallback?: NutritionProduct): NutritionProduct | null =>
     fallback ?? productMap.get(productId) ?? null;
+  const portionOf = (productId: string): number | undefined =>
+    event.items.find((i) => i.productId === productId)?.portionWeight;
 
   const stations = (event.aidStations ?? [])
     .filter(hasLogistics)
@@ -97,7 +105,12 @@ export function buildInventoryLocations(
     if (startQty <= 0) continue;
     const product = resolve(item.productId, item.product);
     if (!product) continue;
-    startItems.push({ productId: item.productId, product, quantity: startQty });
+    startItems.push({
+      productId: item.productId,
+      product,
+      quantity: startQty,
+      portionWeight: item.portionWeight,
+    });
   }
 
   const locations: InventoryLocation[] = [
@@ -110,7 +123,12 @@ export function buildInventoryLocations(
       if (pickup.kind !== 'product' || !pickup.productId) continue;
       const product = resolve(pickup.productId, pickup.product);
       if (!product) continue;
-      items.push({ productId: pickup.productId, product, quantity: pickup.quantity });
+      items.push({
+        productId: pickup.productId,
+        product,
+        quantity: pickup.quantity,
+        portionWeight: portionOf(pickup.productId),
+      });
     }
     locations.push({
       id: station.id,
@@ -205,11 +223,11 @@ export function setStartQuantity(
   let found = false;
   for (const item of event.items) {
     if (item.productId !== productId) {
-      items.push({ productId: item.productId, quantity: item.quantity });
+      items.push({ productId: item.productId, quantity: item.quantity, portionWeight: item.portionWeight });
       continue;
     }
     found = true;
-    if (total > 0) items.push({ productId, quantity: total });
+    if (total > 0) items.push({ productId, quantity: total, portionWeight: item.portionWeight });
   }
   if (!found && total > 0) items.push({ productId, quantity: total });
   return { items, aidStations: [...(event.aidStations ?? [])] };
@@ -237,22 +255,41 @@ export function setStationQuantity(
   let found = false;
   for (const item of event.items) {
     if (item.productId !== productId) {
-      items.push({ productId: item.productId, quantity: item.quantity });
+      items.push({ productId: item.productId, quantity: item.quantity, portionWeight: item.portionWeight });
       continue;
     }
     found = true;
     const total = item.quantity + delta;
-    if (total > 0) items.push({ productId, quantity: total });
+    if (total > 0) items.push({ productId, quantity: total, portionWeight: item.portionWeight });
   }
   if (!found && clamped > 0) items.push({ productId, quantity: clamped });
   return { items, aidStations: stations };
+}
+
+/**
+ * Fixe la taille de portion (en grammes) d'un produit pour cette stratégie.
+ * Une valeur nulle/0 réinitialise la portion (= un paquet entier). N'affecte
+ * ni les quantités emportées ni la répartition sur les ravitos.
+ */
+export function setPortionWeight(
+  event: RaceStrategy,
+  productId: string,
+  portionWeight: number,
+): AllocationResult {
+  const clamped = portionWeight > 0 ? portionWeight : undefined;
+  const items: RaceStrategyItem[] = event.items.map((item) =>
+    item.productId === productId
+      ? { productId: item.productId, quantity: item.quantity, portionWeight: clamped }
+      : { productId: item.productId, quantity: item.quantity, portionWeight: item.portionWeight },
+  );
+  return { items, aidStations: [...(event.aidStations ?? [])] };
 }
 
 /** Retire complètement un produit de l'inventaire (départ + tous les ravitos). */
 export function removeProductEverywhere(event: RaceStrategy, productId: string): AllocationResult {
   const items = event.items
     .filter((item) => item.productId !== productId)
-    .map((item) => ({ productId: item.productId, quantity: item.quantity }));
+    .map((item) => ({ productId: item.productId, quantity: item.quantity, portionWeight: item.portionWeight }));
   const aidStations = (event.aidStations ?? []).map((station) => ({
     ...station,
     pickup: (station.pickup ?? []).filter(

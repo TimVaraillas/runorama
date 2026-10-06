@@ -37,6 +37,7 @@ import {
 } from '../../../core/utils/plan-layout.util';
 import type { DragOverState, ResizePreviewState } from '../../../core/utils/plan-layout.util';
 import { enabledHourlyGoals } from '../../../core/utils/nutrition-goals.util';
+import { portionUnits } from '../../../core/utils/portion.util';
 import { WATER_PRODUCT, WATER_PRODUCT_ID } from '../../../core/utils/water.util';
 import {
   availableQuantityAt,
@@ -46,6 +47,8 @@ import {
 
 const PX_PER_SEQUENCE = 30;
 const SEQUENCE_OPTIONS: PlanSequenceMinutes[] = [5, 10, 15, 20];
+/** Tolérance pour comparer des quantités fractionnaires (portions). */
+const QUANTITY_EPSILON = 1e-6;
 
 /**
  * Organism : plan de nutrition d'une stratégie alimentaire.
@@ -185,9 +188,25 @@ export class ConsumptionPlanComponent implements OnDestroy {
     buildAvailabilitySchedules(this.event().items, this.event().aidStations ?? []),
   );
 
+  /** Portion (en unités) par produit de l'inventaire, dérivée de sa taille de portion (g). */
+  private readonly portionUnitsByProduct = computed(() => {
+    const map = this.productMap();
+    const out = new Map<string, number>();
+    for (const item of this.event().items) {
+      const product = item.product ?? map.get(item.productId);
+      if (!product) continue;
+      out.set(item.productId, portionUnits(item.portionWeight, product.unitWeight));
+    }
+    return out;
+  });
+
+  /** Portion (en unités) d'un produit, 1 par défaut (produit hors inventaire ou eau). */
+  private portionUnitsFor(productId: string): number {
+    return this.portionUnitsByProduct().get(productId) ?? 1;
+  }
+
   /** Quantité déjà placée sur le plan pour un produit, avant (ou à) un instant donné. */
-  private placedQuantityBefore(productId: string, minute: number, excludeIntakeId?: string): number {
-    return (this.event().intakes ?? [])
+  private placedQuantityBefore(productId: string, minute: number, excludeIntakeId?: string): number {    return (this.event().intakes ?? [])
       .filter(
         (i) =>
           i.kind !== 'water' &&
@@ -212,7 +231,7 @@ export class ConsumptionPlanComponent implements OnDestroy {
     const alreadyPlaced = (this.event().intakes ?? [])
       .filter((i) => i.kind !== 'water' && i.productId === productId)
       .reduce((sum, i) => sum + i.quantity, 0);
-    const unlock = earliestAvailableMinute(schedule, alreadyPlaced + 1);
+    const unlock = earliestAvailableMinute(schedule, alreadyPlaced + this.portionUnitsFor(productId));
     return unlock && unlock.minute > 0 ? unlock.minute : null;
   });
 
@@ -283,7 +302,10 @@ export class ConsumptionPlanComponent implements OnDestroy {
         const remaining = carried - (placed.get(item.productId) ?? 0);
         const availableFromStart = schedule?.fromStart ?? carried;
         // Prochain ravito qui fournit ce produit (premier déblocage au-delà du stock initial).
-        const nextUnlock = earliestAvailableMinute(schedule, availableFromStart + 1);
+        const nextUnlock = earliestAvailableMinute(
+          schedule,
+          availableFromStart + portionUnits(item.portionWeight, product.unitWeight),
+        );
         // Verrouillé une fois le stock disponible avant ce ravito épuisé par
         // les prises déjà placées avant son passage.
         const usedBeforeUnlock = nextUnlock
@@ -369,15 +391,17 @@ export class ConsumptionPlanComponent implements OnDestroy {
 
     if (payload.kind === 'product') {
       const entry = this.paletteEntries().find((e) => e.product.id === payload.productId);
-      if (!entry || entry.remaining <= 0) return;
+      if (!entry) return;
       const duration = seq;
       const start = this.clampStart(minute, duration);
       const isWater = payload.productId === WATER_PRODUCT_ID;
+      const portion = isWater ? 1 : this.portionUnitsFor(payload.productId);
+      if (!isWater && entry.remaining < portion - QUANTITY_EPSILON) return;
 
       if (!isWater) {
         const schedule = this.availabilitySchedules().get(payload.productId);
         const usedBefore = this.placedQuantityBefore(payload.productId, start);
-        if (availableQuantityAt(schedule, start) - usedBefore < 1) {
+        if (availableQuantityAt(schedule, start) - usedBefore < portion - QUANTITY_EPSILON) {
           this.toast.warning(
             `${entry.product.name} n'est pas encore disponible à cet instant : il doit d'abord être récupéré sur un ravitaillement.`,
           );
@@ -398,7 +422,7 @@ export class ConsumptionPlanComponent implements OnDestroy {
             productId: payload.productId,
             startMinute: start,
             durationMinutes: duration,
-            quantity: 1,
+            quantity: portion,
           };
       this.emit([...(this.event().intakes ?? []), intake]);
     } else {

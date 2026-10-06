@@ -11,12 +11,14 @@ import {
   buildInventoryLocations,
   moveUnit,
   removeProductEverywhere,
+  setPortionWeight,
   setStartQuantity,
   setStationQuantity,
   type AllocationResult,
   type InventoryLocation,
   type InventoryLocationItem,
 } from '../../../core/utils/inventory-allocation.util';
+import { resolvePortionGrams } from '../../../core/utils/portion.util';
 import {
   faAppleWhole,
   faFlag,
@@ -125,6 +127,22 @@ import {
                     <div class="truncate text-xs text-slate-400">{{ item.product.brand }}</div>
                   </div>
                 </ui-tooltip>
+                <label
+                  class="flex shrink-0 items-center gap-1 text-xs text-slate-500"
+                  [title]="'Taille de portion (une prise au plan). Defaut : 1 paquet = ' + item.product.unitWeight + ' g'"
+                >
+                  Portion
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    [value]="portionGrams(item)"
+                    (change)="onPortion(item, $any($event.target).value)"
+                    class="w-16 rounded-md border border-slate-300 bg-white px-2 py-1 text-right tabular-nums text-slate-900 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                    aria-label="Taille d'une portion en grammes"
+                  />
+                  g
+                </label>
                 <ui-quantity-stepper
                   [value]="item.quantity"
                   [min]="1"
@@ -218,6 +236,17 @@ export class InventoryLocationsComponent {
         ? removeProductEverywhere(this.event(), item.productId)
         : setStationQuantity(this.event(), location.id, item.productId, 0);
     this.allocationChange.emit(result);
+  }
+
+  /** Taille de portion affichée (g) : valeur définie ou, par défaut, le poids d'un paquet. */
+  protected portionGrams(item: InventoryLocationItem): number {
+    return Math.round(resolvePortionGrams(item.portionWeight, item.product.unitWeight));
+  }
+
+  /** Fixe la taille de portion (g) d'un produit pour la stratégie. */
+  protected onPortion(item: InventoryLocationItem, raw: string): void {
+    const grams = Math.max(0, Math.round(Number(raw)));
+    this.allocationChange.emit(setPortionWeight(this.event(), item.productId, grams));
   }
 
   /** Formate un temps en minutes vers `Xh YY`. */

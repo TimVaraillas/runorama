@@ -99,8 +99,14 @@ export interface RaceStrategyItem {
   productId: string;
   /** Produit dénormalisé (optionnel, pour l'affichage et les calculs). */
   product?: NutritionProduct;
-  /** Nombre d'unités emportées. */
+  /** Nombre de paquets (unités entières) emportés. */
   quantity: number;
+  /**
+   * Taille d'une portion en grammes, propre à cette stratégie. Absente = une
+   * portion vaut un paquet entier (`product.unitWeight`). Utilisée comme portion
+   * par défaut au plan de nutrition.
+   */
+  portionWeight?: number;
 }
 
 /** Granularité (en minutes) d'une séquence du plan de nutrition. */
@@ -126,7 +132,7 @@ export interface NutritionIntake {
   startMinute: number;
   /** Durée de consommation en minutes (multiple de la granularité). */
   durationMinutes: number;
-  /** Nombre d'unités consommées sur cette prise (1 par défaut). */
+  /** Quantité consommée, en unités (fraction possible : une portion vaut `portionWeight / unitWeight`). */
   quantity: number;
 }
 

@@ -66,6 +66,9 @@ import { isWaterProduct } from '../../../core/utils/water.util';
       @if (intake().height >= 52) {
         <span [class]="timeClass()">
           {{ formatMinutes(intake().startMinute) }}–{{ formatMinutes(intake().endMinute) }}
+          @if (gramsLabel()) {
+            <span class="opacity-80">· {{ gramsLabel() }}</span>
+          }
         </span>
       }
     </div>
@@ -110,6 +113,13 @@ export class PlanTimelineBlockComponent {
 
   /** Vrai si la prise correspond au produit virtuel « Eau ». */
   protected readonly isWater = computed(() => isWaterProduct(this.intake().product));
+
+  /** Grammes consommés (quantité × poids d'un paquet), masqué pour l'eau. */
+  protected readonly gramsLabel = computed(() => {
+    if (this.isWater()) return null;
+    const grams = Math.round(this.intake().quantity * this.intake().product.unitWeight);
+    return grams > 0 ? `${grams} g` : null;
+  });
 
   protected readonly hostClass = computed(() => {
     const base =
