@@ -131,9 +131,9 @@ export class WaypointFormPanelComponent {
     label: string;
     color: string;
   }> = [
-    { kind: 'CHECKPOINT', label: 'Checkpoint', color: '#0ea5e9' },
-    { kind: 'SUMMIT', label: 'Sommet', color: '#f59e0b' },
-    { kind: 'CUSTOM', label: 'Point personnalisé', color: '#a855f7' },
+    { kind: 'CHECKPOINT', label: 'Checkpoint', color: '#38bdf8' },
+    { kind: 'SUMMIT', label: 'Sommet', color: '#22a9a8' },
+    { kind: 'CUSTOM', label: 'Point personnalisé', color: '#c084fc' },
   ];
 
   constructor() {

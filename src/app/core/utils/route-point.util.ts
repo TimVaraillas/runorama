@@ -17,10 +17,10 @@ import { interpolateAtDistance, type ProcessedTrackPoint } from './gpx.util';
 
 /** Métadonnées d'affichage d'un type de point de passage (libellé, couleur). */
 export const ROUTE_POINT_KIND_META: Record<RoutePointKind, { label: string; color: string }> = {
-  AID_STATION: { label: 'Ravitaillement', color: '#6366f1' },
-  CHECKPOINT: { label: 'Checkpoint', color: '#0ea5e9' },
-  SUMMIT: { label: 'Sommet', color: '#f59e0b' },
-  CUSTOM: { label: 'Point personnalisé', color: '#a855f7' },
+  AID_STATION: { label: 'Ravitaillement', color: '#f2542d' },
+  CHECKPOINT: { label: 'Checkpoint', color: '#38bdf8' },
+  SUMMIT: { label: 'Sommet', color: '#22a9a8' },
+  CUSTOM: { label: 'Point personnalisé', color: '#c084fc' },
 };
 
 /** Libellé lisible d'un type de point de passage. */

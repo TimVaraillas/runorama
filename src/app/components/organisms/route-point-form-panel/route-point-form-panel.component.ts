@@ -123,10 +123,10 @@ export class RoutePointFormPanelComponent {
   protected readonly kind = signal<RoutePointKind>('AID_STATION');
   protected readonly name = signal('');
   protected readonly kindOptions = [
-    { kind: 'AID_STATION' as const, label: 'Ravitaillement', color: '#6366f1' },
-    { kind: 'CHECKPOINT' as const, label: 'Checkpoint', color: '#0ea5e9' },
-    { kind: 'SUMMIT' as const, label: 'Sommet', color: '#f59e0b' },
-    { kind: 'CUSTOM' as const, label: 'Point personnalisé', color: '#a855f7' },
+    { kind: 'AID_STATION' as const, label: 'Ravitaillement', color: '#f2542d' },
+    { kind: 'CHECKPOINT' as const, label: 'Checkpoint', color: '#38bdf8' },
+    { kind: 'SUMMIT' as const, label: 'Sommet', color: '#22a9a8' },
+    { kind: 'CUSTOM' as const, label: 'Point personnalisé', color: '#c084fc' },
   ];
 
   constructor() {
