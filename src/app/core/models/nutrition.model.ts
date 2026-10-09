@@ -109,6 +109,45 @@ export interface RaceStrategyItem {
   portionWeight?: number;
 }
 
+/** Emplacement de départ d'une flasque (sac de départ). */
+export const FLASK_START_LOCATION = 'start';
+
+/**
+ * Une flasque : une recharge (contenant rempli) préparée à un emplacement.
+ *
+ * Contrairement à un produit solide, la flasque porte un volume de liquide et,
+ * optionnellement, une boisson (produit) dont les apports sont comptés. Chaque
+ * flasque est une recharge à usage unique : le compteur `quantity` indique
+ * combien de recharges l'assistance doit préparer à l'emplacement.
+ */
+export interface Flask {
+  /** Identifiant unique de la flasque (généré côté client). */
+  id: string;
+  /** Nom court optionnel (ex : « Poche à eau »). */
+  name?: string;
+  /** Volume du contenant en millilitres. */
+  volumeMl: number;
+  /** Produit (boisson) associé ; absent = eau pure (aucun apport). */
+  productId?: string;
+  /** Produit dénormalisé (optionnel, pour l'affichage et les calculs). */
+  product?: NutritionProduct;
+  /**
+   * Dose de produit par flasque, en grammes. Absente = une portion/unité du
+   * produit (`product.unitWeight`). Sans produit, ce champ est ignoré.
+   */
+  doseGrams?: number;
+  /**
+   * Emplacement de préparation : {@link FLASK_START_LOCATION} pour le sac de
+   * départ, sinon l'identifiant d'un ravitaillement.
+   */
+  location: string;
+  /** Nombre de recharges à préparer à cet emplacement. */
+  quantity: number;
+}
+
+/** Volume par défaut d'une flasque, en millilitres. */
+export const FLASK_DEFAULT_VOLUME_ML = 500;
+
 /** Granularité (en minutes) d'une séquence du plan de nutrition. */
 export type PlanSequenceMinutes = 5 | 10 | 15 | 20;
 
@@ -128,6 +167,11 @@ export interface NutritionIntake {
   productId?: string;
   /** Produit dénormalisé (optionnel, pour l'affichage et les calculs). */
   product?: NutritionProduct;
+  /**
+   * Identifiant de la flasque consommée (prises d'hydratation `kind: 'water'`).
+   * Le volume et les apports de la prise sont dérivés de la flasque référencée.
+   */
+  flaskId?: string;
   /** Instant de début de la prise, en minutes depuis le départ. */
   startMinute: number;
   /** Durée de consommation en minutes (multiple de la granularité). */
@@ -536,6 +580,8 @@ export interface RaceStrategy {
   goals: NutritionGoals;
   /** Inventaire des produits emportés. */
   items: RaceStrategyItem[];
+  /** Flasques (recharges) préparées par emplacement (hydratation). */
+  flasks?: Flask[];
   /** Granularité (minutes) des séquences du plan de nutrition. */
   planSequenceMinutes?: PlanSequenceMinutes;
   /** Répartition des prises sur le parcours (plan de nutrition). */

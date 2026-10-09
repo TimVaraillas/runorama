@@ -4,7 +4,7 @@ import { IconComponent } from '../../atoms/icon/icon.component';
 import { TooltipComponent } from '../../atoms/tooltip/tooltip.component';
 import { faAppleWhole, faGripVertical, faDroplet, faLock } from '@fortawesome/free-solid-svg-icons';
 import type { NutritionProduct } from '../../../core/models';
-import { isWaterProduct } from '../../../core/utils/water.util';
+import { isHydrationProduct } from '../../../core/utils/water.util';
 import { formatMinutes } from '../../../core/utils/plan-layout.util';
 
 /**
@@ -79,11 +79,11 @@ export class PlanPaletteItemComponent {
     return `Disponible à partir de ${unlock.stationName} (${formatMinutes(unlock.minute)})`;
   });
 
-  /** Vrai si l'élément représente le produit virtuel « Eau ». */
-  protected readonly isWater = computed(() => isWaterProduct(this.product()));
+  /** Vrai si l'élément relève de l'hydratation (eau ou flasque). */
+  protected readonly isWater = computed(() => isHydrationProduct(this.product()));
 
-  /** Sous-titre affiché pour l'eau (volume par prise). */
-  protected readonly subtitle = computed(() => `${this.product().unitWeight} ml / prise`);
+  /** Sous-titre affiché pour l'hydratation (volume de la flasque). */
+  protected readonly subtitle = computed(() => `${this.product().unitWeight} mL / flasque`);
 
   protected readonly containerClass = computed(() => {
     const base = 'flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition-colors';

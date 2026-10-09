@@ -38,7 +38,13 @@ import {
 import type { DragOverState, ResizePreviewState } from '../../../core/utils/plan-layout.util';
 import { enabledHourlyGoals } from '../../../core/utils/nutrition-goals.util';
 import { portionUnits } from '../../../core/utils/portion.util';
-import { WATER_DEFAULT_ML, WATER_PRODUCT, WATER_PRODUCT_ID } from '../../../core/utils/water.util';
+import { isFlaskProductId, flaskIdFromProductId } from '../../../core/utils/water.util';
+import {
+  buildFlaskProductMap,
+  flaskAvailableMinute,
+  resolveFlask,
+} from '../../../core/utils/flask.util';
+import { FLASK_START_LOCATION } from '../../../core/models';
 import {
   availableQuantityAt,
   buildAvailabilitySchedules,
@@ -122,7 +128,6 @@ const MAGNET_RADIUS_PX = 16;
             (dragMoved)="onDragMoved($event)"
             (dragEnded)="onDragEnded()"
             (removeIntake)="removeIntake($event)"
-            (setWaterMl)="onWaterMl($event)"
             (resizeStart)="startResize($event.event, $event.intake, $event.edge)"
             (selectAidStation)="selectAidStation.emit($event)"
           />
@@ -229,7 +234,12 @@ export class ConsumptionPlanComponent implements OnDestroy {
    */
   protected readonly lockedZoneMinute = computed<number | null>(() => {
     const productId = this.draggedProductId();
-    if (!productId || productId === WATER_PRODUCT_ID) return null;
+    if (!productId) return null;
+    if (isFlaskProductId(productId)) {
+      const flaskId = flaskIdFromProductId(productId);
+      const entry = this.resolvedFlasks().find((f) => f.flask.id === flaskId);
+      return entry && entry.availableMinute > 0 ? entry.availableMinute : null;
+    }
     const schedule = this.availabilitySchedules().get(productId);
     if (!schedule) return null;
     const alreadyPlaced = (this.event().intakes ?? [])
@@ -247,7 +257,7 @@ export class ConsumptionPlanComponent implements OnDestroy {
     return (minute / total) * this.trackHeight();
   });
 
-  /** Table produit par identifiant (catalogue + produits dénormalisés). */
+  /** Table produit par identifiant (catalogue + produits dénormalisés + flasques). */
   private readonly productMap = computed(() => {
     const map = new Map<string, NutritionProduct>();
     for (const product of this.products()) map.set(product.id, product);
@@ -256,6 +266,35 @@ export class ConsumptionPlanComponent implements OnDestroy {
     }
     for (const intake of this.event().intakes ?? []) {
       if (intake.product && intake.productId) map.set(intake.productId, intake.product);
+    }
+    // Produits synthétiques des flasques (volume + apports de la boisson).
+    for (const [id, product] of buildFlaskProductMap(this.event().flasks ?? [], map)) {
+      map.set(id, product);
+    }
+    return map;
+  });
+
+  /** Flasques résolues (produit synthétique + boisson + instant de disponibilité). */
+  private readonly resolvedFlasks = computed(() => {
+    const map = this.productMap();
+    const stations = this.event().aidStations ?? [];
+    return (this.event().flasks ?? []).map((flask) => ({
+      flask: resolveFlask(flask, map),
+      availableMinute: flaskAvailableMinute(flask, stations),
+      locationName:
+        flask.location === FLASK_START_LOCATION
+          ? 'Départ'
+          : (stations.find((s) => s.id === flask.location)?.name ?? 'Ravitaillement'),
+    }));
+  });
+
+  /** Nombre de flasques placées sur le plan, par identifiant de flasque. */
+  private readonly placedByFlask = computed(() => {
+    const map = new Map<string, number>();
+    for (const intake of this.event().intakes ?? []) {
+      if (intake.kind === 'water' && intake.flaskId) {
+        map.set(intake.flaskId, (map.get(intake.flaskId) ?? 0) + 1);
+      }
     }
     return map;
   });
@@ -289,6 +328,23 @@ export class ConsumptionPlanComponent implements OnDestroy {
       map.set(intake.productId, (map.get(intake.productId) ?? 0) + intake.quantity);
     }
     return map;
+  });
+
+  /** Flasques de la palette : une entrée par flasque (volume + boisson). */
+  protected readonly flaskEntries = computed<PaletteEntry[]>(() => {
+    const placed = this.placedByFlask();
+    return this.resolvedFlasks().map(({ flask, availableMinute, locationName }) => {
+      const carried = flask.quantity;
+      const remaining = carried - (placed.get(flask.id) ?? 0);
+      const locked = availableMinute > 0 && remaining > 0;
+      return {
+        product: flask.synthetic,
+        carried,
+        remaining,
+        lockedNow: locked,
+        unlock: locked ? { minute: availableMinute, stationName: locationName } : null,
+      };
+    });
   });
 
   /** Produits de la palette avec décompte emporté / restant. */
@@ -325,11 +381,8 @@ export class ConsumptionPlanComponent implements OnDestroy {
         return { product, carried, remaining, lockedNow, unlock };
       })
       .filter((entry): entry is PaletteEntry => entry !== null);
-    // L'eau est toujours disponible, en quantité illimitée, en tête de palette.
-    return [
-      { product: WATER_PRODUCT, carried: Infinity, remaining: Infinity, unlimited: true },
-      ...inventory,
-    ];
+    // Les flasques (hydratation) en tête, puis l'inventaire solide.
+    return [...this.flaskEntries(), ...inventory];
   });
 
   /** Total d'unités restant à placer (hors éléments illimités comme l'eau). */
@@ -414,36 +467,50 @@ export class ConsumptionPlanComponent implements OnDestroy {
       if (!entry) return;
       const duration = seq;
       const start = this.clampStart(minute, duration);
-      const isWater = payload.productId === WATER_PRODUCT_ID;
-      const portion = isWater ? 1 : this.portionUnitsFor(payload.productId);
-      if (!isWater && entry.remaining < portion - QUANTITY_EPSILON) return;
 
-      if (!isWater) {
-        const schedule = this.availabilitySchedules().get(payload.productId);
-        const usedBefore = this.placedQuantityBefore(payload.productId, start);
-        if (availableQuantityAt(schedule, start) - usedBefore < portion - QUANTITY_EPSILON) {
+      // Flasque : une prise d'hydratation qui consomme une recharge.
+      if (isFlaskProductId(payload.productId)) {
+        const flaskId = flaskIdFromProductId(payload.productId);
+        const resolved = this.resolvedFlasks().find((f) => f.flask.id === flaskId);
+        if (!resolved) return;
+        if (entry.remaining < 1) return;
+        if (start < resolved.availableMinute) {
           this.toast.warning(
-            `${entry.product.name} n'est pas encore disponible à cet instant : il doit d'abord être récupéré sur un ravitaillement.`,
+            `Cette flasque n'est disponible qu'à partir de ${resolved.locationName}.`,
           );
           return;
         }
+        const intake: NutritionIntake = {
+          id: this.newId(),
+          kind: 'water',
+          flaskId,
+          startMinute: start,
+          durationMinutes: duration,
+          quantity: 1,
+        };
+        this.emit([...(this.event().intakes ?? []), intake]);
+        return;
       }
 
-      const intake: NutritionIntake = isWater
-        ? {
-            id: this.newId(),
-            kind: 'water',
-            startMinute: start,
-            durationMinutes: duration,
-            quantity: 1,
-          }
-        : {
-            id: this.newId(),
-            productId: payload.productId,
-            startMinute: start,
-            durationMinutes: duration,
-            quantity: portion,
-          };
+      const portion = this.portionUnitsFor(payload.productId);
+      if (entry.remaining < portion - QUANTITY_EPSILON) return;
+
+      const schedule = this.availabilitySchedules().get(payload.productId);
+      const usedBefore = this.placedQuantityBefore(payload.productId, start);
+      if (availableQuantityAt(schedule, start) - usedBefore < portion - QUANTITY_EPSILON) {
+        this.toast.warning(
+          `${entry.product.name} n'est pas encore disponible à cet instant : il doit d'abord être récupéré sur un ravitaillement.`,
+        );
+        return;
+      }
+
+      const intake: NutritionIntake = {
+        id: this.newId(),
+        productId: payload.productId,
+        startMinute: start,
+        durationMinutes: duration,
+        quantity: portion,
+      };
       this.emit([...(this.event().intakes ?? []), intake]);
     } else {
       // On applique la position prévisualisée (WYSIWYG) plutôt que de
@@ -456,7 +523,15 @@ export class ConsumptionPlanComponent implements OnDestroy {
           ? preview.startMinute
           : this.clampStart(minute, current.durationMinutes);
 
-      if (current.kind !== 'water' && current.productId) {
+      if (current.kind === 'water' && current.flaskId) {
+        const resolved = this.resolvedFlasks().find((f) => f.flask.id === current.flaskId);
+        if (resolved && start < resolved.availableMinute) {
+          this.toast.warning(
+            `Cette flasque n'est disponible qu'à partir de ${resolved.locationName}.`,
+          );
+          return;
+        }
+      } else if (current.kind !== 'water' && current.productId) {
         const schedule = this.availabilitySchedules().get(current.productId);
         const usedBefore = this.placedQuantityBefore(current.productId, start, current.id);
         if (availableQuantityAt(schedule, start) - usedBefore < current.quantity) {
@@ -479,12 +554,6 @@ export class ConsumptionPlanComponent implements OnDestroy {
 
   removeIntake(id: string): void {
     this.emit((this.event().intakes ?? []).filter((intake) => intake.id !== id));
-  }
-
-  /** Fixe le volume d'eau (mL) d'une prise d'eau (stocké en unités de prise). */
-  protected onWaterMl(change: { id: string; ml: number }): void {
-    const quantity = Math.max(0, change.ml) / WATER_DEFAULT_ML;
-    this.updateIntake(change.id, (intake) => ({ ...intake, quantity }));
   }
 
   /**

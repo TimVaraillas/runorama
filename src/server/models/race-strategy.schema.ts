@@ -17,6 +17,30 @@ const eventItemSchema = new Schema(
 );
 
 /**
+ * Flasque (recharge) préparée à un emplacement : volume de liquide et, en
+ * option, une boisson (produit) dont les apports sont comptés.
+ */
+const flaskSchema = new Schema(
+  {
+    /** Identifiant unique généré côté client. */
+    id: { type: String, required: true },
+    /** Nom court optionnel (ex : « Poche à eau »). */
+    name: { type: String, trim: true },
+    /** Volume du contenant en millilitres. */
+    volumeMl: { type: Number, required: true, min: 0, default: 500 },
+    /** Produit (boisson) associé ; absent = eau pure. */
+    productId: { type: Schema.Types.ObjectId, ref: 'NutritionProduct' },
+    /** Dose de produit par flasque (g) ; absente = une portion (`unitWeight`). */
+    doseGrams: { type: Number, min: 0 },
+    /** Emplacement de préparation : 'start' ou identifiant d'un ravitaillement. */
+    location: { type: String, required: true, default: 'start' },
+    /** Nombre de recharges à préparer à cet emplacement. */
+    quantity: { type: Number, required: true, min: 1, default: 1 },
+  },
+  { _id: false },
+);
+
+/**
  * Prise planifiée : une (ou plusieurs) unité(s) d'un produit consommée(s) sur
  * une fenêtre de temps du parcours (plan de nutrition).
  */
@@ -34,6 +58,8 @@ const intakeSchema = new Schema(
         return this.kind !== 'water';
       },
     },
+    /** Flasque consommée (prises d'hydratation) : volume et apports dérivés. */
+    flaskId: { type: String },
     /** Début de la prise, en minutes depuis le départ. */
     startMinute: { type: Number, required: true, min: 0 },
     /** Durée de consommation en minutes. */
@@ -290,6 +316,8 @@ const raceStrategySchema = new Schema(
     goals: { type: goalsSchema, default: () => ({}) },
     /** Produits emportés (inventaire). */
     items: { type: [eventItemSchema], default: [] },
+    /** Flasques (recharges) préparées par emplacement. */
+    flasks: { type: [flaskSchema], default: [] },
     /** Granularité (minutes) des séquences du plan de nutrition. */
     planSequenceMinutes: { type: Number, enum: [5, 10, 15, 20], default: 10 },
     /** Répartition des prises sur le parcours (plan de nutrition). */

@@ -6,9 +6,10 @@ import type {
   RoutePointKind,
 } from '../models';
 import { enabledGoals, type ResolvedGoal } from './nutrition-goals.util';
-import { goalAmountPerUnit, resolveIntakeProduct, WATER_DEFAULT_ML } from './water.util';
+import { goalAmountPerUnit, resolveIntakeProduct, buildFlaskProduct } from './water.util';
 import { formatMinutes } from './plan-layout.util';
 import { buildInventoryLocations } from './inventory-allocation.util';
+import { buildFlaskLocations, buildFlaskProductMap, totalFlaskVolumeMl } from './flask.util';
 import { buildRouteMarkers, routePointKindLabel } from './route-point.util';
 import { buildTrackMapSvg, buildElevationProfileSvg, routeMarkerBadge } from './route-svg.util';
 import { interpolateAtDistance, type ProcessedTrackPoint } from './gpx.util';
@@ -88,17 +89,19 @@ function buildProductMap(
   for (const intake of event.intakes ?? []) {
     if (intake.product && intake.productId) map.set(intake.productId, intake.product);
   }
+  // Produits synthétiques des flasques (volume + apports de la boisson).
+  for (const [id, product] of buildFlaskProductMap(event.flasks ?? [], map)) {
+    map.set(id, product);
+  }
   return map;
 }
 
 /** Compose les données de l'inventaire (lignes + totaux). */
 function buildInventory(event: RaceStrategy, map: Map<string, NutritionProduct>) {
   const rows: InventoryRow[] = [];
-  // `water` = volume planifié (mL) issu des prises d'eau (l'eau n'est pas emportée en inventaire).
+  // `water` = volume (mL) des flasques déclarées à l'inventaire.
   const totals = { weight: 0, energy: 0, carbs: 0, fats: 0, proteins: 0, sodium: 0, water: 0 };
-  for (const intake of event.intakes ?? []) {
-    if (intake.kind === 'water') totals.water += intake.quantity * WATER_DEFAULT_ML;
-  }
+  totals.water = totalFlaskVolumeMl(event.flasks ?? []);
   for (const item of event.items) {
     const product = item.product ?? map.get(item.productId);
     if (!product) continue;
@@ -120,6 +123,19 @@ function buildInventory(event: RaceStrategy, map: Map<string, NutritionProduct>)
     totals.sodium += product.sodium * qty;
   }
   rows.sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
+  // Apports des boissons contenues dans les flasques (dose × nombre de recharges).
+  for (const flask of event.flasks ?? []) {
+    if (!flask.productId) continue;
+    const boisson = flask.product ?? map.get(flask.productId);
+    if (!boisson) continue;
+    const synthetic = buildFlaskProduct(flask, boisson);
+    const quantity = flask.quantity || 0;
+    totals.energy += synthetic.energy * quantity;
+    totals.carbs += synthetic.carbs * quantity;
+    totals.fats += synthetic.fats * quantity;
+    totals.proteins += synthetic.proteins * quantity;
+    totals.sodium += synthetic.sodium * quantity;
+  }
   return { rows, totals };
 }
 
@@ -383,6 +399,7 @@ export function buildStrategyPdfHtml(
   const { rows: planRows } = buildPlan(event, map, hourlyGoals);
   const logisticBags = buildLogistics(event, map);
   const total = event.targetTimeMinutes ?? 0;
+  const flaskGroups = buildFlaskLocations(event, map).filter((g) => g.flasks.length > 0);
 
   const meta: string[] = [];
   if (event.date) meta.push(formatDate(event.date));
@@ -465,6 +482,59 @@ export function buildStrategyPdfHtml(
         </tr>`,
       )
       .join('');
+
+  const flasksBody = flaskGroups
+    .map((group) => {
+      const header = `<tr><td colspan="4" class="group">${escapeHtml(group.name)}${
+        group.minute != null ? `<span class="muted"> · ${formatMinutes(group.minute)}</span>` : ''
+      }</td></tr>`;
+      const rows = group.flasks
+        .map(
+          (flask) => `
+            <tr>
+              <td>${escapeHtml(flask.boisson?.name ?? 'Eau pure')}${
+                flask.boisson?.brand
+                  ? `<span class="muted"> · ${escapeHtml(flask.boisson.brand)}</span>`
+                  : ''
+              }</td>
+              <td class="right">${num(flask.volumeMl)} mL</td>
+              <td class="right">${
+                flask.boisson
+                  ? `${num(Math.round(flask.doseGrams ?? flask.boisson.unitWeight))} g`
+                  : '—'
+              }</td>
+              <td class="right">${num(flask.quantity)}</td>
+            </tr>`,
+        )
+        .join('');
+      return header + rows;
+    })
+    .join('');
+
+  const flasksSection =
+    flaskGroups.length > 0
+      ? `
+      <section class="sec sec-flasks">
+        <h2>Flasques à remplir</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Boisson</th>
+              <th class="right">Volume</th>
+              <th class="right">Dose</th>
+              <th class="right">Nb</th>
+            </tr>
+          </thead>
+          <tbody>${flasksBody}</tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3">Volume total</td>
+              <td class="right">${num(totals.water)} mL</td>
+            </tr>
+          </tfoot>
+        </table>
+      </section>`
+      : '';
 
   const logisticsSection =
     logisticBags.length > 0
@@ -787,6 +857,7 @@ export function buildStrategyPdfHtml(
     .right { text-align: right; }
     .center { text-align: center; }
     .muted { color: #94a3b8; font-weight: 400; }
+    td.group { background: #f8fafc; font-weight: 600; font-size: 11px; color: #334155; }
     /* Sacs logistiques : une carte par point à préparer */
     .bags { display: flex; flex-direction: column; gap: 14px; }
     .bag {
@@ -945,6 +1016,7 @@ export function buildStrategyPdfHtml(
       </tfoot>
     </table>
   </section>
+  ${flasksSection}
   ${logisticsSection}
   ${planSection}
 

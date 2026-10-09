@@ -45,6 +45,7 @@ import {
 import { RaceOverviewPanelComponent } from '../../../components/organisms/race-overview-panel/race-overview-panel.component';
 import type {
   AidStation,
+  Flask,
   GpxDiscrepancies,
   GpxTrack,
   NutritionCategory,
@@ -262,6 +263,7 @@ import {
               (setQuantity)="setQuantity($event)"
               (remove)="removeProduct($event)"
               (allocationChange)="onAllocationChange($event)"
+              (flasksChange)="onFlasksChange($event)"
               (goalsChange)="saveGoals($event)"
               (toggleFavorite)="toggleFavorite($event)"
             />
@@ -1467,6 +1469,24 @@ export class RaceStrategyPage {
         },
         error: () => this.toast.error("Impossible de mettre à jour l'inventaire."),
       });
+  }
+
+  /**
+   * Met à jour les flasques de l'inventaire. Les prises d'hydratation qui
+   * référencent une flasque disparue sont purgées du plan.
+   */
+  onFlasksChange(flasks: Flask[]): void {
+    const event = this.event();
+    if (!event) return;
+    const ids = new Set(flasks.map((flask) => flask.id));
+    const intakes = (event.intakes ?? []).filter(
+      (intake) => !intake.flaskId || ids.has(intake.flaskId),
+    );
+    this.event.set({ ...event, flasks, intakes });
+    this.service.updateStrategy(event.id, { flasks, intakes }).subscribe({
+      next: (updated) => this.event.set(updated),
+      error: () => this.toast.error('Impossible de mettre à jour les flasques.'),
+    });
   }
 
   // --- Plan de nutrition ---

@@ -16,13 +16,20 @@ import {
   type NutritionCategory,
   type RaceStrategy,
   type RaceStrategyItem,
+  type Flask,
   type NutrientGoalKey,
   type NutritionGoals,
   type NutritionProduct,
 } from '../../../core/models';
 import { enabledGoals, resolveGoals } from '../../../core/utils/nutrition-goals.util';
-import { WATER_DEFAULT_ML } from '../../../core/utils/water.util';
-import type { AllocationResult } from '../../../core/utils/inventory-allocation.util';
+import { totalFlaskVolumeMl } from '../../../core/utils/flask.util';
+import { buildFlaskProduct } from '../../../core/utils/water.util';
+import {
+  START_LOCATION_ID,
+  availableAt,
+  setStationQuantity,
+  type AllocationResult,
+} from '../../../core/utils/inventory-allocation.util';
 import { faPlus, faWeightHanging, faXmark, faCheck, faSliders, faStar as faStarSolid } from '@fortawesome/free-solid-svg-icons';
 import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons';
 
@@ -150,17 +157,19 @@ interface InventoryTotals {
           [products]="products()"
           [canAdd]="products().length > 0"
           (allocationChange)="allocationChange.emit($event)"
-          (addProduct)="openPicker()"
+          (flasksChange)="flasksChange.emit($event)"
+          (pickFlaskProduct)="onPickFlaskProduct($event)"
+          (addProduct)="onAddProduct($event)"
         />
       </section>
     </div>
 
     <!-- Panneau : sélecteur de produits -->
-    <ui-side-panel [open]="pickerOpen()" ariaLabel="Ajouter des produits" (close)="closePicker()" size="xl">
+    <ui-side-panel [open]="pickerOpen()" [ariaLabel]="pickerTitle()" (close)="closePicker()" size="xl">
       @if (pickerOpen()) {
         <div class="flex h-full flex-col">
           <div class="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
-            <h2 class="font-display text-lg font-bold text-slate-900">Ajouter des produits</h2>
+            <h2 class="font-display text-lg font-bold text-slate-900">{{ pickerTitle() }}</h2>
             <button
               type="button"
               class="grid h-9 w-9 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600"
@@ -171,6 +180,11 @@ interface InventoryTotals {
             </button>
           </div>
           <div #pickerScroll class="flex-1 space-y-4 overflow-y-auto p-6">
+            @if (flaskPickTarget()) {
+              <p class="rounded-md bg-sky-50 px-4 py-2.5 text-sm text-sky-700">
+                Choisissez la boisson à associer à la flasque (une seule). Laissez vide pour de l'eau pure.
+              </p>
+            }
             @if (products().length === 0) {
               <p class="rounded-md bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
                 Aucun produit dans votre base. Créez-en dans l'onglet Produits.
@@ -240,9 +254,15 @@ interface InventoryTotals {
           @if (products().length > 0) {
             <div class="flex items-center justify-between gap-3 border-t border-slate-200 bg-white px-6 py-4">
               <span class="text-sm text-slate-500">
-                {{ selectedIds().size }} produit{{ selectedIds().size > 1 ? 's' : '' }} sélectionné{{ selectedIds().size > 1 ? 's' : '' }}
+                @if (flaskPickTarget()) {
+                  {{ selectedBoissonLabel() }}
+                } @else {
+                  {{ selectedIds().size }} produit{{ selectedIds().size > 1 ? 's' : '' }} sélectionné{{ selectedIds().size > 1 ? 's' : '' }}
+                }
               </span>
-              <ui-button [icon]="faCheck" (clicked)="confirmSelection()">Enregistrer</ui-button>
+              <ui-button [icon]="faCheck" (clicked)="confirmSelection()">{{
+                flaskPickTarget() ? 'Associer' : productStationTarget() ? 'Ajouter' : 'Enregistrer'
+              }}</ui-button>
             </div>
           }
         </div>
@@ -266,6 +286,8 @@ export class NutritionStrategyInventoryComponent {
   readonly remove = output<string>();
   /** Nouvel état d'inventaire après réaffectation par emplacement. */
   readonly allocationChange = output<AllocationResult>();
+  /** Liste complète des flasques après modification. */
+  readonly flasksChange = output<Flask[]>();
   /** Demande de mise à jour des objectifs nutritionnels (édition inline). */
   readonly goalsChange = output<NutritionGoals>();
   /** Bascule un produit du catalogue dans les favoris de l'utilisateur. */
@@ -297,6 +319,37 @@ export class NutritionStrategyInventoryComponent {
   protected readonly pickerFavoritesOnly = signal(false);
   /** Identifiants des produits sélectionnés dans le panneau. */
   protected readonly selectedIds = signal<Set<string>>(new Set());
+
+  /**
+   * Flasque dont on choisit la boisson via le picker. `null` = mode inventaire
+   * (ajout multiple de produits) ; défini = mode « associer une boisson ».
+   */
+  protected readonly flaskPickTarget = signal<string | null>(null);
+
+  /**
+   * Ravitaillement sur lequel ajouter des produits via le picker. `null` = ajout
+   * à l'inventaire de départ ; défini = ajout en « à récupérer » sur ce ravito.
+   */
+  protected readonly productStationTarget = signal<string | null>(null);
+
+  /** Titre du panneau selon le mode (inventaire / association boisson / ravito). */
+  protected readonly pickerTitle = computed(() => {
+    if (this.flaskPickTarget()) return 'Associer une boisson';
+    const stationId = this.productStationTarget();
+    if (stationId) {
+      const name = (this.event().aidStations ?? []).find((s) => s.id === stationId)?.name;
+      return name ? `Ajouter des produits · ${name}` : 'Ajouter des produits au ravitaillement';
+    }
+    return 'Ajouter des produits';
+  });
+
+  /** Libellé de la boisson sélectionnée en mode flasque (pied du panneau). */
+  protected readonly selectedBoissonLabel = computed(() => {
+    const id = Array.from(this.selectedIds())[0];
+    if (!id) return 'Eau pure (aucune boisson)';
+    const product = this.products().find((p) => p.id === id);
+    return product ? product.name : 'Boisson sélectionnée';
+  });
 
   /** Produits filtrés par recherche (titre/marque), catégorie et favoris. */
   protected readonly filteredPickerProducts = computed(() => {
@@ -355,9 +408,28 @@ export class NutritionStrategyInventoryComponent {
       .filter((item): item is RaceStrategyItem & { product: NutritionProduct } => item !== null);
   });
 
-  /** Totaux cumulés (nutriments + poids). */
-  protected readonly totals = computed<InventoryTotals>(() =>
-    this.resolvedItems().reduce<InventoryTotals>(
+  /** Apports des boissons contenues dans les flasques (dose × nombre de recharges). */
+  private readonly flaskMacros = computed(() => {
+    const catalog = new Map(this.products().map((p) => [p.id, p]));
+    const acc = { energy: 0, carbs: 0, fats: 0, proteins: 0, sodium: 0 };
+    for (const flask of this.event().flasks ?? []) {
+      if (!flask.productId) continue;
+      const boisson = flask.product ?? catalog.get(flask.productId);
+      if (!boisson) continue;
+      const synthetic = buildFlaskProduct(flask, boisson);
+      const quantity = flask.quantity || 0;
+      acc.energy += synthetic.energy * quantity;
+      acc.carbs += synthetic.carbs * quantity;
+      acc.fats += synthetic.fats * quantity;
+      acc.proteins += synthetic.proteins * quantity;
+      acc.sodium += synthetic.sodium * quantity;
+    }
+    return acc;
+  });
+
+  /** Totaux cumulés (produits solides + boissons des flasques). */
+  protected readonly totals = computed<InventoryTotals>(() => {
+    const base = this.resolvedItems().reduce<InventoryTotals>(
       (acc, { product, quantity }) => ({
         weight: acc.weight + product.unitWeight * quantity,
         energy: acc.energy + product.energy * quantity,
@@ -367,8 +439,17 @@ export class NutritionStrategyInventoryComponent {
         sodium: acc.sodium + product.sodium * quantity,
       }),
       { weight: 0, energy: 0, carbs: 0, fats: 0, proteins: 0, sodium: 0 },
-    ),
-  );
+    );
+    const flasks = this.flaskMacros();
+    return {
+      weight: base.weight,
+      energy: base.energy + flasks.energy,
+      carbs: base.carbs + flasks.carbs,
+      fats: base.fats + flasks.fats,
+      proteins: base.proteins + flasks.proteins,
+      sodium: base.sodium + flasks.sodium,
+    };
+  });
 
   /** Durée cible en heures (null si non définie). */
   protected readonly targetHours = computed(() => {
@@ -376,16 +457,14 @@ export class NutritionStrategyInventoryComponent {
     return minutes && minutes > 0 ? minutes / 60 : null;
   });
 
-  /** Volume d'eau (mL) planifié sur le plan (l'eau n'est pas emportée en inventaire). */
-  protected readonly plannedWaterMl = computed(() =>
-    (this.event().intakes ?? [])
-      .filter((intake) => intake.kind === 'water')
-      .reduce((sum, intake) => sum + intake.quantity * WATER_DEFAULT_ML, 0),
+  /** Volume d'eau (mL) emporté = somme des flasques déclarées à l'inventaire. */
+  protected readonly inventoryWaterMl = computed(() =>
+    totalFlaskVolumeMl(this.event().flasks ?? []),
   );
 
-  /** Quantité « emportée » pour un objectif : eau = planifié au plan, sinon total inventaire. */
+  /** Quantité « emportée » pour un objectif : eau = flasques inventaire, sinon total inventaire. */
   private carriedFor(key: NutrientGoalKey): number {
-    if (key === 'water') return this.plannedWaterMl();
+    if (key === 'water') return this.inventoryWaterMl();
     return this.totals()[key];
   }
 
@@ -413,6 +492,11 @@ export class NutritionStrategyInventoryComponent {
 
   /** Bascule la sélection d'un produit dans le panneau. */
   onToggleSelect(productId: string): void {
+    // Mode « associer une boisson » : sélection unique (bascule/remplace).
+    if (this.flaskPickTarget()) {
+      this.selectedIds.set(this.selectedIds().has(productId) ? new Set() : new Set([productId]));
+      return;
+    }
     const next = new Set(this.selectedIds());
     if (next.has(productId)) {
       next.delete(productId);
@@ -427,14 +511,93 @@ export class NutritionStrategyInventoryComponent {
     this.toggleFavorite.emit(product);
   }
 
-  /** Valide la sélection : met à jour l'inventaire puis ferme le panneau. */
+  /** Valide la sélection : met à jour l'inventaire ou la boisson, puis ferme. */
   confirmSelection(): void {
+    const flaskId = this.flaskPickTarget();
+    if (flaskId) {
+      this.setFlaskProduct(flaskId, Array.from(this.selectedIds())[0]);
+      this.flaskPickTarget.set(null);
+      this.pickerOpen.set(false);
+      return;
+    }
+    const stationId = this.productStationTarget();
+    if (stationId) {
+      this.addProductsAtStation(stationId, Array.from(this.selectedIds()));
+      this.productStationTarget.set(null);
+      this.pickerOpen.set(false);
+      return;
+    }
     this.applySelection.emit(Array.from(this.selectedIds()));
     this.pickerOpen.set(false);
   }
 
+  /** Ouvre le picker selon l'emplacement : départ (inventaire) ou ravito (ajout ciblé). */
+  onAddProduct(locationId: string): void {
+    if (locationId === START_LOCATION_ID) {
+      this.openPicker();
+      return;
+    }
+    this.flaskPickTarget.set(null);
+    this.productStationTarget.set(locationId);
+    this.selectedIds.set(new Set());
+    this.pickerOpen.set(true);
+  }
+
+  /** Affecte les produits sélectionnés en « à récupérer » sur un ravitaillement. */
+  private addProductsAtStation(stationId: string, productIds: string[]): void {
+    if (productIds.length === 0) return;
+    let working = this.event();
+    let result: AllocationResult = {
+      items: working.items,
+      aidStations: working.aidStations ?? [],
+    };
+    for (const productId of productIds) {
+      const current = availableAt(working, stationId, productId);
+      result = setStationQuantity(working, stationId, productId, current + 1);
+      working = { ...working, items: result.items, aidStations: result.aidStations };
+    }
+    this.allocationChange.emit(result);
+  }
+
+  /** Ouvre le panneau d'association d'une boisson pour une flasque donnée. */
+  onPickFlaskProduct(flaskId: string): void {
+    const flask = (this.event().flasks ?? []).find((f) => f.id === flaskId);
+    this.selectedIds.set(new Set(flask?.productId ? [flask.productId] : []));
+    this.productStationTarget.set(null);
+    this.flaskPickTarget.set(flaskId);
+    this.pickerOpen.set(true);
+  }
+
+  /** Fixe (ou retire) la boisson d'une flasque et émet la liste mise à jour. */
+  private setFlaskProduct(flaskId: string, productId: string | undefined): void {
+    const flasks: Flask[] = (this.event().flasks ?? []).map((flask) =>
+      flask.id === flaskId
+        ? {
+            id: flask.id,
+            name: flask.name,
+            volumeMl: flask.volumeMl,
+            productId: productId || undefined,
+            doseGrams: undefined,
+            location: flask.location,
+            quantity: flask.quantity,
+          }
+        : {
+            id: flask.id,
+            name: flask.name,
+            volumeMl: flask.volumeMl,
+            productId: flask.productId,
+            doseGrams: flask.doseGrams,
+            location: flask.location,
+            quantity: flask.quantity,
+          },
+    );
+    this.flasksChange.emit(flasks);
+  }
+
   /** Ouvre le panneau de sélection de produits. */
   openPicker(): void {
+    this.flaskPickTarget.set(null);
+    this.productStationTarget.set(null);
     this.selectedIds.set(new Set(this.event().items.map((item) => item.productId)));
     this.pickerOpen.set(true);
   }
@@ -442,6 +605,8 @@ export class NutritionStrategyInventoryComponent {
   /** Ferme le panneau de sélection de produits. */
   closePicker(): void {
     this.pickerOpen.set(false);
+    this.flaskPickTarget.set(null);
+    this.productStationTarget.set(null);
   }
 
   onSetQuantity(productId: string, quantity: number): void {

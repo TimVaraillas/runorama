@@ -96,7 +96,6 @@ import type {
               [intake]="intake"
               [dragging]="dragging()"
               (remove)="removeIntake.emit(intake.id)"
-              (waterMlChange)="setWaterMl.emit({ id: intake.id, ml: $event })"
               (resizeStart)="resizeStart.emit({ event: $event.event, edge: $event.edge, intake })"
             />
           </div>
@@ -158,8 +157,6 @@ export class PlanTimelineComponent {
   readonly dragEnded = output<void>();
   /** Émis pour retirer une prise du planning. */
   readonly removeIntake = output<string>();
-  /** Émis quand le volume d'eau (mL) d'une prise d'eau est modifié. */
-  readonly setWaterMl = output<{ id: string; ml: number }>();
   /** Émis quand une poignée de redimensionnement est saisie. */
   readonly resizeStart = output<IntakeResizeStartEvent>();
   /** Émis au clic sur un repère de ravitaillement (identifiant). */
